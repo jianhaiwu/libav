@@ -125,13 +125,11 @@ install-common: build $(DH_INSTALL_FILES)
 	install -m 644 -D debian-shared/doc/*.html debian/tmp/usr/share/doc/libav/html/
 	install -m 644 -D doc/avserver.conf debian/tmp/etc/
 	install -m 644 -D debian-shared/tools/qt-faststart debian/tmp/usr/bin/qt-faststart
-	dh_install $(addprefix -N,$(LIB_EXTRA_PKGS)) -Nffmpeg -Xffmpeg \
-		-Xffmpeg.1 -Xusr/share/doc/libav-doc \
+	dh_install $(addprefix -N,$(LIB_EXTRA_PKGS)) \
+		-Xusr/share/doc/libav-doc \
 		-Xusr/share/doc/libav --fail-missing --sourcedir=debian/tmp
-	dh_install -pffmpeg --sourcedir=debian/tmp
-	dh_strip $(addprefix -N,$(LIB_PKGS2)) -Nffmpeg --dbg-package=libav-dbg
+	dh_strip $(addprefix -N,$(LIB_PKGS2)) --dbg-package=libav-dbg
 	dh_strip $(addprefix -p,$(LIB_PKGS2)) --dbg-package=libav-regular-dbg
-	dh_strip -pffmpeg --dbg-package=ffmpeg-dbg
 	env LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(CURDIR)/debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)" \
 	debian/tmp/usr/bin/avconv -formats | tee formats-$(DEB_HOST_ARCH).txt
 	env LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(CURDIR)/debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)" \

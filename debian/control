@@ -63,17 +63,12 @@ Build-Depends:
 Package: libav-tools
 Section: video
 Architecture: any
-Provides:
- ffmpeg
 Replaces:
- ffmpeg (<< 4:0.8~),
  libavcodec-extra-53 (<< 4:0.6~),
  libavcodec53 (<< ${source:Version})
 Depends:
  ${misc:Depends},
  ${shlibs:Depends}
-Breaks:
- ffmpeg (<< 4:0.8~)
 Conflicts:
  ffprobe
 Description: Multimedia player, server, encoder and transcoder
@@ -85,41 +80,6 @@ Description: Multimedia player, server, encoder and transcoder
  stream analyzer.  They support most existing file formats (AVI, MPEG,
  OGG, Matroska, ASF...) and encoding formats (MPEG, DivX, MPEG4, AC3,
  DV...).
-
-Package: ffmpeg
-Section: oldlibs
-Priority: extra
-Architecture: any
-Depends:
- libav-tools,
- ${misc:Depends},
- ${shlibs:Depends}
-Description: Multimedia player, server, encoder and transcoder (transitional package)
- Libav is a complete, cross-platform solution to decode, encode, record,
- convert and stream audio and video.
- .
- This package contains the deprecated ffmpeg program. This package also serves
- as a transitional package to libav-tools. Users are advised to use avconv from
- the libav-tools package instead of ffmpeg.
-
-Package: ffmpeg-dbg
-Section: oldlibs
-Priority: extra
-Architecture: any
-Depends:
- libav-dbg,
- ${misc:Depends}
-Description: Debug symbols for Libav related packages (transitional package)
- Libav is a complete, cross-platform solution to decode, encode, record,
- convert and stream audio and video.
- .
- This package contains debug data of the Libav related shared libraries.
- .
- Most people will not need this package. Please install it to produce useful
- stacktraces to help debugging the Libav libraries.
- .
- This package contains the debug symbols for the deprecated ffmpeg program.
- It also serves as a transitional package to libav-tools-dbg.
 
 Package: libav-dbg
 Section: debug
@@ -178,24 +138,6 @@ Description: Debug symbols for Libav related packages
  .
  Most people will not need this package. Please install it to produce useful
  stacktraces to help debugging the Libav library.
-
-Package: ffmpeg-doc
-Section: oldlibs
-Priority: extra
-Architecture: all
-Depends:
- libav-doc,
- ${misc:Depends}
-Description: Documentation of the Libav API (transitional package)
- Libav is a complete, cross-platform solution to decode, encode, record,
- convert and stream audio and video.
- .
- This package contains the html doxygen documentation of the Libav API.
- .
- Only application developers will find this package useful.
- .
- This package is only used for transitional purposes and can be safely
- removed.
 
 Package: libav-doc
 Section: doc
