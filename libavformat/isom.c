@@ -66,7 +66,7 @@ const AVCodecTag ff_mp4_obj_type[] = {
     { CODEC_ID_NONE      ,    0 },
 };
 
-const AVCodecTag codec_movvideo_tags[] = {
+const AVCodecTag ff_codec_movvideo_tags[] = {
 /*  { CODEC_ID_, MKTAG('I', 'V', '5', '0') }, *//* Indeo 5.0 */
 
     { CODEC_ID_RAWVIDEO, MKTAG('r', 'a', 'w', ' ') }, /* Uncompressed RGB */
@@ -228,7 +228,7 @@ const AVCodecTag codec_movvideo_tags[] = {
     { CODEC_ID_NONE, 0 },
 };
 
-const AVCodecTag codec_movaudio_tags[] = {
+const AVCodecTag ff_codec_movaudio_tags[] = {
     { CODEC_ID_AAC,             MKTAG('m', 'p', '4', 'a') },
     { CODEC_ID_AC3,             MKTAG('a', 'c', '-', '3') }, /* ETSI TS 102 366 Annex F */
     { CODEC_ID_AC3,             MKTAG('s', 'a', 'c', '3') }, /* Nero Recode */
@@ -236,8 +236,11 @@ const AVCodecTag codec_movaudio_tags[] = {
     { CODEC_ID_ALAC,            MKTAG('a', 'l', 'a', 'c') },
     { CODEC_ID_AMR_NB,          MKTAG('s', 'a', 'm', 'r') }, /* AMR-NB 3gp */
     { CODEC_ID_AMR_WB,          MKTAG('s', 'a', 'w', 'b') }, /* AMR-WB 3gp */
-    { CODEC_ID_DTS,             MKTAG('d', 't', 's', 'c') }, /* mp4ra.org */
+    { CODEC_ID_DTS,             MKTAG('d', 't', 's', 'c') }, /* DTS formats prior to DTS-HD */
+    { CODEC_ID_DTS,             MKTAG('d', 't', 's', 'h') }, /* DTS-HD audio formats */
+    { CODEC_ID_DTS,             MKTAG('d', 't', 's', 'l') }, /* DTS-HD Lossless formats */
     { CODEC_ID_DTS,             MKTAG('D', 'T', 'S', ' ') }, /* non-standard */
+    { CODEC_ID_EAC3,            MKTAG('e', 'c', '-', '3') }, /* ETSI TS 102 366 Annex F (only valid in ISOBMFF) */
     { CODEC_ID_DVAUDIO,         MKTAG('v', 'd', 'v', 'a') },
     { CODEC_ID_DVAUDIO,         MKTAG('d', 'v', 'c', 'a') },
     { CODEC_ID_GSM,             MKTAG('a', 'g', 's', 'm') },

@@ -26,6 +26,7 @@
 
 #include <stdint.h>
 
+#include "libavutil/mathematics.h"
 #include "libavutil/pixfmt.h"
 #include "avcodec.h"
 
@@ -120,10 +121,21 @@ int avpriv_unlock_avformat(void);
  *                If avpkt->data is already set, avpkt->size is checked
  *                to ensure it is large enough.
  *                If avpkt->data is NULL, a new buffer is allocated.
+ *                avpkt->size is set to the specified size.
  *                All other AVPacket fields will be reset with av_init_packet().
  * @param size    the minimum required packet size
  * @return        0 on success, negative error code on failure
  */
 int ff_alloc_packet(AVPacket *avpkt, int size);
+
+/**
+ * Rescale from sample rate to AVCodecContext.time_base.
+ */
+static av_always_inline int64_t ff_samples_to_time_base(AVCodecContext *avctx,
+                                                        int64_t samples)
+{
+    return av_rescale_q(samples, (AVRational){ 1, avctx->sample_rate },
+                        avctx->time_base);
+}
 
 #endif /* AVCODEC_INTERNAL_H */

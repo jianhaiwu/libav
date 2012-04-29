@@ -137,7 +137,6 @@ typedef struct VideoState {
     int64_t seek_rel;
     int read_pause_return;
     AVFormatContext *ic;
-    int dtg_active_format;
 
     int audio_stream;
 
@@ -245,12 +244,10 @@ static int step = 0;
 static int workaround_bugs = 1;
 static int fast = 0;
 static int genpts = 0;
-static int lowres = 0;
 static int idct = FF_IDCT_AUTO;
 static enum AVDiscard skip_frame       = AVDISCARD_DEFAULT;
 static enum AVDiscard skip_idct        = AVDISCARD_DEFAULT;
 static enum AVDiscard skip_loop_filter = AVDISCARD_DEFAULT;
-static int error_recognition = FF_ER_CAREFUL;
 static int error_concealment = 3;
 static int decoder_reorder_pts = -1;
 static int autoexit;
@@ -1300,7 +1297,7 @@ static void alloc_picture(void *opaque)
         /* SDL allocates a buffer smaller than requested if the video
          * overlay hardware is unable to support the requested size. */
         fprintf(stderr, "Error: the video system does not support an image\n"
-                        "size of %dx%d pixels. Try using -lowres or -vf \"scale=w:h\"\n"
+                        "size of %dx%d pixels. Try using -vf \"scale=w:h\"\n"
                         "to reduce the image size.\n", vp->width, vp->height );
         do_exit();
     }
@@ -1373,7 +1370,7 @@ static int queue_picture(VideoState *is, AVFrame *src_frame, double pts, int64_t
 
     /* if the frame is not skipped, then display it */
     if (vp->bmp) {
-        AVPicture pict;
+        AVPicture pict = { { 0 } };
 #if CONFIG_AVFILTER
         if (vp->picref)
             avfilter_unref_buffer(vp->picref);
@@ -1383,7 +1380,6 @@ static int queue_picture(VideoState *is, AVFrame *src_frame, double pts, int64_t
         /* get a pointer on the bitmap */
         SDL_LockYUVOverlay (vp->bmp);
 
-        memset(&pict, 0, sizeof(AVPicture));
         pict.data[0] = vp->bmp->pixels[0];
         pict.data[1] = vp->bmp->pixels[2];
         pict.data[2] = vp->bmp->pixels[1];
@@ -1527,7 +1523,7 @@ static int input_get_buffer(AVCodecContext *codec, AVFrame *pic)
     AVFilterContext *ctx = codec->opaque;
     AVFilterBufferRef  *ref;
     int perms = AV_PERM_WRITE;
-    int i, w, h, stride[4];
+    int i, w, h, stride[AV_NUM_DATA_POINTERS];
     unsigned edge;
     int pixel_size;
 
@@ -1567,6 +1563,10 @@ static int input_get_buffer(AVCodecContext *codec, AVFrame *pic)
     pic->opaque = ref;
     pic->type   = FF_BUFFER_TYPE_USER;
     pic->reordered_opaque = codec->reordered_opaque;
+    pic->width               = codec->width;
+    pic->height              = codec->height;
+    pic->format              = codec->pix_fmt;
+    pic->sample_aspect_ratio = codec->sample_aspect_ratio;
     if (codec->pkt) pic->pkt_pts = codec->pkt->pts;
     else            pic->pkt_pts = AV_NOPTS_VALUE;
     return 0;
@@ -1704,9 +1704,10 @@ static AVFilter input_filter =
 
 static int configure_video_filters(AVFilterGraph *graph, VideoState *is, const char *vfilters)
 {
+    static const enum PixelFormat pix_fmts[] = { PIX_FMT_YUV420P, PIX_FMT_NONE };
     char sws_flags_str[128];
     int ret;
-    AVSinkContext avsink_ctx = { .pix_fmt = PIX_FMT_YUV420P };
+    SinkContext sink_ctx = { .pix_fmts = pix_fmts };
     AVFilterContext *filt_src = NULL, *filt_out = NULL;
     snprintf(sws_flags_str, sizeof(sws_flags_str), "flags=%d", sws_flags);
     graph->scale_sws_opts = av_strdup(sws_flags_str);
@@ -1714,13 +1715,13 @@ static int configure_video_filters(AVFilterGraph *graph, VideoState *is, const c
     if ((ret = avfilter_graph_create_filter(&filt_src, &input_filter, "src",
                                             NULL, is, graph)) < 0)
         return ret;
-    if ((ret = avfilter_graph_create_filter(&filt_out, &avsink, "out",
-                                            NULL, &avsink_ctx, graph)) < 0)
+    if ((ret = avfilter_graph_create_filter(&filt_out, &sink, "out",
+                                            NULL, &sink_ctx, graph)) < 0)
         return ret;
 
     if (vfilters) {
-        AVFilterInOut *outputs = av_malloc(sizeof(AVFilterInOut));
-        AVFilterInOut *inputs  = av_malloc(sizeof(AVFilterInOut));
+        AVFilterInOut *outputs = avfilter_inout_alloc();
+        AVFilterInOut *inputs  = avfilter_inout_alloc();
 
         outputs->name    = av_strdup("in");
         outputs->filter_ctx = filt_src;
@@ -1734,7 +1735,6 @@ static int configure_video_filters(AVFilterGraph *graph, VideoState *is, const c
 
         if ((ret = avfilter_graph_parse(graph, vfilters, inputs, outputs, NULL)) < 0)
             return ret;
-        av_freep(&vfilters);
     } else {
         if ((ret = avfilter_link(filt_src, 0, filt_out, 0)) < 0)
             return ret;
@@ -1799,7 +1799,7 @@ static int video_thread(void *arg)
             frame->opaque = picref;
         }
 
-        if (av_cmp_q(tb, is->video_st->time_base)) {
+        if (ret >= 0 && av_cmp_q(tb, is->video_st->time_base)) {
             av_unused int64_t pts1 = pts_int;
             pts_int = av_rescale_q(pts_int, tb, is->video_st->time_base);
             av_dlog(NULL, "video_thread(): "
@@ -1834,6 +1834,7 @@ static int video_thread(void *arg)
     }
  the_end:
 #if CONFIG_AVFILTER
+    av_freep(&vfilters);
     avfilter_graph_free(&graph);
 #endif
     av_free(frame);
@@ -2114,8 +2115,10 @@ static int audio_decode_frame(VideoState *is, double *pts_ptr)
         if ((new_packet = packet_queue_get(&is->audioq, pkt, 1)) < 0)
             return -1;
 
-        if (pkt->data == flush_pkt.data)
+        if (pkt->data == flush_pkt.data) {
             avcodec_flush_buffers(dec);
+            flush_complete = 0;
+        }
 
         *pkt_temp = *pkt;
 
@@ -2181,15 +2184,12 @@ static int stream_component_open(VideoState *is, int stream_index)
     avctx->debug_mv          = debug_mv;
     avctx->debug             = debug;
     avctx->workaround_bugs   = workaround_bugs;
-    avctx->lowres            = lowres;
     avctx->idct_algo         = idct;
     avctx->skip_frame        = skip_frame;
     avctx->skip_idct         = skip_idct;
     avctx->skip_loop_filter  = skip_loop_filter;
-    avctx->error_recognition = error_recognition;
     avctx->error_concealment = error_concealment;
 
-    if (lowres) avctx->flags  |= CODEC_FLAG_EMU_EDGE;
     if (fast)   avctx->flags2 |= CODEC_FLAG2_FAST;
 
     if (!av_dict_get(opts, "threads", NULL, 0))
@@ -2976,12 +2976,10 @@ static const OptionDef options[] = {
     { "fast", OPT_BOOL | OPT_EXPERT, { (void*)&fast }, "non spec compliant optimizations", "" },
     { "genpts", OPT_BOOL | OPT_EXPERT, { (void*)&genpts }, "generate pts", "" },
     { "drp", OPT_INT | HAS_ARG | OPT_EXPERT, { (void*)&decoder_reorder_pts }, "let decoder reorder pts 0=off 1=on -1=auto", ""},
-    { "lowres", OPT_INT | HAS_ARG | OPT_EXPERT, { (void*)&lowres }, "", "" },
     { "skiploop", OPT_INT | HAS_ARG | OPT_EXPERT, { (void*)&skip_loop_filter }, "", "" },
     { "skipframe", OPT_INT | HAS_ARG | OPT_EXPERT, { (void*)&skip_frame }, "", "" },
     { "skipidct", OPT_INT | HAS_ARG | OPT_EXPERT, { (void*)&skip_idct }, "", "" },
     { "idct", OPT_INT | HAS_ARG | OPT_EXPERT, { (void*)&idct }, "set idct algo",  "algo" },
-    { "er", OPT_INT | HAS_ARG | OPT_EXPERT, { (void*)&error_recognition }, "set error detection threshold (0-4)",  "threshold" },
     { "ec", OPT_INT | HAS_ARG | OPT_EXPERT, { (void*)&error_concealment }, "set error concealment options",  "bit_mask" },
     { "sync", HAS_ARG | OPT_EXPERT, { (void*)opt_sync }, "set audio-video sync. type (type=audio/video/ext)", "type" },
     { "autoexit", OPT_BOOL | OPT_EXPERT, { (void*)&autoexit }, "exit at the end", "" },

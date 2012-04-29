@@ -29,7 +29,7 @@ FATE_TESTS += fate-auravision-v2
 fate-auravision-v2: CMD = framecrc -i $(SAMPLES)/auravision/salma-hayek-in-ugly-betty-partial-avi -an
 
 FATE_TESTS += fate-bethsoft-vid
-fate-bethsoft-vid: CMD = framecrc -i $(SAMPLES)/bethsoft-vid/ANIM0001.VID -vsync 0 -t 5 -pix_fmt rgb24
+fate-bethsoft-vid: CMD = framecrc -i $(SAMPLES)/bethsoft-vid/ANIM0001.VID -t 5 -pix_fmt rgb24
 
 FATE_TESTS += fate-bfi
 fate-bfi: CMD = framecrc -i $(SAMPLES)/bfi/2287.bfi -pix_fmt rgb24
@@ -68,7 +68,7 @@ FATE_TESTS += fate-cyuv
 fate-cyuv: CMD = framecrc -i $(SAMPLES)/cyuv/cyuv.avi
 
 FATE_TESTS += fate-delphine-cin
-fate-delphine-cin: CMD = framecrc -i $(SAMPLES)/delphine-cin/LOGO-partial.CIN -pix_fmt rgb24 -vsync 0
+fate-delphine-cin: CMD = framecrc -i $(SAMPLES)/delphine-cin/LOGO-partial.CIN -pix_fmt rgb24
 
 FATE_TESTS += fate-deluxepaint-anm
 fate-deluxepaint-anm: CMD = framecrc -i $(SAMPLES)/deluxepaint-anm/INTRO1.ANM -pix_fmt rgb24
@@ -127,11 +127,14 @@ fate-iff-ilbm: CMD = framecrc -i $(SAMPLES)/iff/lms-matriks.ilbm -pix_fmt rgb24
 FATE_TESTS += $(FATE_IFF)
 fate-iff: $(FATE_IFF)
 
+FATE_TESTS += fate-kgv1
+fate-kgv1: CMD = framecrc -i $(SAMPLES)/kega/kgv1.avi -pix_fmt rgb555le -an
+
 FATE_TESTS += fate-kmvc
 fate-kmvc: CMD = framecrc -i $(SAMPLES)/KMVC/LOGO1.AVI -an -t 3 -pix_fmt rgb24
 
 FATE_TESTS += fate-mimic
-fate-mimic: CMD = framecrc -idct simple -i $(SAMPLES)/mimic/mimic2-womanloveffmpeg.cam -vsync 0
+fate-mimic: CMD = framecrc -idct simple -i $(SAMPLES)/mimic/mimic2-womanloveffmpeg.cam
 
 FATE_TESTS += fate-mjpegb
 fate-mjpegb: CMD = framecrc -idct simple -flags +bitexact -i $(SAMPLES)/mjpegb/mjpegb_part.mov -an
@@ -142,8 +145,9 @@ fate-motionpixels: CMD = framecrc -i $(SAMPLES)/motion-pixels/INTRO-partial.MVI 
 FATE_TESTS += fate-mpeg2-field-enc
 fate-mpeg2-field-enc: CMD = framecrc -flags +bitexact -dct fastint -idct simple -i $(SAMPLES)/mpeg2/mpeg2_field_encoding.ts -an
 
+# FIXME dropped frames in this test because of coarse timebase
 FATE_TESTS += fate-nuv
-fate-nuv: CMD = framecrc -idct simple -i $(SAMPLES)/nuv/Today.nuv -vsync 0
+fate-nuv: CMD = framecrc -idct simple -i $(SAMPLES)/nuv/Today.nuv -an
 
 FATE_TESTS += fate-qpeg
 fate-qpeg: CMD = framecrc -i $(SAMPLES)/qpeg/Clock.avi -an -pix_fmt rgb24
@@ -152,13 +156,13 @@ FATE_TESTS += fate-r210
 fate-r210: CMD = framecrc -i $(SAMPLES)/r210/r210.avi -pix_fmt rgb48le
 
 FATE_TESTS += fate-rl2
-fate-rl2: CMD = framecrc -i $(SAMPLES)/rl2/Z4915300.RL2 -pix_fmt rgb24 -an -vsync 0
+fate-rl2: CMD = framecrc -i $(SAMPLES)/rl2/Z4915300.RL2 -pix_fmt rgb24 -an
 
 FATE_TESTS += fate-smacker
 fate-smacker: CMD = framecrc -i $(SAMPLES)/smacker/wetlogo.smk -pix_fmt rgb24
 
 FATE_TESTS += fate-smc
-fate-smc: CMD = framecrc -i $(SAMPLES)/smc/cass_schi.qt -vsync 0 -pix_fmt rgb24
+fate-smc: CMD = framecrc -i $(SAMPLES)/smc/cass_schi.qt -pix_fmt rgb24
 
 FATE_TESTS += fate-sp5x
 fate-sp5x: CMD = framecrc -idct simple -i $(SAMPLES)/sp5x/sp5x_problem.avi

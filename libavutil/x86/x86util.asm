@@ -95,7 +95,7 @@
 %endmacro
 
 %macro TRANSPOSE8x8W 9-11
-%ifdef ARCH_X86_64
+%if ARCH_X86_64
     SBUTTERFLY wd,  %1, %2, %9
     SBUTTERFLY wd,  %3, %4, %9
     SBUTTERFLY wd,  %5, %6, %9
@@ -584,4 +584,13 @@
 %macro CLIPD_SSE41 3-4 ;  src/dst, min, max, unused
     pminsd  %1, %3
     pmaxsd  %1, %2
+%endmacro
+
+%macro VBROADCASTSS 2 ; dst xmm/ymm, src m32
+%if cpuflag(avx)
+    vbroadcastss %1, %2
+%else ; sse
+    movss        %1, %2
+    shufps       %1, %1, 0
+%endif
 %endmacro

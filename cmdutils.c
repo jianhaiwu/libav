@@ -32,10 +32,8 @@
 #include "libavformat/avformat.h"
 #include "libavfilter/avfilter.h"
 #include "libavdevice/avdevice.h"
+#include "libavresample/avresample.h"
 #include "libswscale/swscale.h"
-#if CONFIG_POSTPROC
-#include "libpostproc/postprocess.h"
-#endif
 #include "libavutil/avstring.h"
 #include "libavutil/mathematics.h"
 #include "libavutil/parseutils.h"
@@ -55,7 +53,7 @@
 struct SwsContext *sws_opts;
 AVDictionary *format_opts, *codec_opts;
 
-static const int this_year = 2011;
+static const int this_year = 2012;
 
 void init_opts(void)
 {
@@ -233,14 +231,12 @@ int parse_option(void *optctx, const char *opt, const char *arg,
     if (!po->name && opt[0] == 'n' && opt[1] == 'o') {
         /* handle 'no' bool option */
         po = find_option(options, opt + 2);
-        if (!(po->name && (po->flags & OPT_BOOL)))
-            goto unknown_opt;
-        bool_val = 0;
+        if ((po->name && (po->flags & OPT_BOOL)))
+            bool_val = 0;
     }
     if (!po->name)
         po = find_option(options, "default");
     if (!po->name) {
-unknown_opt:
         av_log(NULL, AV_LOG_ERROR, "Unrecognized option '%s'\n", opt);
         return AVERROR(EINVAL);
     }
@@ -325,11 +321,8 @@ void parse_options(void *optctx, int argc, char **argv, const OptionDef *options
     }
 }
 
-/*
- * Return index of option opt in argv or 0 if not found.
- */
-static int locate_option(int argc, char **argv, const OptionDef *options,
-                         const char *optname)
+int locate_option(int argc, char **argv, const OptionDef *options,
+                  const char *optname)
 {
     const OptionDef *po;
     int i;
@@ -468,7 +461,8 @@ static int warned_cfg = 0;
         const char *indent = flags & INDENT? "  " : "";                 \
         if (flags & SHOW_VERSION) {                                     \
             unsigned int version = libname##_version();                 \
-            av_log(NULL, level, "%slib%-9s %2d.%3d.%2d / %2d.%3d.%2d\n",\
+            av_log(NULL, level,                                         \
+                   "%slib%-10s %2d.%3d.%2d / %2d.%3d.%2d\n",            \
                    indent, #libname,                                    \
                    LIB##LIBNAME##_VERSION_MAJOR,                        \
                    LIB##LIBNAME##_VERSION_MINOR,                        \
@@ -497,10 +491,8 @@ static void print_all_libs_info(int flags, int level)
     PRINT_LIB_INFO(avformat, AVFORMAT, flags, level);
     PRINT_LIB_INFO(avdevice, AVDEVICE, flags, level);
     PRINT_LIB_INFO(avfilter, AVFILTER, flags, level);
+    PRINT_LIB_INFO(avresample, AVRESAMPLE, flags, level);
     PRINT_LIB_INFO(swscale,  SWSCALE,  flags, level);
-#if CONFIG_POSTPROC
-    PRINT_LIB_INFO(postproc, POSTPROC, flags, level);
-#endif
 }
 
 void show_banner(void)
@@ -666,9 +658,9 @@ void show_codecs(void)
                 decode = encode = cap = 0;
             }
             if (p2 && strcmp(p->name, p2->name) == 0) {
-                if (p->decode)
+                if (av_codec_is_decoder(p))
                     decode = 1;
-                if (p->encode)
+                if (av_codec_is_encoder(p))
                     encode = 1;
                 cap |= p->capabilities;
             }
@@ -883,12 +875,12 @@ FILE *get_preset_file(char *filename, size_t filename_size,
         for (i = 0; i < 3 && !f; i++) {
             if (!base[i])
                 continue;
-            snprintf(filename, filename_size, "%s%s/%s.ffpreset", base[i],
+            snprintf(filename, filename_size, "%s%s/%s.avpreset", base[i],
                      i != 1 ? "" : "/.avconv", preset_name);
             f = fopen(filename, "r");
             if (!f && codec_name) {
                 snprintf(filename, filename_size,
-                         "%s%s/%s-%s.ffpreset",
+                         "%s%s/%s-%s.avpreset",
                          base[i], i != 1 ? "" : "/.avconv", codec_name,
                          preset_name);
                 f = fopen(filename, "r");
@@ -1031,34 +1023,36 @@ AVDictionary **setup_find_stream_info_opts(AVFormatContext *s,
 
 #if CONFIG_AVFILTER
 
-static int avsink_init(AVFilterContext *ctx, const char *args, void *opaque)
+static int sink_init(AVFilterContext *ctx, const char *args, void *opaque)
 {
-    AVSinkContext *priv = ctx->priv;
+    SinkContext *priv = ctx->priv;
 
     if (!opaque)
         return AVERROR(EINVAL);
-    *priv = *(AVSinkContext *)opaque;
+    *priv = *(SinkContext *)opaque;
 
     return 0;
 }
 
 static void null_end_frame(AVFilterLink *inlink) { }
 
-static int avsink_query_formats(AVFilterContext *ctx)
+static int sink_query_formats(AVFilterContext *ctx)
 {
-    AVSinkContext *priv = ctx->priv;
-    enum PixelFormat pix_fmts[] = { priv->pix_fmt, PIX_FMT_NONE };
+    SinkContext *priv = ctx->priv;
 
-    avfilter_set_common_formats(ctx, avfilter_make_format_list(pix_fmts));
+    if (priv->pix_fmts)
+        avfilter_set_common_formats(ctx, avfilter_make_format_list(priv->pix_fmts));
+    else
+        avfilter_default_query_formats(ctx);
     return 0;
 }
 
-AVFilter avsink = {
-    .name      = "avsink",
-    .priv_size = sizeof(AVSinkContext),
-    .init      = avsink_init,
+AVFilter sink = {
+    .name      = "sink",
+    .priv_size = sizeof(SinkContext),
+    .init      = sink_init,
 
-    .query_formats = avsink_query_formats,
+    .query_formats = sink_query_formats,
 
     .inputs    = (AVFilterPad[]) {{ .name          = "default",
                                     .type          = AVMEDIA_TYPE_VIDEO,
