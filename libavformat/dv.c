@@ -94,6 +94,10 @@ static const uint8_t* dv_extract_pack(uint8_t* frame, enum dv_pack_type t)
     return frame[offs] == t ? &frame[offs] : NULL;
 }
 
+static const int dv_audio_frequency[3] = {
+    48000, 44100, 32000,
+};
+
 /*
  * There's a couple of assumptions being made here:
  * 1. By default we silence erroneous (0x8000/16bit 0x800/12bit) audio samples.
@@ -299,13 +303,7 @@ DVDemuxContext* avpriv_dv_init_demux(AVFormatContext *s)
         return NULL;
     }
 
-    c->sys  = NULL;
-    c->fctx = s;
-    memset(c->ast, 0, sizeof(c->ast));
-    c->ach    = 0;
-    c->frames = 0;
-    c->abytes = 0;
-
+    c->fctx                   = s;
     c->vst->codec->codec_type = AVMEDIA_TYPE_VIDEO;
     c->vst->codec->codec_id   = CODEC_ID_DVVIDEO;
     c->vst->codec->bit_rate   = 25000000;
@@ -398,7 +396,7 @@ static int64_t dv_frame_offset(AVFormatContext *s, DVDemuxContext *c,
     return offset + s->data_offset;
 }
 
-void dv_offset_reset(DVDemuxContext *c, int64_t frame_offset)
+void ff_dv_offset_reset(DVDemuxContext *c, int64_t frame_offset)
 {
     c->frames= frame_offset;
     if (c->ach)
@@ -417,8 +415,7 @@ typedef struct RawDVContext {
     uint8_t         buf[DV_MAX_FRAME_SIZE];
 } RawDVContext;
 
-static int dv_read_header(AVFormatContext *s,
-                          AVFormatParameters *ap)
+static int dv_read_header(AVFormatContext *s)
 {
     unsigned state, marker_pos = 0;
     RawDVContext *c = s->priv_data;
@@ -488,10 +485,11 @@ static int dv_read_seek(AVFormatContext *s, int stream_index,
     DVDemuxContext *c = r->dv_demux;
     int64_t offset    = dv_frame_offset(s, c, timestamp, flags);
 
-    dv_offset_reset(c, offset / c->sys->frame_size);
+    if (avio_seek(s->pb, offset, SEEK_SET) < 0)
+        return -1;
 
-    offset = avio_seek(s->pb, offset, SEEK_SET);
-    return (offset < 0) ? offset : 0;
+    ff_dv_offset_reset(c, offset / c->sys->frame_size);
+    return 0;
 }
 
 static int dv_read_close(AVFormatContext *s)
@@ -544,6 +542,6 @@ AVInputFormat ff_dv_demuxer = {
     .read_packet    = dv_read_packet,
     .read_close     = dv_read_close,
     .read_seek      = dv_read_seek,
-    .extensions = "dv,dif",
+    .extensions     = "dv,dif",
 };
 #endif

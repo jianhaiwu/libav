@@ -29,6 +29,7 @@
 #include "get_bits.h"
 #include "mathops.h"
 #include "mpegaudiodsp.h"
+#include "dsputil.h"
 
 /*
  * TODO:
@@ -80,6 +81,7 @@ typedef struct MPADecodeContext {
     int err_recognition;
     AVCodecContext* avctx;
     MPADSPContext mpadsp;
+    DSPContext dsp;
     AVFrame frame;
 } MPADecodeContext;
 
@@ -302,11 +304,8 @@ static av_cold void decode_init_static(void)
     for (i = 1; i < 16; i++) {
         const HuffTable *h = &mpa_huff_tables[i];
         int xsize, x, y;
-        uint8_t  tmp_bits [512];
-        uint16_t tmp_codes[512];
-
-        memset(tmp_bits , 0, sizeof(tmp_bits ));
-        memset(tmp_codes, 0, sizeof(tmp_codes));
+        uint8_t  tmp_bits [512] = { 0 };
+        uint16_t tmp_codes[512] = { 0 };
 
         xsize = h->xsize;
 
@@ -432,6 +431,7 @@ static av_cold int decode_init(AVCodecContext * avctx)
     s->avctx = avctx;
 
     ff_mpadsp_init(&s->mpadsp);
+    ff_dsputil_init(&s->dsp, avctx);
 
     avctx->sample_fmt= OUT_FMT;
     s->err_recognition = avctx->err_recognition;
@@ -1153,6 +1153,9 @@ found2:
         /* ms stereo ONLY */
         /* NOTE: the 1/sqrt(2) normalization factor is included in the
            global gain */
+#if CONFIG_FLOAT
+       s-> dsp.butterflies_float(g0->sb_hybrid, g1->sb_hybrid, 576);
+#else
         tab0 = g0->sb_hybrid;
         tab1 = g1->sb_hybrid;
         for (i = 0; i < 576; i++) {
@@ -1161,6 +1164,7 @@ found2:
             tab0[i] = tmp0 + tmp1;
             tab1[i] = tmp0 - tmp1;
         }
+#endif
     }
 }
 
@@ -1529,7 +1533,7 @@ static int mp_decode_layer3(MPADecodeContext *s)
             huffman_decode(s, g, exponents, bits_pos + g->part2_3_length);
         } /* ch */
 
-        if (s->nb_channels == 2)
+        if (s->mode == MPA_JSTEREO)
             compute_stereo(s, &s->granules[0][gr], &s->granules[1][gr]);
 
         for (ch = 0; ch < s->nb_channels; ch++) {
@@ -1653,7 +1657,6 @@ static int decode_frame(AVCodecContext * avctx, void *data, int *got_frame_ptr,
     avctx->channel_layout = s->nb_channels == 1 ? AV_CH_LAYOUT_MONO : AV_CH_LAYOUT_STEREO;
     if (!avctx->bit_rate)
         avctx->bit_rate = s->bit_rate;
-    avctx->sub_id = s->layer;
 
     if (s->frame_size <= 0 || s->frame_size > buf_size) {
         av_log(avctx, AV_LOG_ERROR, "incomplete frame\n");
@@ -1726,16 +1729,14 @@ static int decode_frame_adu(AVCodecContext *avctx, void *data,
     avctx->channels    = s->nb_channels;
     if (!avctx->bit_rate)
         avctx->bit_rate = s->bit_rate;
-    avctx->sub_id = s->layer;
 
     s->frame_size = len;
 
-#if FF_API_PARSE_FRAME
-    if (avctx->parse_only)
-        out_size = buf_size;
-    else
-#endif
     out_size = mp_decode_frame(s, NULL, buf, buf_size);
+    if (out_size < 0) {
+        av_log(avctx, AV_LOG_ERROR, "Error while decoding MPEG audio frame.\n");
+        return AVERROR_INVALIDDATA;
+    }
 
     *got_frame_ptr   = 1;
     *(AVFrame *)data = s->frame;
@@ -1986,11 +1987,7 @@ AVCodec ff_mp1_decoder = {
     .priv_data_size = sizeof(MPADecodeContext),
     .init           = decode_init,
     .decode         = decode_frame,
-#if FF_API_PARSE_FRAME
-    .capabilities   = CODEC_CAP_PARSE_ONLY | CODEC_CAP_DR1,
-#else
     .capabilities   = CODEC_CAP_DR1,
-#endif
     .flush          = flush,
     .long_name      = NULL_IF_CONFIG_SMALL("MP1 (MPEG audio layer 1)"),
 };
@@ -2003,11 +2000,7 @@ AVCodec ff_mp2_decoder = {
     .priv_data_size = sizeof(MPADecodeContext),
     .init           = decode_init,
     .decode         = decode_frame,
-#if FF_API_PARSE_FRAME
-    .capabilities   = CODEC_CAP_PARSE_ONLY | CODEC_CAP_DR1,
-#else
     .capabilities   = CODEC_CAP_DR1,
-#endif
     .flush          = flush,
     .long_name      = NULL_IF_CONFIG_SMALL("MP2 (MPEG audio layer 2)"),
 };
@@ -2020,11 +2013,7 @@ AVCodec ff_mp3_decoder = {
     .priv_data_size = sizeof(MPADecodeContext),
     .init           = decode_init,
     .decode         = decode_frame,
-#if FF_API_PARSE_FRAME
-    .capabilities   = CODEC_CAP_PARSE_ONLY | CODEC_CAP_DR1,
-#else
     .capabilities   = CODEC_CAP_DR1,
-#endif
     .flush          = flush,
     .long_name      = NULL_IF_CONFIG_SMALL("MP3 (MPEG audio layer 3)"),
 };
@@ -2037,11 +2026,7 @@ AVCodec ff_mp3adu_decoder = {
     .priv_data_size = sizeof(MPADecodeContext),
     .init           = decode_init,
     .decode         = decode_frame_adu,
-#if FF_API_PARSE_FRAME
-    .capabilities   = CODEC_CAP_PARSE_ONLY | CODEC_CAP_DR1,
-#else
     .capabilities   = CODEC_CAP_DR1,
-#endif
     .flush          = flush,
     .long_name      = NULL_IF_CONFIG_SMALL("ADU (Application Data Unit) MP3 (MPEG audio layer 3)"),
 };

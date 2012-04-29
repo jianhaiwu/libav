@@ -927,7 +927,7 @@ static av_cold int svq3_decode_init(AVCodecContext *avctx)
         s->width  = avctx->width;
         s->height = avctx->height;
 
-        if (MPV_common_init(s) < 0)
+        if (ff_MPV_common_init(s) < 0)
             return -1;
 
         h->b_stride = 4*s->mb_width;
@@ -955,7 +955,7 @@ static int svq3_decode_frame(AVCodecContext *avctx,
     /* special case for last picture */
     if (buf_size == 0) {
         if (s->next_picture_ptr && !s->low_delay) {
-            *(AVFrame *) data = *(AVFrame *) &s->next_picture;
+            *(AVFrame *) data   = s->next_picture.f;
             s->next_picture_ptr = NULL;
             *data_size = sizeof(AVFrame);
         }
@@ -1072,12 +1072,12 @@ static int svq3_decode_frame(AVCodecContext *avctx,
         ff_draw_horiz_band(s, 16*s->mb_y, 16);
     }
 
-    MPV_frame_end(s);
+    ff_MPV_frame_end(s);
 
     if (s->pict_type == AV_PICTURE_TYPE_B || s->low_delay) {
-        *(AVFrame *) data = *(AVFrame *) &s->current_picture;
+        *(AVFrame *) data = s->current_picture.f;
     } else {
-        *(AVFrame *) data = *(AVFrame *) &s->last_picture;
+        *(AVFrame *) data = s->last_picture.f;
     }
 
     /* Do not output the last pic after seeking. */
@@ -1096,7 +1096,7 @@ static int svq3_decode_end(AVCodecContext *avctx)
 
     ff_h264_free_context(h);
 
-    MPV_common_end(s);
+    ff_MPV_common_end(s);
 
     return 0;
 }
@@ -1109,7 +1109,8 @@ AVCodec ff_svq3_decoder = {
     .init           = svq3_decode_init,
     .close          = svq3_decode_end,
     .decode         = svq3_decode_frame,
-    .capabilities   = CODEC_CAP_DRAW_HORIZ_BAND | CODEC_CAP_DR1 | CODEC_CAP_DELAY,
-    .long_name = NULL_IF_CONFIG_SMALL("Sorenson Vector Quantizer 3 / Sorenson Video 3 / SVQ3"),
-    .pix_fmts= (const enum PixelFormat[]){PIX_FMT_YUVJ420P, PIX_FMT_NONE},
+    .capabilities   = CODEC_CAP_DRAW_HORIZ_BAND | CODEC_CAP_DR1 |
+                      CODEC_CAP_DELAY,
+    .long_name      = NULL_IF_CONFIG_SMALL("Sorenson Vector Quantizer 3 / Sorenson Video 3 / SVQ3"),
+    .pix_fmts       = (const enum PixelFormat[]){ PIX_FMT_YUVJ420P, PIX_FMT_NONE },
 };

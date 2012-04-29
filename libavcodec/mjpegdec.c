@@ -46,14 +46,13 @@ static int build_vlc(VLC *vlc, const uint8_t *bits_table,
                      const uint8_t *val_table, int nb_codes,
                      int use_static, int is_ac)
 {
-    uint8_t huff_size[256];
+    uint8_t huff_size[256] = { 0 };
     uint16_t huff_code[256];
     uint16_t huff_sym[256];
     int i;
 
     assert(nb_codes <= 256);
 
-    memset(huff_size, 0, sizeof(huff_size));
     ff_mjpeg_build_huffman_codes(huff_size, huff_code, bits_table, val_table);
 
     for (i = 0; i < 256; i++)
@@ -62,8 +61,8 @@ static int build_vlc(VLC *vlc, const uint8_t *bits_table,
     if (is_ac)
         huff_sym[0] = 16 * 256;
 
-    return init_vlc_sparse(vlc, 9, nb_codes, huff_size, 1, 1,
-                           huff_code, 2, 2, huff_sym, 2, 2, use_static);
+    return ff_init_vlc_sparse(vlc, 9, nb_codes, huff_size, 1, 1,
+                              huff_code, 2, 2, huff_sym, 2, 2, use_static);
 }
 
 static void build_basic_mjpeg_vlc(MJpegDecodeContext *s)
@@ -90,7 +89,7 @@ av_cold int ff_mjpeg_decode_init(AVCodecContext *avctx)
         s->picture_ptr = &s->picture;
 
     s->avctx = avctx;
-    dsputil_init(&s->dsp, avctx);
+    ff_dsputil_init(&s->dsp, avctx);
     ff_init_scantable(s->dsp.idct_permutation, &s->scantable, ff_zigzag_direct);
     s->buffer_size   = 0;
     s->buffer        = NULL;
@@ -101,10 +100,6 @@ av_cold int ff_mjpeg_decode_init(AVCodecContext *avctx)
 
     build_basic_mjpeg_vlc(s);
 
-#if FF_API_MJPEG_GLOBAL_OPTS
-    if (avctx->flags & CODEC_FLAG_EXTERN_HUFF)
-        s->extern_huff = 1;
-#endif
     if (s->extern_huff) {
         av_log(avctx, AV_LOG_INFO, "mjpeg: using external huffman table\n");
         init_get_bits(&s->gb, avctx->extradata, avctx->extradata_size * 8);
@@ -195,7 +190,7 @@ int ff_mjpeg_decode_dht(MJpegDecodeContext *s)
         len -= n;
 
         /* build VLC and flush previous vlc if present */
-        free_vlc(&s->vlcs[class][index]);
+        ff_free_vlc(&s->vlcs[class][index]);
         av_log(s->avctx, AV_LOG_DEBUG, "class=%d index=%d nb_codes=%d\n",
                class, index, code_max + 1);
         if (build_vlc(&s->vlcs[class][index], bits_table, val_table,
@@ -203,7 +198,7 @@ int ff_mjpeg_decode_dht(MJpegDecodeContext *s)
             return -1;
 
         if (class > 0) {
-            free_vlc(&s->vlcs[2][index]);
+            ff_free_vlc(&s->vlcs[2][index]);
             if (build_vlc(&s->vlcs[2][index], bits_table, val_table,
                           code_max + 1, 0, 0) < 0)
                 return -1;
@@ -801,21 +796,6 @@ static int ljpeg_decode_yuv_scan(MJpegDecodeContext *s, int predictor,
     return 0;
 }
 
-static av_always_inline void mjpeg_copy_block(uint8_t *dst, const uint8_t *src,
-                                              int linesize, int lowres)
-{
-    switch (lowres) {
-    case 0: copy_block8(dst, src, linesize, linesize, 8);
-        break;
-    case 1: copy_block4(dst, src, linesize, linesize, 4);
-        break;
-    case 2: copy_block2(dst, src, linesize, linesize, 2);
-        break;
-    case 3: *dst = *src;
-        break;
-    }
-}
-
 static int mjpeg_decode_scan(MJpegDecodeContext *s, int nb_components, int Ah,
                              int Al, const uint8_t *mb_bitmask,
                              const AVFrame *reference)
@@ -874,16 +854,16 @@ static int mjpeg_decode_scan(MJpegDecodeContext *s, int nb_components, int Ah,
                 x = 0;
                 y = 0;
                 for (j = 0; j < n; j++) {
-                    block_offset = (((linesize[c] * (v * mb_y + y) * 8) +
-                                     (h * mb_x + x) * 8) >> s->avctx->lowres);
+                    block_offset = ((linesize[c] * (v * mb_y + y) * 8) +
+                                    (h * mb_x + x) * 8);
 
                     if (s->interlaced && s->bottom_field)
                         block_offset += linesize[c] >> 1;
                     ptr = data[c] + block_offset;
                     if (!s->progressive) {
                         if (copy_mb)
-                            mjpeg_copy_block(ptr, reference_data[c] + block_offset,
-                                             linesize[c], s->avctx->lowres);
+                            copy_block8(ptr, reference_data[c] + block_offset,
+                                        linesize[c], linesize[c], 8);
                         else {
                             s->dsp.clear_block(s->block);
                             if (decode_block(s, s->block, i,
@@ -973,7 +953,7 @@ static int mjpeg_decode_scan_progressive_ac(MJpegDecodeContext *s, int ss,
     }
 
     for (mb_y = 0; mb_y < s->mb_height; mb_y++) {
-        int block_offset = (mb_y * linesize * 8 >> s->avctx->lowres);
+        int block_offset = mb_y * linesize * 8;
         uint8_t *ptr     = data + block_offset;
         int block_idx    = mb_y * s->block_stride[c];
         DCTELEM (*block)[64] = &s->blocks[c][block_idx];
@@ -998,11 +978,11 @@ static int mjpeg_decode_scan_progressive_ac(MJpegDecodeContext *s, int ss,
 
             if (last_scan) {
                 if (copy_mb) {
-                    mjpeg_copy_block(ptr, reference_data + block_offset,
-                                     linesize, s->avctx->lowres);
+                    copy_block8(ptr, reference_data + block_offset,
+                                linesize, linesize, 8);
                 } else {
                     s->dsp.idct_put(ptr, linesize, *block);
-                    ptr += 8 >> s->avctx->lowres;
+                    ptr += 8;
                 }
             }
         }
@@ -1362,13 +1342,9 @@ int ff_mjpeg_find_marker(MJpegDecodeContext *s,
     int start_code;
     start_code = find_marker(buf_ptr, buf_end);
 
-    if ((buf_end - *buf_ptr) > s->buffer_size) {
-        av_free(s->buffer);
-        s->buffer_size = buf_end - *buf_ptr;
-        s->buffer      = av_malloc(s->buffer_size + FF_INPUT_BUFFER_PADDING_SIZE);
-        av_log(s->avctx, AV_LOG_DEBUG,
-               "buffer too small, expanding to %d bytes\n", s->buffer_size);
-    }
+    av_fast_padded_malloc(&s->buffer, &s->buffer_size, buf_end - *buf_ptr);
+    if (!s->buffer)
+        return AVERROR(ENOMEM);
 
     /* unescape buffer of SOS, use special treatment for JPEG-LS */
     if (start_code == SOS && !s->ls) {
@@ -1467,7 +1443,7 @@ int ff_mjpeg_decode_frame(AVCodecContext *avctx, void *data, int *data_size,
             goto the_end;
         } else if (unescaped_buf_size > (1U<<29)) {
             av_log(avctx, AV_LOG_ERROR, "MJPEG packet 0x%x too big (0x%x/0x%x), corrupt data?\n",
-                   start_code, unescaped_buf_ptr, buf_size);
+                   start_code, unescaped_buf_size, buf_size);
             return AVERROR_INVALIDDATA;
         } else {
             av_log(avctx, AV_LOG_DEBUG, "marker=%x avail_size_in_buf=%td\n",
@@ -1643,7 +1619,7 @@ av_cold int ff_mjpeg_decode_end(AVCodecContext *avctx)
 
     for (i = 0; i < 3; i++) {
         for (j = 0; j < 4; j++)
-            free_vlc(&s->vlcs[i][j]);
+            ff_free_vlc(&s->vlcs[i][j]);
     }
     for (i = 0; i < MAX_COMPONENTS; i++) {
         av_freep(&s->blocks[i]);
@@ -1676,7 +1652,6 @@ AVCodec ff_mjpeg_decoder = {
     .close          = ff_mjpeg_decode_end,
     .decode         = ff_mjpeg_decode_frame,
     .capabilities   = CODEC_CAP_DR1,
-    .max_lowres     = 3,
     .long_name      = NULL_IF_CONFIG_SMALL("MJPEG (Motion JPEG)"),
     .priv_class     = &mjpegdec_class,
 };
@@ -1690,6 +1665,5 @@ AVCodec ff_thp_decoder = {
     .close          = ff_mjpeg_decode_end,
     .decode         = ff_mjpeg_decode_frame,
     .capabilities   = CODEC_CAP_DR1,
-    .max_lowres     = 3,
     .long_name      = NULL_IF_CONFIG_SMALL("Nintendo Gamecube THP video"),
 };
