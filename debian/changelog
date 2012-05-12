@@ -1,8 +1,15 @@
-libav (6:0.8.99-1537-gacb2c79-1) UNRELEASED; urgency=low
+libav (6:0.8.99-1537-gacb2c79-1) experimental; urgency=low
 
-  * 
+  * New upstream snapshot
+    - Drop patches applied upstream
+    - Longer build libpostproc, dropped upstream
+    - follow soname bump of libavcodec and libavformat 53->54
+    - New library: libswresample
+  * no longer build and use dirac, removed upstream in favor of libschroedinger
+  * remove deprecated ffmpeg package
+  * bump shlibs version
 
- -- Reinhard Tartler <siretart@tauware.de>  Mon, 30 Apr 2012 08:47:53 +0200
+ -- Reinhard Tartler <siretart@tauware.de>  Sat, 12 May 2012 22:02:03 +0200
 
 libav (6:0.8.1-6) unstable; urgency=low
 
