@@ -64,7 +64,7 @@ Package: libav-tools
 Section: video
 Architecture: any
 Replaces:
- libavcodec-extra-53 (<< 4:0.6~),
+ libavcodec-extra-54 (<< 4:0.6~),
  libavcodec53 (<< ${source:Version})
 Depends:
  ${misc:Depends},
@@ -94,7 +94,7 @@ Breaks:
 Depends:
  libav-tools (= ${binary:Version}),
  libavdevice53 (= ${binary:Version}),
- libavformat53 (= ${binary:Version}),
+ libavformat54 (= ${binary:Version}),
  libavutil51 (= ${binary:Version}),
  libswscale2 (= ${binary:Version}),
  ${misc:Depends}
@@ -112,7 +112,7 @@ Section: debug
 Priority: extra
 Architecture: any
 Depends:
- libavcodec53 (= ${binary:Version}),
+ libavcodec54 (= ${binary:Version}),
  ${misc:Depends}
 Description: Debug symbols for Libav related packages
  Libav is a complete, cross-platform solution to decode, encode, record,
@@ -128,7 +128,7 @@ Section: debug
 Priority: extra
 Architecture: any
 Depends:
- libavcodec-extra-53 (= ${binary:Version}),
+ libavcodec-extra-54 (= ${binary:Version}),
  ${misc:Depends}
 Description: Debug symbols for Libav related packages
  Libav is a complete, cross-platform solution to decode, encode, record,
@@ -176,7 +176,7 @@ Description: Libav utility library
  This is the common utility library from Libav. It contains shared code
  used by all other Libav libraries.
 
-Package: libavcodec53
+Package: libavcodec54
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
@@ -184,9 +184,9 @@ Depends:
  ${misc:Depends},
  ${shlibs:Depends}
 Conflicts:
- libavcodec-extra-53
+ libavcodec-extra-54
 Breaks:
- libavcodec-extra-53 (<< 4:0.8.0.2)
+ libavcodec-extra-54 (<< 4:0.8.0.2)
 Description: Libav codec library
  Libav is a complete, cross-platform solution to decode, encode, record,
  convert and stream audio and video.
@@ -214,7 +214,7 @@ Description: Libav device handling library
  .
  This is the device handling library from Libav.
 
-Package: libavformat53
+Package: libavformat54
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
@@ -222,11 +222,11 @@ Depends:
  ${misc:Depends},
  ${shlibs:Depends}
 Provides:
- libavformat-extra-53
+ libavformat-extra-54
 Replaces:
- libavformat-extra-53
+ libavformat-extra-54
 Breaks:
- libavformat-extra-53 (<< 5:0.8.1-2)
+ libavformat-extra-54 (<< 5:0.8.1-2)
 Description: Libav file format library
  Libav is a complete, cross-platform solution to decode, encode, record,
  convert and stream audio and video.
@@ -293,8 +293,8 @@ Package: libavcodec-dev
 Section: libdevel
 Architecture: any
 Depends:
- libavcodec53 (<= ${source:Upstream-Version}-99) | libavcodec-extra-53 (<= ${source:Upstream-Version}-99),
- libavcodec53 (>= ${binary:Version}) | libavcodec-extra-53 (>= ${binary:Version}),
+ libavcodec54 (<= ${source:Upstream-Version}-99) | libavcodec-extra-54 (<= ${source:Upstream-Version}-99),
+ libavcodec54 (>= ${binary:Version}) | libavcodec-extra-54 (>= ${binary:Version}),
  libavutil-dev (= ${binary:Version}),
  ${misc:Depends}
 Suggests:
@@ -339,7 +339,7 @@ Section: libdevel
 Architecture: any
 Depends:
  libavcodec-dev (= ${binary:Version}),
- libavformat53 (= ${binary:Version}),
+ libavformat54 (= ${binary:Version}),
  libavutil-dev (= ${binary:Version}),
  ${misc:Depends}
 Description: Development files for libavformat
@@ -428,7 +428,7 @@ Description: Libav utility library (transitional package)
  This package is only used for transitional purposes and can be safely
  removed when no other packages depend on this package.
 
-Package: libavcodec-extra-53
+Package: libavcodec-extra-54
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
@@ -436,13 +436,13 @@ Depends:
  ${misc:Depends},
  ${shlibs:Depends}
 Conflicts:
- libavcodec53
+ libavcodec54
 Replaces:
- libavcodec53
+ libavcodec54
 Breaks:
  mplayer (<< 2:1.0~rc4.dfsg1+svn34540-1~)
 Enhances:
- libavcodec53
+ libavcodec54
 Description: Libav codec library
  Libav is a complete, cross-platform solution to decode, encode, record,
  convert and stream audio and video.
@@ -491,13 +491,13 @@ Description: Libav filter library (transitional package)
  This package is only used for transitional purposes and can be safely
  removed when no other packages depend on this package.
 
-Package: libavformat-extra-53
+Package: libavformat-extra-54
 Section: oldlibs
 Priority: extra
 Architecture: all
 Multi-Arch: foreign
 Depends:
- libavformat53,
+ libavformat54,
  ${misc:Depends},
 Description: Libav video postprocessing library (transitional package)
  Libav is a complete, cross-platform solution to decode, encode, record,

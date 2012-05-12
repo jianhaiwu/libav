@@ -134,8 +134,8 @@ install-common: build $(DH_INSTALL_FILES)
 	debian/tmp/usr/bin/avconv -formats | tee formats-$(DEB_HOST_ARCH).txt
 	env LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(CURDIR)/debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)" \
 	debian/tmp/usr/bin/avconv -codecs | tee codecs.txt
-	dh_installdocs -plibavformat53 formats-$(DEB_HOST_ARCH).txt
-	dh_installdocs -plibavcodec53 codecs.txt
+	dh_installdocs -plibavformat54 formats-$(DEB_HOST_ARCH).txt
+	dh_installdocs -plibavcodec54 codecs.txt
 install-extra: build $(DH_INSTALL_FILES)
 	dh_testdir
 	dh_testroot
@@ -146,7 +146,7 @@ install-extra: build $(DH_INSTALL_FILES)
 	dh_strip $(addprefix -p,$(LIB_EXTRA_PKGS)) --dbg-package=libav-extra-dbg
 	env LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(CURDIR)/debian/tmp/extra/usr/lib/$(DEB_HOST_MULTIARCH)" \
 	debian/tmp/usr/bin/avconv -codecs | tee codecs.txt
-	dh_installdocs -plibavcodec-extra-53 codecs.txt
+	dh_installdocs -plibavcodec-extra-54 codecs.txt
 
 binary-indep: build-doxy install
 
