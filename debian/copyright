@@ -39,13 +39,6 @@ The following files are licensed under the GNU GPL, as clarified below:
  * libavformat:
    + x11grab.c
    + gxfenc.c
- * libpostproc:
-   + postprocess_internal.h
-   + postprocess_altivec_template.c
-   + postprocess.h
-   + postprocess_template.c
-   + postprocess.c
-   + mangle.h
  * libswscale:
    + swscale.c
    + swscale-example.c
