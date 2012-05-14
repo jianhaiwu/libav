@@ -91,7 +91,7 @@ clean:
 	    build-doxy-stamp
 	rm -rf $(addprefix debian-, $(FLAVORS)) \
 		$(addprefix debian-extra-, $(FLAVORS)) doxy
-	dh_clean $(DH_INSTALL_FILES)
+	dh_clean $(DH_INSTALL_FILES) $(wildcard formats*.txt) $(wildcard codecs*.txt)
 
 get-orig-source:
 	dh_testdir
