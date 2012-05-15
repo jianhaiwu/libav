@@ -6,9 +6,13 @@ DEB_VERSION := $(shell dpkg-parsechangelog | sed -n 's/^Version: //p')
 UPSTREAM_VERSION := $(shell echo $(DEB_VERSION) | sed -r 's/[^:]+://; s/-[^-]+$$//')
 SHLIBS_VERSION := 6:0.8.99-1537
 
+# these package do not build -extra variants
 LIB_PKGS := $(shell sed -nr 's/^Package:[[:space:]]*(lib(avutil|avdevice|avformat|avfilter|avresample|swscale)[0-9]+)[[:space:]]*$$/\1/p' debian/control)
+# these packages do build -extra variants
 LIB_PKGS2 := $(shell sed -nr 's/^Package:[[:space:]]*(libavcodec[0-9]+)[[:space:]]*$$/\1/p' debian/control)
+# these packages are the -extra- variants
 LIB_EXTRA_PKGS := $(shell sed -nr 's/^Package:[[:space:]]*(libavcodec-extra-[0-9]+)[[:space:]]*$$/\1/p' debian/control)
+# these are the -dev packages
 DEV_PKGS := $(shell echo $(LIB_PKGS) $(LIB_PKGS2) | sed 's/[0-9]\+\>/-dev/g')
 
 # Support multiple makes at once
@@ -169,29 +173,14 @@ binary-arch: build install
 	dh_fixperms
 	dh_strip
 
-# strict internal dependencies
 	for pkg in $(LIB_PKGS); do \
-	    dh_makeshlibs -p"$$pkg" -V"$$pkg (>= $(DEB_VERSION)), $$pkg (<< $(EPOCH)$(UPSTREAM_VERSION)-99)"; \
+	    dh_makeshlibs -p"$$pkg" -V"$$pkg (>= $(DEB_VERSION))"; \
 	done
 	for pkg in $(LIB_PKGS2); do \
 	    upkg=$$(echo "$$pkg" | sed -r 's/([0-9]+)$$/-extra-\1/'); \
-	    dh_makeshlibs -p"$$pkg" -V"$$pkg (>= $(DEB_VERSION)) | $$upkg (>= $(DEB_VERSION)), $$pkg (<< $(EPOCH)$(UPSTREAM_VERSION)-99) | $$upkg (<< $(EPOCH)$(UPSTREAM_VERSION)-99)"; \
+	    dh_makeshlibs -p"$$pkg" -V"$$pkg (>= $(DEB_VERSION)) | $$upkg (>= $(DEB_VERSION))"; \
 	done
-	env LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(CURDIR)/debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)" \
-	dh_shlibdeps $(addprefix -N,$(LIB_EXTRA_PKGS)) $(addprefix -L,$(LIB_PKGS))
-	for pkg in $(LIB_EXTRA_PKGS); do \
-	    dh_makeshlibs -p"$$pkg" -V"$$pkg (>= $(DEB_VERSION)), $$pkg (<< $(EPOCH)$(UPSTREAM_VERSION)-99)"; \
-	done
-	env LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(CURDIR)/debian/tmp/extra/usr/lib/$(DEB_HOST_MULTIARCH)" \
-	dh_shlibdeps $(addprefix -p,$(LIB_EXTRA_PKGS)) $(addprefix -L,$(LIB_EXTRA_PKGS))
-# target dependencies for external packages
-	for pkg in $(LIB_PKGS) $(LIB_EXTRA_PKGS); do \
-	    dh_makeshlibs -p"$$pkg" -V"$$pkg (>= $(SHLIBS_VERSION))"; \
-	done
-	for pkg in $(LIB_PKGS2); do \
-	    upkg=$$(echo "$$pkg" | sed -r 's/([0-9]+)$$/-extra-\1/'); \
-	    dh_makeshlibs -p"$$pkg" -V"$$pkg (>= $(SHLIBS_VERSION)) | $$upkg (>= $(SHLIBS_VERSION))"; \
-	done
+	dh_shlibdeps
 	dh_installdeb
 	dh_gencontrol -- -Vlib1394-dev="$(lib1394-dev)"
 	dh_md5sums

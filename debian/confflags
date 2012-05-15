@@ -96,7 +96,6 @@ confflags += --extra-version='$(DEB_VERSION)'
 confflags += --arch='$(DEB_HOST_ARCH_CPU)'
 confflags += --prefix=/usr
 confflags += --libdir=/usr/lib/$(DEB_HOST_MULTIARCH)
-confflags += --enable-vaapi
 confflags += --enable-vdpau
 confflags += --enable-bzlib
 confflags += --enable-frei0r
@@ -113,6 +112,7 @@ confflags += --enable-zlib
 confflags += --enable-libvpx
 confflags += --enable-runtime-cpudetect
 confflags += --enable-libfreetype
+confflags += --enable-libpulse
 ifeq      ($(DEB_HOST_ARCH),armel)
 # this is required on Ubuntu lucid as it defaults to thumb2 and Libav has
 # plenty of incompatible assembly; not sure how to detect that properly
@@ -125,8 +125,8 @@ endif
 
 confflags += $(extra_common_confflags)
 
-# pulse is not available on the hurd
-confflags += $(call cond_enable,/usr/include/pulse/simple.h,libpulse)
+# libva is not available on the hurd
+confflags += $(call cond_enable,/usr/include/va/va.h,vaapi)
 
 # this part below is intended for the 'Libav' package in ubuntu/multiverse
 gpl_confflags += $(call cond_enable,/usr/include/lame/lame.h,libmp3lame)

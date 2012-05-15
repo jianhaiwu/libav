@@ -23,6 +23,40 @@ libav (6:0.8.99-1537-gacb2c79-1) experimental; urgency=low
 
  -- Reinhard Tartler <siretart@tauware.de>  Sat, 12 May 2012 22:02:03 +0200
 
+libav (6:0.8.2-2) unstable; urgency=low
+
+  * 
+
+ -- Reinhard Tartler <siretart@tauware.de>  Mon, 14 May 2012 21:37:59 +0200
+
+libav (6:0.8.2-1) unstable; urgency=medium
+
+  * New upstream release:
+    - Several bugs and crashes have been fixed in the following codecs: AAC,
+      APE, H.263, H.264, Indeo 4, Mimic, MJPEG, Motion Pixels Video, RAW,
+      TTA, VC1, VQA, WMA Voice, vqavideo (CVE-2012-0947).
+    - Several bugs and crashes have been fixed in the following formats:
+      ASF, ID3v2, MOV, xWMA
+    - This release additionally updates the following codecs to the
+      bytestream2 API, and therefore benefit from additional overflow
+      checks: truemotion2, utvideo, vqavideo
+  * drop 02-fix-avpreset-extension.patch, applied upstream
+  * Revert "Revert "temporarily disable opencv to work around dependency
+           troubles"" (Closes: #671302)
+  * Bumped urgency because of security issue.
+
+ -- Reinhard Tartler <siretart@tauware.de>  Sat, 05 May 2012 11:08:44 +0200
+
+libav (6:0.8.1-7) unstable; urgency=low
+
+  * Fix build for hurd. Thanks to Samuel Thibault for patch. (Closes: #613034)
+    (Closes: #671038)
+  * Properly migrate /etc/ffserver.conf to /etc/avserver.conf.
+    (Closes: #660786)
+  * Renable opencv support.
+
+ -- Andres Mejia <amejia@debian.org>  Tue, 01 May 2012 21:33:13 -0400
+
 libav (6:0.8.1-6) unstable; urgency=low
 
   * Fix epoch in strict internal dependencies. Closes: #670861
