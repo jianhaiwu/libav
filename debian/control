@@ -64,7 +64,7 @@ Package: libav-tools
 Section: video
 Architecture: any
 Replaces:
- libavcodec-extra-54 (<< 4:0.6~),
+ libavcodec-extra-53 (<< 4:0.6~),
  libavcodec53 (<< ${source:Version})
 Depends:
  ${misc:Depends},
@@ -185,8 +185,8 @@ Depends:
  ${shlibs:Depends}
 Conflicts:
  libavcodec-extra-54
-Breaks:
- libavcodec-extra-54 (<< 4:0.8.0.2)
+Replaces:
+ libavcodec-extra-54
 Description: Libav codec library
  Libav is a complete, cross-platform solution to decode, encode, record,
  convert and stream audio and video.
