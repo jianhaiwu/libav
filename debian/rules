@@ -173,7 +173,7 @@ binary-arch: build install
 	dh_fixperms
 	dh_strip
 
-	for pkg in $(LIB_PKGS); do \
+	for pkg in $(LIB_PKGS) $(LIB_EXTRA_PKGS); do \
 	    dh_makeshlibs -p"$$pkg" -V"$$pkg (>= $(DEB_VERSION))"; \
 	done
 	for pkg in $(LIB_PKGS2); do \
