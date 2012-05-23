@@ -1,7 +1,7 @@
-Document: ffmpeg-doc
-Title: ffmpeg API Documentation
-Author: FFmpeg Developers
-Abstract: This is the main documentation for the ffmpeg API.
+Document: libav-doc
+Title: Libav API Documentation
+Author: Libav Developers
+Abstract: This is the main documentation for the Libav API.
 Section: Programming
 
 Format: HTML
