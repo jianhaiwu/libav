@@ -298,16 +298,17 @@ Depends:
  libavutil-dev (= ${binary:Version}),
  ${misc:Depends}
 Suggests:
+ libdc1394-22-dev [linux-any],
  libgsm1-dev,
  libogg-dev,
+ libraw1394-dev [linux-any],
  libschroedinger-dev,
  libspeex-dev,
  libtheora-dev (>> 0.0.0.alpha4),
  libvorbis-dev,
  libx11-dev,
  libxext-dev,
- zlib1g-dev,
- ${lib1394-dev}
+ zlib1g-dev
 Description: Development files for libavcodec
  Libav is a complete, cross-platform solution to decode, encode, record,
  convert and stream audio and video.

@@ -89,30 +89,30 @@ endef
 # Configuration flags causing the libs to be GPL tainted
 gpl_confflags += --enable-gpl
 gpl_confflags += --enable-swscale
-gpl_confflags += --enable-x11grab
+gpl_confflags += $(call cond_enable,/usr/include/X11/extensions/XShm.h,x11grab)
 
 # Common configuration flags
-confflags += --extra-version='$(DEB_VERSION)'
 confflags += --arch='$(DEB_HOST_ARCH_CPU)'
-confflags += --prefix=/usr
-confflags += --libdir=/usr/lib/$(DEB_HOST_MULTIARCH)
-confflags += --enable-vdpau
-confflags += --enable-bzlib
-confflags += --enable-frei0r
-confflags += --enable-gnutls
-confflags += --enable-libcdio
-confflags += --enable-libgsm
-confflags += --enable-libopencv
-confflags += --enable-libschroedinger
-confflags += --enable-libspeex
-confflags += --enable-libtheora
-confflags += --enable-libvorbis
 confflags += --enable-pthreads
-confflags += --enable-zlib
-confflags += --enable-libvpx
 confflags += --enable-runtime-cpudetect
-confflags += --enable-libfreetype
-confflags += --enable-libpulse
+confflags += --extra-version='$(DEB_VERSION)'
+confflags += --libdir=/usr/lib/$(DEB_HOST_MULTIARCH)
+confflags += --prefix=/usr
+confflags += $(call cond_enable,/usr/include/vdpau/vdpau.h,vdpau)
+confflags += $(call cond_enable,/usr/include/bzlib.h,bzlib)
+confflags += $(call cond_enable,/usr/include/frei0r.h,frei0r)
+confflags += $(call cond_enable,/usr/include/gnutls/gnutls.h,gnutls)
+gpl_confflags += $(call cond_enable,/usr/include/cdio/paranoia.h,libcdio)
+confflags += $(call cond_enable,/usr/include/gsm/gsm.h,libgsm)
+confflags += $(call cond_enable,/usr/include/opencv/cv.hpp,libopencv)
+confflags += $(call cond_enable,/usr/include/schroedinger-1.0/schroedinger/schro.h,libschroedinger)
+confflags += $(call cond_enable,/usr/include/speex/speex.h,libspeex)
+confflags += $(call cond_enable,/usr/include/theora/theoraenc.h,libtheora)
+confflags += $(call cond_enable,/usr/include/vorbis/vorbisenc.h,libvorbis)
+confflags += $(call cond_enable,/usr/include/zlib.h,zlib)
+confflags += $(call cond_enable,/usr/include/vpx/vpx_encoder.h,libvpx)
+confflags += $(call cond_enable,/usr/include/freetype2/freetype/freetype.h,libfreetype)
+confflags += $(call cond_enable,/usr/include/pulse/simple.h,libpulse)
 ifeq      ($(DEB_HOST_ARCH),armel)
 # this is required on Ubuntu lucid as it defaults to thumb2 and Libav has
 # plenty of incompatible assembly; not sure how to detect that properly
@@ -129,8 +129,9 @@ confflags += $(extra_common_confflags)
 confflags += $(call cond_enable,/usr/include/va/va.h,vaapi)
 
 # this part below is intended for the 'Libav' package in ubuntu/multiverse
-gpl_confflags += $(call cond_enable,/usr/include/lame/lame.h,libmp3lame)
-gpl_confflags += $(call cond_enable,/usr/include/librtmp/http.h,librtmp)
+confflags += $(call cond_enable,/usr/include/dirac/libdirac_decoder/dirac_parser.h,libdirac)
+confflags += $(call cond_enable,/usr/include/lame/lame.h,libmp3lame)
+confflags += $(call cond_enable,/usr/include/librtmp/http.h,librtmp)
 gpl_confflags += $(call cond_enable,/usr/include/x264.h,libx264)
 gpl_confflags += $(call cond_enable,/usr/include/xvid.h,libxvid)
 
@@ -149,10 +150,7 @@ confflags += $(call cond_enable_nf,/usr/include/faac.h,libfaac)
 confflags += $(gpl_confflags)
 
 # Enable IEEE 1394 (FireWire) support on Linux only
-ifneq (,$(findstring linux,$(DEB_HOST_GNU_TYPE)))
-  confflags += --enable-libdc1394
-  lib1394-dev += libraw1394-dev, libdc1394-22-dev
-endif
+confflags += $(call cond_enable,/usr/include/dc1394/dc1394.h,libdc1394)
 
 # Enable hardened build flags through dpkg-buildflags
 CFLAGS := $(filter-out -g -O2,$(shell dpkg-buildflags --get CFLAGS))
