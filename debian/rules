@@ -182,7 +182,7 @@ binary-arch: build install
 	done
 	dh_shlibdeps
 	dh_installdeb
-	dh_gencontrol -- -Vlib1394-dev="$(lib1394-dev)"
+	dh_gencontrol
 	dh_md5sums
 	dh_builddeb
 

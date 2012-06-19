@@ -72,24 +72,21 @@ endif
 
 $(info Building FLAVORS=$(FLAVORS))
 
+# Conditionally enable certain features depending on
+# the corresponding header file being installed or not
 define cond_enable
 	$(shell test -r $(1) && echo --enable-$(2) )
 endef
 
-# variant that also require --enable-version3
+# variant that also requires --enable-version3
 define cond_enable_v3
 	$(shell test -r $(1) && echo --enable-$(2) --enable-version3 )
 endef
 
-# variant that also require --enable-nonfree
+# variant that also requires --enable-nonfree
 define cond_enable_nf
 	$(shell test -r $(1) && echo --enable-$(2) --enable-nonfree )
 endef
-
-# Configuration flags causing the libs to be GPL tainted
-gpl_confflags += --enable-gpl
-gpl_confflags += --enable-swscale
-gpl_confflags += $(call cond_enable,/usr/include/X11/extensions/XShm.h,x11grab)
 
 # Common configuration flags
 confflags += --arch='$(DEB_HOST_ARCH_CPU)'
@@ -98,21 +95,7 @@ confflags += --enable-runtime-cpudetect
 confflags += --extra-version='$(DEB_VERSION)'
 confflags += --libdir=/usr/lib/$(DEB_HOST_MULTIARCH)
 confflags += --prefix=/usr
-confflags += $(call cond_enable,/usr/include/vdpau/vdpau.h,vdpau)
-confflags += $(call cond_enable,/usr/include/bzlib.h,bzlib)
-confflags += $(call cond_enable,/usr/include/frei0r.h,frei0r)
-confflags += $(call cond_enable,/usr/include/gnutls/gnutls.h,gnutls)
-gpl_confflags += $(call cond_enable,/usr/include/cdio/paranoia.h,libcdio)
-confflags += $(call cond_enable,/usr/include/gsm/gsm.h,libgsm)
-confflags += $(call cond_enable,/usr/include/opencv/cv.hpp,libopencv)
-confflags += $(call cond_enable,/usr/include/schroedinger-1.0/schroedinger/schro.h,libschroedinger)
-confflags += $(call cond_enable,/usr/include/speex/speex.h,libspeex)
-confflags += $(call cond_enable,/usr/include/theora/theoraenc.h,libtheora)
-confflags += $(call cond_enable,/usr/include/vorbis/vorbisenc.h,libvorbis)
-confflags += $(call cond_enable,/usr/include/zlib.h,zlib)
-confflags += $(call cond_enable,/usr/include/vpx/vpx_encoder.h,libvpx)
-confflags += $(call cond_enable,/usr/include/freetype2/freetype/freetype.h,libfreetype)
-confflags += $(call cond_enable,/usr/include/pulse/simple.h,libpulse)
+
 ifeq      ($(DEB_HOST_ARCH),armel)
 # this is required on Ubuntu lucid as it defaults to thumb2 and Libav has
 # plenty of incompatible assembly; not sure how to detect that properly
@@ -123,34 +106,47 @@ ifeq      ($(DEB_HOST_ARCH),powerpc)
 confflags += --enable-pic
 endif
 
-confflags += $(extra_common_confflags)
-
-# libva is not available on the hurd
-confflags += $(call cond_enable,/usr/include/va/va.h,vaapi)
-
-# this part below is intended for the 'Libav' package in ubuntu/multiverse
+# Additional features
+confflags += $(call cond_enable,/usr/include/bzlib.h,bzlib)
+confflags += $(call cond_enable,/usr/include/dc1394/dc1394.h,libdc1394)
 confflags += $(call cond_enable,/usr/include/dirac/libdirac_decoder/dirac_parser.h,libdirac)
+confflags += $(call cond_enable,/usr/include/freetype2/freetype/freetype.h,libfreetype)
+confflags += $(call cond_enable,/usr/include/frei0r.h,frei0r)
+confflags += $(call cond_enable,/usr/include/gnutls/gnutls.h,gnutls)
+confflags += $(call cond_enable,/usr/include/gsm/gsm.h,libgsm)
 confflags += $(call cond_enable,/usr/include/lame/lame.h,libmp3lame)
 confflags += $(call cond_enable,/usr/include/librtmp/http.h,librtmp)
+confflags += $(call cond_enable,/usr/include/opencv/cv.hpp,libopencv)
+confflags += $(call cond_enable,/usr/include/openjpeg.h,libopenjpeg)
+confflags += $(call cond_enable,/usr/include/pulse/simple.h,libpulse)
+confflags += $(call cond_enable,/usr/include/schroedinger-1.0/schroedinger/schro.h,libschroedinger)
+confflags += $(call cond_enable,/usr/include/speex/speex.h,libspeex)
+confflags += $(call cond_enable,/usr/include/theora/theoraenc.h,libtheora)
+confflags += $(call cond_enable,/usr/include/va/va.h,vaapi)
+confflags += $(call cond_enable,/usr/include/vdpau/vdpau.h,vdpau)
+confflags += $(call cond_enable,/usr/include/vorbis/vorbisenc.h,libvorbis)
+confflags += $(call cond_enable,/usr/include/vpx/vpx_encoder.h,libvpx)
+confflags += $(call cond_enable,/usr/include/zlib.h,zlib)
+
+# Configuration flags causing the libs to be GPL tainted
+gpl_confflags += --enable-gpl
+gpl_confflags += --enable-postproc
+gpl_confflags += --enable-swscale
+gpl_confflags += $(call cond_enable,/usr/include/cdio/paranoia.h,libcdio)
+gpl_confflags += $(call cond_enable,/usr/include/X11/extensions/XShm.h,x11grab)
 gpl_confflags += $(call cond_enable,/usr/include/x264.h,libx264)
 gpl_confflags += $(call cond_enable,/usr/include/xvid.h,libxvid)
+# comment out following line for LGPL versions of the libraries
+confflags += $(gpl_confflags)
 
-confflags += $(call cond_enable,/usr/include/openjpeg.h,libopenjpeg)
-
-# Features that require GPL v3
+# Features that require (L)GPL v3
 v3_confflags += $(call cond_enable_v3,/usr/include/opencore-amrnb/interf_dec.h,libopencore-amrnb)
 v3_confflags += $(call cond_enable_v3,/usr/include/opencore-amrwb/dec_if.h,libopencore-amrwb)
 v3_confflags += $(call cond_enable_v3,/usr/include/vo-aacenc/voAAC.h,libvo-aacenc)
 v3_confflags += $(call cond_enable_v3,/usr/include/vo-amrwbenc/enc_if.h,libvo-amrwbenc)
 
-# FAAC is considered non-free upstream
+# FAAC is considered non-free
 confflags += $(call cond_enable_nf,/usr/include/faac.h,libfaac)
-
-# comment out following line for LGPL versions of the libraries
-confflags += $(gpl_confflags)
-
-# Enable IEEE 1394 (FireWire) support on Linux only
-confflags += $(call cond_enable,/usr/include/dc1394/dc1394.h,libdc1394)
 
 # Enable hardened build flags through dpkg-buildflags
 CFLAGS := $(filter-out -g -O2,$(shell dpkg-buildflags --get CFLAGS))
