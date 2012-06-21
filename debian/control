@@ -57,7 +57,7 @@ Build-Depends:
  libxvidcore-dev,
  libxvmc-dev,
  texi2html,
- yasm,
+ yasm [any-amd64 any-i386],
  zlib1g-dev
 
 Package: libav-tools

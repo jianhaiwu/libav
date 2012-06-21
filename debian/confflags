@@ -95,6 +95,7 @@ confflags += --enable-runtime-cpudetect
 confflags += --extra-version='$(DEB_VERSION)'
 confflags += --libdir=/usr/lib/$(DEB_HOST_MULTIARCH)
 confflags += --prefix=/usr
+confflags += $(shell test -x /usr/bin/yasm || echo --disable-yasm )
 
 ifeq      ($(DEB_HOST_ARCH),armel)
 # this is required on Ubuntu lucid as it defaults to thumb2 and Libav has
