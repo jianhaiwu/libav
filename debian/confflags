@@ -1,12 +1,6 @@
 # -*- mode: makefile -*-
 # vim:syntax=make
 
-# build a static version on every architecture in the 'debian' Libav package
-FLAVORS := static
-
-# shared is generic, i.e. without arch specific opcodes
-FLAVORS += shared
-
 export DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 export DEB_BUILD_GNU_TYPE ?= $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
 export DEB_HOST_ARCH      ?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
@@ -19,6 +13,9 @@ CROSS :=
 ifneq ($(DEB_BUILD_GNU_TYPE),$(DEB_HOST_GNU_TYPE))
     CROSS :=  $(DEB_HOST_GNU_TYPE)-
 endif
+
+# list of flavors we want to build
+FLAVORS :=
 
 # this outputs 0 or 1 depending on whether a macro appears in the *default* cpp
 # -dM -P output; this is used to test the toolchain *default* configuration
@@ -69,6 +66,15 @@ else ifeq ($(DEB_HOST_ARCH),sparc)
     FLAVORS += vis
     nooptflags += --disable-vis
 endif
+
+# build a static version on every architecture in the 'debian' Libav package
+FLAVORS += static
+
+# shared is generic, i.e. without arch specific opcodes
+# /!\ order matters, you want to list the shared flavor *last* so that the
+# binaries from this flavor overwrite the ones from the optional optimized
+# flavor(s) and from the static flavor
+FLAVORS += shared
 
 $(info Building FLAVORS=$(FLAVORS))
 
