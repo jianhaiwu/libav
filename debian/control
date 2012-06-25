@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Debian Multimedia Maintainers <pkg-multimedia-maintainers@lists.alioth.debian.org>
 Uploaders:
  Sam Hocevar (Debian packages) <sam+deb@zoy.org>,
- Loic Minier <lool@dooz.org>,
+ Loïc Minier <lool@debian.org>,
  Reinhard Tartler <siretart@tauware.de>,
  Fabian Greffrath <fabian+debian@greffrath.com>,
  Andres Mejia <amejia@debian.org>,
