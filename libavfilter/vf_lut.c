@@ -29,7 +29,9 @@
 #include "libavutil/opt.h"
 #include "libavutil/pixdesc.h"
 #include "avfilter.h"
+#include "formats.h"
 #include "internal.h"
+#include "video.h"
 
 static const char *const var_names[] = {
     "E",
@@ -108,7 +110,7 @@ static const AVClass lut_class = {
     lut_options
 };
 
-static int init(AVFilterContext *ctx, const char *args, void *opaque)
+static int init(AVFilterContext *ctx, const char *args)
 {
     LutContext *lut = ctx->priv;
     int ret;
@@ -163,7 +165,7 @@ static int query_formats(AVFilterContext *ctx)
     enum PixelFormat *pix_fmts = lut->is_rgb ? rgb_pix_fmts :
                                  lut->is_yuv ? yuv_pix_fmts : all_pix_fmts;
 
-    avfilter_set_common_formats(ctx, avfilter_make_format_list(pix_fmts));
+    ff_set_common_formats(ctx, ff_make_format_list(pix_fmts));
     return 0;
 }
 
@@ -337,7 +339,7 @@ static void draw_slice(AVFilterLink *inlink, int y, int h, int slice_dir)
         }
     }
 
-    avfilter_draw_slice(outlink, y, h, slice_dir);
+    ff_draw_slice(outlink, y, h, slice_dir);
 }
 
 #define DEFINE_LUT_FILTER(name_, description_, init_)                   \
@@ -373,7 +375,7 @@ DEFINE_LUT_FILTER(lutrgb, "Compute and apply a lookup table to the RGB input vid
 
 #if CONFIG_NEGATE_FILTER
 
-static int negate_init(AVFilterContext *ctx, const char *args, void *opaque)
+static int negate_init(AVFilterContext *ctx, const char *args)
 {
     LutContext *lut = ctx->priv;
     char lut_params[64];
@@ -386,7 +388,7 @@ static int negate_init(AVFilterContext *ctx, const char *args, void *opaque)
     snprintf(lut_params, sizeof(lut_params), "c0=negval:c1=negval:c2=negval:a=%s",
              lut->negate_alpha ? "negval" : "val");
 
-    return init(ctx, lut_params, opaque);
+    return init(ctx, lut_params);
 }
 
 DEFINE_LUT_FILTER(negate, "Negate input video.", negate_init);

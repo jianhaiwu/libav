@@ -1717,7 +1717,7 @@ static int matroska_parse_block(MatroskaDemuxContext *matroska, uint8_t *data,
 
     if ((n = matroska_ebmlnum_uint(matroska, data, size, &num)) < 0) {
         av_log(matroska->ctx, AV_LOG_ERROR, "EBML block data error\n");
-        return res;
+        return n;
     }
     data += n;
     size -= n;
@@ -2067,6 +2067,11 @@ static int matroska_read_packet(AVFormatContext *s, AVPacket *pkt)
         if (matroska->done)
             return AVERROR_EOF;
         ret = matroska_parse_cluster(matroska);
+    }
+
+    if (ret == AVERROR_INVALIDDATA) {
+        pkt->flags |= AV_PKT_FLAG_CORRUPT;
+        return 0;
     }
 
     return ret;

@@ -39,7 +39,7 @@ typedef struct AVAudioResampleContext AVAudioResampleContext;
 
 /** Mixing Coefficient Types */
 enum AVMixCoeffType {
-    AV_MIX_COEFF_TYPE_Q6,   /** 16-bit 10.6 fixed-point                     */
+    AV_MIX_COEFF_TYPE_Q8,   /** 16-bit 8.8 fixed-point                      */
     AV_MIX_COEFF_TYPE_Q15,  /** 32-bit 17.15 fixed-point                    */
     AV_MIX_COEFF_TYPE_FLT,  /** floating-point                              */
     AV_MIX_COEFF_TYPE_NB,   /** Number of coeff types. Not part of ABI      */
@@ -131,12 +131,13 @@ void avresample_free(AVAudioResampleContext **avr);
  *                            the weight of input channel i in output channel o.
  * @param stride              distance between adjacent input channels in the
  *                            matrix array
+ * @param matrix_encoding     matrixed stereo downmix mode (e.g. dplii)
  * @return                    0 on success, negative AVERROR code on failure
  */
 int avresample_build_matrix(uint64_t in_layout, uint64_t out_layout,
                             double center_mix_level, double surround_mix_level,
                             double lfe_mix_level, int normalize, double *matrix,
-                            int stride);
+                            int stride, enum AVMatrixEncoding matrix_encoding);
 
 /**
  * Get the current channel mixing matrix.
@@ -274,7 +275,8 @@ int avresample_available(AVAudioResampleContext *avr);
  * @see avresample_convert()
  *
  * @param avr         audio resample context
- * @param output      output data pointers
+ * @param output      output data pointers. May be NULL, in which case
+ *                    nb_samples of data is discarded from output FIFO.
  * @param nb_samples  number of samples to read from the FIFO
  * @return            the number of samples written to output
  */

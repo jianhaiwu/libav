@@ -398,8 +398,7 @@ typedef struct DSPContext {
     /* assume len is a multiple of 4, and arrays are 16-byte aligned */
     void (*vorbis_inverse_coupling)(float *mag, float *ang, int blocksize);
     void (*ac3_downmix)(float (*samples)[256], float (*matrix)[2], int out_ch, int in_ch, int len);
-    /* assume len is a multiple of 8, and arrays are 16-byte aligned */
-    void (*vector_fmul)(float *dst, const float *src0, const float *src1, int len);
+    /* assume len is a multiple of 16, and arrays are 32-byte aligned */
     void (*vector_fmul_reverse)(float *dst, const float *src0, const float *src1, int len);
     /* assume len is a multiple of 8, and src arrays are 16-byte aligned */
     void (*vector_fmul_add)(float *dst, const float *src0, const float *src1, const float *src2, int len);
@@ -416,17 +415,6 @@ typedef struct DSPContext {
      * @param len length of vector, multiple of 4
      */
     void (*vector_fmul_scalar)(float *dst, const float *src, float mul,
-                               int len);
-    /**
-     * Multiply a vector of floats by a scalar float and add to
-     * destination vector.  Source and destination vectors must
-     * overlap exactly or not at all.
-     * @param dst result vector, 16-byte aligned
-     * @param src input vector, 16-byte aligned
-     * @param mul scalar value
-     * @param len length of vector, multiple of 4
-     */
-    void (*vector_fmac_scalar)(float *dst, const float *src, float mul,
                                int len);
     /**
      * Calculate the scalar product of two vectors of floats.
@@ -560,9 +548,9 @@ typedef struct DSPContext {
      * @param src  source array
      *             constraints: 16-byte aligned
      * @param min  minimum value
-     *             constraints: must in the the range [-(1<<24), 1<<24]
+     *             constraints: must be in the range [-(1 << 24), 1 << 24]
      * @param max  maximum value
-     *             constraints: must in the the range [-(1<<24), 1<<24]
+     *             constraints: must be in the range [-(1 << 24), 1 << 24]
      * @param len  number of elements in the array
      *             constraints: multiple of 32 greater than zero
      */

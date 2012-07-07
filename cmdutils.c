@@ -34,8 +34,10 @@
 #include "libavdevice/avdevice.h"
 #include "libavresample/avresample.h"
 #include "libswscale/swscale.h"
+#include "libavutil/avassert.h"
 #include "libavutil/avstring.h"
 #include "libavutil/mathematics.h"
+#include "libavutil/imgutils.h"
 #include "libavutil/parseutils.h"
 #include "libavutil/pixdesc.h"
 #include "libavutil/eval.h"
@@ -905,6 +907,7 @@ int check_stream_specifier(AVFormatContext *s, AVStream *st, const char *spec)
         case 's': type = AVMEDIA_TYPE_SUBTITLE;   break;
         case 'd': type = AVMEDIA_TYPE_DATA;       break;
         case 't': type = AVMEDIA_TYPE_ATTACHMENT; break;
+        default:  av_assert0(0);
         }
         if (type != st->codec->codec_type)
             return 0;
@@ -945,17 +948,18 @@ int check_stream_specifier(AVFormatContext *s, AVStream *st, const char *spec)
 }
 
 AVDictionary *filter_codec_opts(AVDictionary *opts, enum CodecID codec_id,
-                                AVFormatContext *s, AVStream *st)
+                                AVFormatContext *s, AVStream *st, AVCodec *codec)
 {
     AVDictionary    *ret = NULL;
     AVDictionaryEntry *t = NULL;
-    AVCodec       *codec = s->oformat ? avcodec_find_encoder(codec_id)
-                                      : avcodec_find_decoder(codec_id);
     int            flags = s->oformat ? AV_OPT_FLAG_ENCODING_PARAM
                                       : AV_OPT_FLAG_DECODING_PARAM;
     char          prefix = 0;
     const AVClass    *cc = avcodec_get_class();
 
+    if (!codec)
+        codec            = s->oformat ? avcodec_find_encoder(codec_id)
+                                      : avcodec_find_decoder(codec_id);
     if (!codec)
         return NULL;
 
@@ -1017,77 +1021,9 @@ AVDictionary **setup_find_stream_info_opts(AVFormatContext *s,
     }
     for (i = 0; i < s->nb_streams; i++)
         opts[i] = filter_codec_opts(codec_opts, s->streams[i]->codec->codec_id,
-                                    s, s->streams[i]);
+                                    s, s->streams[i], NULL);
     return opts;
 }
-
-#if CONFIG_AVFILTER
-
-static int sink_init(AVFilterContext *ctx, const char *args, void *opaque)
-{
-    SinkContext *priv = ctx->priv;
-
-    if (!opaque)
-        return AVERROR(EINVAL);
-    *priv = *(SinkContext *)opaque;
-
-    return 0;
-}
-
-static void null_end_frame(AVFilterLink *inlink) { }
-
-static int sink_query_formats(AVFilterContext *ctx)
-{
-    SinkContext *priv = ctx->priv;
-
-    if (priv->pix_fmts)
-        avfilter_set_common_formats(ctx, avfilter_make_format_list(priv->pix_fmts));
-    else
-        avfilter_default_query_formats(ctx);
-    return 0;
-}
-
-AVFilter sink = {
-    .name      = "sink",
-    .priv_size = sizeof(SinkContext),
-    .init      = sink_init,
-
-    .query_formats = sink_query_formats,
-
-    .inputs    = (AVFilterPad[]) {{ .name          = "default",
-                                    .type          = AVMEDIA_TYPE_VIDEO,
-                                    .end_frame     = null_end_frame,
-                                    .min_perms     = AV_PERM_READ, },
-                                  { .name = NULL }},
-    .outputs   = (AVFilterPad[]) {{ .name = NULL }},
-};
-
-int get_filtered_video_frame(AVFilterContext *ctx, AVFrame *frame,
-                             AVFilterBufferRef **picref_ptr, AVRational *tb)
-{
-    int ret;
-    AVFilterBufferRef *picref;
-
-    if ((ret = avfilter_request_frame(ctx->inputs[0])) < 0)
-        return ret;
-    if (!(picref = ctx->inputs[0]->cur_buf))
-        return AVERROR(ENOENT);
-    *picref_ptr = picref;
-    ctx->inputs[0]->cur_buf = NULL;
-    *tb = ctx->inputs[0]->time_base;
-
-    memcpy(frame->data,     picref->data,     sizeof(frame->data));
-    memcpy(frame->linesize, picref->linesize, sizeof(frame->linesize));
-    frame->interlaced_frame    = picref->video->interlaced;
-    frame->top_field_first     = picref->video->top_field_first;
-    frame->key_frame           = picref->video->key_frame;
-    frame->pict_type           = picref->video->pict_type;
-    frame->sample_aspect_ratio = picref->video->pixel_aspect;
-
-    return 1;
-}
-
-#endif /* CONFIG_AVFILTER */
 
 void *grow_array(void *array, int elem_size, int *size, int new_size)
 {
@@ -1106,4 +1042,133 @@ void *grow_array(void *array, int elem_size, int *size, int new_size)
         return tmp;
     }
     return array;
+}
+
+static int alloc_buffer(FrameBuffer **pool, AVCodecContext *s, FrameBuffer **pbuf)
+{
+    FrameBuffer  *buf = av_mallocz(sizeof(*buf));
+    int i, ret;
+    const int pixel_size = av_pix_fmt_descriptors[s->pix_fmt].comp[0].step_minus1+1;
+    int h_chroma_shift, v_chroma_shift;
+    int edge = 32; // XXX should be avcodec_get_edge_width(), but that fails on svq1
+    int w = s->width, h = s->height;
+
+    if (!buf)
+        return AVERROR(ENOMEM);
+
+    if (!(s->flags & CODEC_FLAG_EMU_EDGE)) {
+        w += 2*edge;
+        h += 2*edge;
+    }
+
+    avcodec_align_dimensions(s, &w, &h);
+    if ((ret = av_image_alloc(buf->base, buf->linesize, w, h,
+                              s->pix_fmt, 32)) < 0) {
+        av_freep(&buf);
+        return ret;
+    }
+    /* XXX this shouldn't be needed, but some tests break without this line
+     * those decoders are buggy and need to be fixed.
+     * the following tests fail:
+     * cdgraphics, ansi, aasc, fraps-v1, qtrle-1bit
+     */
+    memset(buf->base[0], 128, ret);
+
+    avcodec_get_chroma_sub_sample(s->pix_fmt, &h_chroma_shift, &v_chroma_shift);
+    for (i = 0; i < FF_ARRAY_ELEMS(buf->data); i++) {
+        const int h_shift = i==0 ? 0 : h_chroma_shift;
+        const int v_shift = i==0 ? 0 : v_chroma_shift;
+        if (s->flags & CODEC_FLAG_EMU_EDGE)
+            buf->data[i] = buf->base[i];
+        else
+            buf->data[i] = buf->base[i] +
+                           FFALIGN((buf->linesize[i]*edge >> v_shift) +
+                                   (pixel_size*edge >> h_shift), 32);
+    }
+    buf->w       = s->width;
+    buf->h       = s->height;
+    buf->pix_fmt = s->pix_fmt;
+    buf->pool    = pool;
+
+    *pbuf = buf;
+    return 0;
+}
+
+int codec_get_buffer(AVCodecContext *s, AVFrame *frame)
+{
+    FrameBuffer **pool = s->opaque;
+    FrameBuffer *buf;
+    int ret, i;
+
+    if (!*pool && (ret = alloc_buffer(pool, s, pool)) < 0)
+        return ret;
+
+    buf              = *pool;
+    *pool            = buf->next;
+    buf->next        = NULL;
+    if (buf->w != s->width || buf->h != s->height || buf->pix_fmt != s->pix_fmt) {
+        av_freep(&buf->base[0]);
+        av_free(buf);
+        if ((ret = alloc_buffer(pool, s, &buf)) < 0)
+            return ret;
+    }
+    buf->refcount++;
+
+    frame->opaque        = buf;
+    frame->type          = FF_BUFFER_TYPE_USER;
+    frame->extended_data = frame->data;
+    frame->pkt_pts       = s->pkt ? s->pkt->pts : AV_NOPTS_VALUE;
+    frame->width         = buf->w;
+    frame->height        = buf->h;
+    frame->format        = buf->pix_fmt;
+    frame->sample_aspect_ratio = s->sample_aspect_ratio;
+
+    for (i = 0; i < FF_ARRAY_ELEMS(buf->data); i++) {
+        frame->base[i]     = buf->base[i];  // XXX h264.c uses base though it shouldn't
+        frame->data[i]     = buf->data[i];
+        frame->linesize[i] = buf->linesize[i];
+    }
+
+    return 0;
+}
+
+static void unref_buffer(FrameBuffer *buf)
+{
+    FrameBuffer **pool = buf->pool;
+
+    av_assert0(buf->refcount);
+    buf->refcount--;
+    if (!buf->refcount) {
+        buf->next = *pool;
+        *pool = buf;
+    }
+}
+
+void codec_release_buffer(AVCodecContext *s, AVFrame *frame)
+{
+    FrameBuffer *buf = frame->opaque;
+    int i;
+
+    for (i = 0; i < FF_ARRAY_ELEMS(frame->data); i++)
+        frame->data[i] = NULL;
+
+    unref_buffer(buf);
+}
+
+void filter_release_buffer(AVFilterBuffer *fb)
+{
+    FrameBuffer *buf = fb->priv;
+    av_free(fb);
+    unref_buffer(buf);
+}
+
+void free_buffer_pool(FrameBuffer **pool)
+{
+    FrameBuffer *buf = *pool;
+    while (buf) {
+        *pool = buf->next;
+        av_freep(&buf->base[0]);
+        av_free(buf);
+        buf = *pool;
+    }
 }

@@ -27,7 +27,7 @@
 #include "audio_data.h"
 #include "audio_mix.h"
 
-static const char *coeff_type_names[] = { "q6", "q15", "flt" };
+static const char *coeff_type_names[] = { "q8", "q15", "flt" };
 
 void ff_audio_mix_set_func(AudioMix *am, enum AVSampleFormat fmt,
                            enum AVMixCoeffType coeff_type, int in_channels,
@@ -89,7 +89,7 @@ static void MIX_FUNC_NAME(fmt, cfmt)(stype **samples, ctype **matrix,       \
 MIX_FUNC_GENERIC(FLTP, FLT, float,   float,   float,   sum)
 MIX_FUNC_GENERIC(S16P, FLT, int16_t, float,   float,   av_clip_int16(lrintf(sum)))
 MIX_FUNC_GENERIC(S16P, Q15, int16_t, int32_t, int64_t, av_clip_int16(sum >> 15))
-MIX_FUNC_GENERIC(S16P, Q6,  int16_t, int16_t, int32_t, av_clip_int16(sum >> 6))
+MIX_FUNC_GENERIC(S16P, Q8,  int16_t, int16_t, int32_t, av_clip_int16(sum >>  8))
 
 /* TODO: templatize the channel-specific C functions */
 
@@ -111,6 +111,50 @@ static void mix_2_to_1_fltp_flt_c(float **samples, float **matrix, int len,
     }
     while (len > 0) {
         *dst++ = *src0++ * m0 + *src1++ * m1;
+        len--;
+    }
+}
+
+static void mix_2_to_1_s16p_flt_c(int16_t **samples, float **matrix, int len,
+                                  int out_ch, int in_ch)
+{
+    int16_t *src0 = samples[0];
+    int16_t *src1 = samples[1];
+    int16_t *dst  = src0;
+    float m0      = matrix[0][0];
+    float m1      = matrix[0][1];
+
+    while (len > 4) {
+        *dst++ = av_clip_int16(lrintf(*src0++ * m0 + *src1++ * m1));
+        *dst++ = av_clip_int16(lrintf(*src0++ * m0 + *src1++ * m1));
+        *dst++ = av_clip_int16(lrintf(*src0++ * m0 + *src1++ * m1));
+        *dst++ = av_clip_int16(lrintf(*src0++ * m0 + *src1++ * m1));
+        len -= 4;
+    }
+    while (len > 0) {
+        *dst++ = av_clip_int16(lrintf(*src0++ * m0 + *src1++ * m1));
+        len--;
+    }
+}
+
+static void mix_2_to_1_s16p_q8_c(int16_t **samples, int16_t **matrix, int len,
+                                 int out_ch, int in_ch)
+{
+    int16_t *src0 = samples[0];
+    int16_t *src1 = samples[1];
+    int16_t *dst  = src0;
+    int16_t m0    = matrix[0][0];
+    int16_t m1    = matrix[0][1];
+
+    while (len > 4) {
+        *dst++ = (*src0++ * m0 + *src1++ * m1) >> 8;
+        *dst++ = (*src0++ * m0 + *src1++ * m1) >> 8;
+        *dst++ = (*src0++ * m0 + *src1++ * m1) >> 8;
+        *dst++ = (*src0++ * m0 + *src1++ * m1) >> 8;
+        len -= 4;
+    }
+    while (len > 0) {
+        *dst++ = (*src0++ * m0 + *src1++ * m1) >> 8;
         len--;
     }
 }
@@ -221,13 +265,19 @@ static int mix_function_init(AudioMix *am)
     ff_audio_mix_set_func(am, AV_SAMPLE_FMT_S16P, AV_MIX_COEFF_TYPE_Q15,
                           0, 0, 1, 1, "C", MIX_FUNC_NAME(S16P, Q15));
 
-    ff_audio_mix_set_func(am, AV_SAMPLE_FMT_S16P, AV_MIX_COEFF_TYPE_Q6,
-                          0, 0, 1, 1, "C", MIX_FUNC_NAME(S16P, Q6));
+    ff_audio_mix_set_func(am, AV_SAMPLE_FMT_S16P, AV_MIX_COEFF_TYPE_Q8,
+                          0, 0, 1, 1, "C", MIX_FUNC_NAME(S16P, Q8));
 
     /* channel-specific C versions */
 
     ff_audio_mix_set_func(am, AV_SAMPLE_FMT_FLTP, AV_MIX_COEFF_TYPE_FLT,
                           2, 1, 1, 1, "C", mix_2_to_1_fltp_flt_c);
+
+    ff_audio_mix_set_func(am, AV_SAMPLE_FMT_S16P, AV_MIX_COEFF_TYPE_FLT,
+                          2, 1, 1, 1, "C", mix_2_to_1_s16p_flt_c);
+
+    ff_audio_mix_set_func(am, AV_SAMPLE_FMT_S16P, AV_MIX_COEFF_TYPE_Q8,
+                          2, 1, 1, 1, "C", mix_2_to_1_s16p_q8_c);
 
     ff_audio_mix_set_func(am, AV_SAMPLE_FMT_FLTP, AV_MIX_COEFF_TYPE_FLT,
                           1, 2, 1, 1, "C", mix_1_to_2_fltp_flt_c);
@@ -270,7 +320,8 @@ int ff_audio_mix_init(AVAudioResampleContext *avr)
                                       avr->center_mix_level,
                                       avr->surround_mix_level,
                                       avr->lfe_mix_level, 1, matrix_dbl,
-                                      avr->in_channels);
+                                      avr->in_channels,
+                                      avr->matrix_encoding);
         if (ret < 0) {
             av_free(matrix_dbl);
             return ret;
@@ -320,7 +371,7 @@ void ff_audio_mix_close(AudioMix *am)
         av_free(am->matrix[0]);
         am->matrix = NULL;
     }
-    memset(am->matrix_q6,  0, sizeof(am->matrix_q6 ));
+    memset(am->matrix_q8,  0, sizeof(am->matrix_q8 ));
     memset(am->matrix_q15, 0, sizeof(am->matrix_q15));
     memset(am->matrix_flt, 0, sizeof(am->matrix_flt));
 }

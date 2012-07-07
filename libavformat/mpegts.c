@@ -19,8 +19,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-//#define USE_SYNCPOINT_SEARCH
-
 #include "libavutil/crc.h"
 #include "libavutil/intreadwrite.h"
 #include "libavutil/log.h"
@@ -534,6 +532,8 @@ static const StreamType HDMV_types[] = {
     { 0x82, AVMEDIA_TYPE_AUDIO, CODEC_ID_DTS },
     { 0x83, AVMEDIA_TYPE_AUDIO, CODEC_ID_TRUEHD },
     { 0x84, AVMEDIA_TYPE_AUDIO, CODEC_ID_EAC3 },
+    { 0x85, AVMEDIA_TYPE_AUDIO, CODEC_ID_DTS }, /* DTS HD */
+    { 0x86, AVMEDIA_TYPE_AUDIO, CODEC_ID_DTS }, /* DTS HD MASTER*/
     { 0x90, AVMEDIA_TYPE_SUBTITLE, CODEC_ID_HDMV_PGS_SUBTITLE },
     { 0 },
 };
@@ -549,6 +549,10 @@ static const StreamType REGD_types[] = {
     { MKTAG('d','r','a','c'), AVMEDIA_TYPE_VIDEO, CODEC_ID_DIRAC },
     { MKTAG('A','C','-','3'), AVMEDIA_TYPE_AUDIO,   CODEC_ID_AC3 },
     { MKTAG('B','S','S','D'), AVMEDIA_TYPE_AUDIO, CODEC_ID_S302M },
+    { MKTAG('D','T','S','1'), AVMEDIA_TYPE_AUDIO,   CODEC_ID_DTS },
+    { MKTAG('D','T','S','2'), AVMEDIA_TYPE_AUDIO,   CODEC_ID_DTS },
+    { MKTAG('D','T','S','3'), AVMEDIA_TYPE_AUDIO,   CODEC_ID_DTS },
+    { MKTAG('V','C','-','1'), AVMEDIA_TYPE_VIDEO,   CODEC_ID_VC1 },
     { 0 },
 };
 
@@ -1819,7 +1823,6 @@ static int handle_packets(MpegTSContext *ts, int nb_packets)
 
 static int mpegts_probe(AVProbeData *p)
 {
-#if 1
     const int size= p->buf_size;
     int score, fec_score, dvhs_score;
     int check_count= size / TS_FEC_PACKET_SIZE;
@@ -1838,13 +1841,6 @@ static int mpegts_probe(AVProbeData *p)
     else if(dvhs_score > score && dvhs_score > fec_score && dvhs_score > 6) return AVPROBE_SCORE_MAX + dvhs_score  - CHECK_COUNT;
     else if(                 fec_score > 6) return AVPROBE_SCORE_MAX + fec_score - CHECK_COUNT;
     else                                    return -1;
-#else
-    /* only use the extension for safer guess */
-    if (av_match_ext(p->filename, "ts"))
-        return AVPROBE_SCORE_MAX;
-    else
-        return 0;
-#endif
 }
 
 /* return the 90kHz PCR and the extension for the 27MHz PCR. return
@@ -2095,92 +2091,6 @@ static int64_t mpegts_get_pcr(AVFormatContext *s, int stream_index,
     return timestamp;
 }
 
-#ifdef USE_SYNCPOINT_SEARCH
-
-static int read_seek2(AVFormatContext *s,
-                      int stream_index,
-                      int64_t min_ts,
-                      int64_t target_ts,
-                      int64_t max_ts,
-                      int flags)
-{
-    int64_t pos;
-
-    int64_t ts_ret, ts_adj;
-    int stream_index_gen_search;
-    AVStream *st;
-    AVParserState *backup;
-
-    backup = ff_store_parser_state(s);
-
-    // detect direction of seeking for search purposes
-    flags |= (target_ts - min_ts > (uint64_t)(max_ts - target_ts)) ?
-             AVSEEK_FLAG_BACKWARD : 0;
-
-    if (flags & AVSEEK_FLAG_BYTE) {
-        // use position directly, we will search starting from it
-        pos = target_ts;
-    } else {
-        // search for some position with good timestamp match
-        if (stream_index < 0) {
-            stream_index_gen_search = av_find_default_stream_index(s);
-            if (stream_index_gen_search < 0) {
-                ff_restore_parser_state(s, backup);
-                return -1;
-            }
-
-            st = s->streams[stream_index_gen_search];
-            // timestamp for default must be expressed in AV_TIME_BASE units
-            ts_adj = av_rescale(target_ts,
-                                st->time_base.den,
-                                AV_TIME_BASE * (int64_t)st->time_base.num);
-        } else {
-            ts_adj = target_ts;
-            stream_index_gen_search = stream_index;
-        }
-        pos = ff_gen_search(s, stream_index_gen_search, ts_adj,
-                            0, INT64_MAX, -1,
-                            AV_NOPTS_VALUE,
-                            AV_NOPTS_VALUE,
-                            flags, &ts_ret, mpegts_get_pcr);
-        if (pos < 0) {
-            ff_restore_parser_state(s, backup);
-            return -1;
-        }
-    }
-
-    // search for actual matching keyframe/starting position for all streams
-    if (ff_gen_syncpoint_search(s, stream_index, pos,
-                                min_ts, target_ts, max_ts,
-                                flags) < 0) {
-        ff_restore_parser_state(s, backup);
-        return -1;
-    }
-
-    ff_free_parser_state(s, backup);
-    return 0;
-}
-
-static int read_seek(AVFormatContext *s, int stream_index, int64_t target_ts, int flags)
-{
-    int ret;
-    if (flags & AVSEEK_FLAG_BACKWARD) {
-        flags &= ~AVSEEK_FLAG_BACKWARD;
-        ret = read_seek2(s, stream_index, INT64_MIN, target_ts, target_ts, flags);
-        if (ret < 0)
-            // for compatibility reasons, seek to the best-fitting timestamp
-            ret = read_seek2(s, stream_index, INT64_MIN, target_ts, INT64_MAX, flags);
-    } else {
-        ret = read_seek2(s, stream_index, target_ts, target_ts, INT64_MAX, flags);
-        if (ret < 0)
-            // for compatibility reasons, seek to the best-fitting timestamp
-            ret = read_seek2(s, stream_index, INT64_MIN, target_ts, INT64_MAX, flags);
-    }
-    return ret;
-}
-
-#else
-
 static int read_seek(AVFormatContext *s, int stream_index, int64_t target_ts, int flags){
     MpegTSContext *ts = s->priv_data;
     uint8_t buf[TS_PACKET_SIZE];
@@ -2203,8 +2113,6 @@ static int read_seek(AVFormatContext *s, int stream_index, int64_t target_ts, in
 
     return 0;
 }
-
-#endif
 
 /**************************************************************/
 /* parsing functions - called from other demuxers such as RTP */
@@ -2270,9 +2178,6 @@ AVInputFormat ff_mpegts_demuxer = {
     .read_seek      = read_seek,
     .read_timestamp = mpegts_get_pcr,
     .flags          = AVFMT_SHOW_IDS | AVFMT_TS_DISCONT,
-#ifdef USE_SYNCPOINT_SEARCH
-    .read_seek2     = read_seek2,
-#endif
 };
 
 AVInputFormat ff_mpegtsraw_demuxer = {
@@ -2285,8 +2190,5 @@ AVInputFormat ff_mpegtsraw_demuxer = {
     .read_seek      = read_seek,
     .read_timestamp = mpegts_get_pcr,
     .flags          = AVFMT_SHOW_IDS | AVFMT_TS_DISCONT,
-#ifdef USE_SYNCPOINT_SEARCH
-    .read_seek2     = read_seek2,
-#endif
     .priv_class     = &mpegtsraw_class,
 };

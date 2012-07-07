@@ -40,8 +40,8 @@ static const AVOption options[] = {
     { "out_sample_fmt",         "Output Sample Format",     OFFSET(out_sample_fmt),         AV_OPT_TYPE_INT,    { AV_SAMPLE_FMT_S16     }, AV_SAMPLE_FMT_U8,     AV_SAMPLE_FMT_NB-1,     PARAM },
     { "out_sample_rate",        "Output Sample Rate",       OFFSET(out_sample_rate),        AV_OPT_TYPE_INT,    { 48000                 }, 1,                    INT_MAX,                PARAM },
     { "internal_sample_fmt",    "Internal Sample Format",   OFFSET(internal_sample_fmt),    AV_OPT_TYPE_INT,    { AV_SAMPLE_FMT_FLTP    }, AV_SAMPLE_FMT_NONE,   AV_SAMPLE_FMT_NB-1,     PARAM },
-    { "mix_coeff_type",         "Mixing Coefficient Type",  OFFSET(mix_coeff_type),         AV_OPT_TYPE_INT,    { AV_MIX_COEFF_TYPE_FLT }, AV_MIX_COEFF_TYPE_Q6, AV_MIX_COEFF_TYPE_NB-1, PARAM, "mix_coeff_type" },
-        { "q6",  "16-bit 10.6 Fixed-Point",  0, AV_OPT_TYPE_CONST, { AV_MIX_COEFF_TYPE_Q6  }, INT_MIN, INT_MAX, PARAM, "mix_coeff_type" },
+    { "mix_coeff_type",         "Mixing Coefficient Type",  OFFSET(mix_coeff_type),         AV_OPT_TYPE_INT,    { AV_MIX_COEFF_TYPE_FLT }, AV_MIX_COEFF_TYPE_Q8, AV_MIX_COEFF_TYPE_NB-1, PARAM, "mix_coeff_type" },
+        { "q8",  "16-bit 8.8 Fixed-Point",   0, AV_OPT_TYPE_CONST, { AV_MIX_COEFF_TYPE_Q8  }, INT_MIN, INT_MAX, PARAM, "mix_coeff_type" },
         { "q15", "32-bit 17.15 Fixed-Point", 0, AV_OPT_TYPE_CONST, { AV_MIX_COEFF_TYPE_Q15 }, INT_MIN, INT_MAX, PARAM, "mix_coeff_type" },
         { "flt", "Floating-Point",           0, AV_OPT_TYPE_CONST, { AV_MIX_COEFF_TYPE_FLT }, INT_MIN, INT_MAX, PARAM, "mix_coeff_type" },
     { "center_mix_level",       "Center Mix Level",         OFFSET(center_mix_level),       AV_OPT_TYPE_DOUBLE, { M_SQRT1_2             }, -32.0,                32.0,                   PARAM },
@@ -52,6 +52,10 @@ static const AVOption options[] = {
     { "phase_shift",            "Resampling Phase Shift",   OFFSET(phase_shift),            AV_OPT_TYPE_INT,    { 10                    }, 0,                    30, /* ??? */           PARAM },
     { "linear_interp",          "Use Linear Interpolation", OFFSET(linear_interp),          AV_OPT_TYPE_INT,    { 0                     }, 0,                    1,                      PARAM },
     { "cutoff",                 "Cutoff Frequency Ratio",   OFFSET(cutoff),                 AV_OPT_TYPE_DOUBLE, { 0.8                   }, 0.0,                  1.0,                    PARAM },
+    { "matrix_encoding",        "Matrixed Stereo Encoding", OFFSET(matrix_encoding),        AV_OPT_TYPE_INT,    { AV_MATRIX_ENCODING_NONE}, AV_MATRIX_ENCODING_NONE,     AV_MATRIX_ENCODING_NB-1, PARAM, "matrix_encoding" },
+        { "none",  "None",               0, AV_OPT_TYPE_CONST, { AV_MATRIX_ENCODING_NONE  }, INT_MIN, INT_MAX, PARAM, "matrix_encoding" },
+        { "dolby", "Dolby",              0, AV_OPT_TYPE_CONST, { AV_MATRIX_ENCODING_DOLBY }, INT_MIN, INT_MAX, PARAM, "matrix_encoding" },
+        { "dplii", "Dolby Pro Logic II", 0, AV_OPT_TYPE_CONST, { AV_MATRIX_ENCODING_DPLII }, INT_MIN, INT_MAX, PARAM, "matrix_encoding" },
     { NULL },
 };
 

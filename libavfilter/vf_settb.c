@@ -29,6 +29,7 @@
 #include "libavutil/rational.h"
 #include "avfilter.h"
 #include "internal.h"
+#include "video.h"
 
 static const char *const var_names[] = {
     "E",
@@ -53,7 +54,7 @@ typedef struct {
     double var_values[VAR_VARS_NB];
 } SetTBContext;
 
-static av_cold int init(AVFilterContext *ctx, const char *args, void *opaque)
+static av_cold int init(AVFilterContext *ctx, const char *args)
 {
     SetTBContext *settb = ctx->priv;
     av_strlcpy(settb->tb_expr, "intb", sizeof(settb->tb_expr));
@@ -96,7 +97,7 @@ static int config_output_props(AVFilterLink *outlink)
     }
 
     outlink->time_base = time_base;
-    av_log(outlink->src, AV_LOG_INFO, "tb:%d/%d -> tb:%d/%d\n",
+    av_log(outlink->src, AV_LOG_VERBOSE, "tb:%d/%d -> tb:%d/%d\n",
            inlink ->time_base.num, inlink ->time_base.den,
            outlink->time_base.num, outlink->time_base.den);
 
@@ -118,7 +119,7 @@ static void start_frame(AVFilterLink *inlink, AVFilterBufferRef *picref)
         avfilter_unref_buffer(picref);
     }
 
-    avfilter_start_frame(outlink, picref2);
+    ff_start_frame(outlink, picref2);
 }
 
 AVFilter avfilter_vf_settb = {
@@ -130,9 +131,9 @@ AVFilter avfilter_vf_settb = {
 
     .inputs    = (AVFilterPad[]) {{ .name             = "default",
                                     .type             = AVMEDIA_TYPE_VIDEO,
-                                    .get_video_buffer = avfilter_null_get_video_buffer,
+                                    .get_video_buffer = ff_null_get_video_buffer,
                                     .start_frame      = start_frame,
-                                    .end_frame        = avfilter_null_end_frame },
+                                    .end_frame        = ff_null_end_frame },
                                   { .name = NULL }},
 
     .outputs   = (AVFilterPad[]) {{ .name            = "default",

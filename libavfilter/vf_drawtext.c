@@ -41,6 +41,9 @@
 #include "libavutil/lfg.h"
 #include "avfilter.h"
 #include "drawutils.h"
+#include "formats.h"
+#include "internal.h"
+#include "video.h"
 
 #undef time
 
@@ -277,7 +280,7 @@ error:
     return ret;
 }
 
-static av_cold int init(AVFilterContext *ctx, const char *args, void *opaque)
+static av_cold int init(AVFilterContext *ctx, const char *args)
 {
     int err;
     DrawTextContext *dtext = ctx->priv;
@@ -395,7 +398,7 @@ static int query_formats(AVFilterContext *ctx)
         PIX_FMT_NONE
     };
 
-    avfilter_set_common_formats(ctx, avfilter_make_format_list(pix_fmts));
+    ff_set_common_formats(ctx, ff_make_format_list(pix_fmts));
     return 0;
 }
 
@@ -847,7 +850,7 @@ static void start_frame(AVFilterLink *inlink, AVFilterBufferRef *inpicref)
             (int)dtext->var_values[VAR_N], dtext->var_values[VAR_T],
             dtext->x, dtext->y, dtext->x+dtext->w, dtext->y+dtext->h);
 
-    avfilter_start_frame(inlink->dst->outputs[0], inpicref);
+    ff_start_frame(inlink->dst->outputs[0], inpicref);
 }
 
 static void end_frame(AVFilterLink *inlink)
@@ -861,8 +864,8 @@ static void end_frame(AVFilterLink *inlink)
 
     dtext->var_values[VAR_N] += 1.0;
 
-    avfilter_draw_slice(outlink, 0, picref->video->h, 1);
-    avfilter_end_frame(outlink);
+    ff_draw_slice(outlink, 0, picref->video->h, 1);
+    ff_end_frame(outlink);
 }
 
 AVFilter avfilter_vf_drawtext = {
@@ -875,7 +878,7 @@ AVFilter avfilter_vf_drawtext = {
 
     .inputs    = (AVFilterPad[]) {{ .name             = "default",
                                     .type             = AVMEDIA_TYPE_VIDEO,
-                                    .get_video_buffer = avfilter_null_get_video_buffer,
+                                    .get_video_buffer = ff_null_get_video_buffer,
                                     .start_frame      = start_frame,
                                     .draw_slice       = null_draw_slice,
                                     .end_frame        = end_frame,

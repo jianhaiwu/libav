@@ -29,6 +29,8 @@
 #include "libavutil/eval.h"
 #include "libavutil/mathematics.h"
 #include "avfilter.h"
+#include "internal.h"
+#include "video.h"
 
 static const char *const var_names[] = {
     "E",           ///< Euler number
@@ -65,7 +67,7 @@ typedef struct {
     double var_values[VAR_VARS_NB];
 } SetPTSContext;
 
-static av_cold int init(AVFilterContext *ctx, const char *args, void *opaque)
+static av_cold int init(AVFilterContext *ctx, const char *args)
 {
     SetPTSContext *setpts = ctx->priv;
     int ret;
@@ -92,7 +94,7 @@ static int config_input(AVFilterLink *inlink)
 
     setpts->var_values[VAR_TB] = av_q2d(inlink->time_base);
 
-    av_log(inlink->src, AV_LOG_INFO, "TB:%f\n", setpts->var_values[VAR_TB]);
+    av_log(inlink->src, AV_LOG_VERBOSE, "TB:%f\n", setpts->var_values[VAR_TB]);
     return 0;
 }
 
@@ -128,7 +130,7 @@ static void start_frame(AVFilterLink *inlink, AVFilterBufferRef *inpicref)
     setpts->var_values[VAR_N] += 1.0;
     setpts->var_values[VAR_PREV_INPTS ] = TS2D(inpicref ->pts);
     setpts->var_values[VAR_PREV_OUTPTS] = TS2D(outpicref->pts);
-    avfilter_start_frame(inlink->dst->outputs[0], outpicref);
+    ff_start_frame(inlink->dst->outputs[0], outpicref);
 }
 
 static av_cold void uninit(AVFilterContext *ctx)
@@ -148,7 +150,7 @@ AVFilter avfilter_vf_setpts = {
 
     .inputs    = (AVFilterPad[]) {{ .name             = "default",
                                     .type             = AVMEDIA_TYPE_VIDEO,
-                                    .get_video_buffer = avfilter_null_get_video_buffer,
+                                    .get_video_buffer = ff_null_get_video_buffer,
                                     .config_props     = config_input,
                                     .start_frame      = start_frame, },
                                   { .name = NULL }},
