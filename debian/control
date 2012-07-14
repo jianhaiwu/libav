@@ -91,9 +91,13 @@ Architecture: any
 Provides:
  ffmpeg-dbg
 Replaces:
- ffmpeg-dbg (<< 5:0.8.1-3)
+ ffmpeg-dbg (<< 6:0.8.3-4),
+ libav-regular-dbg (<< 6:0.8.3-4),
+ libav-extra-dbg (<< 6:0.8.3-4)
 Breaks:
- ffmpeg-dbg (<< 5:0.8.1-3)
+ ffmpeg-dbg (<< 6:0.8.3-4),
+ libav-regular-dbg (<< 6:0.8.3-4),
+ libav-extra-dbg (<< 6:0.8.3-4)
 Depends:
  libav-tools (= ${binary:Version}),
  libavcodec54 (= ${binary:Version}),
@@ -112,36 +116,30 @@ Description: Debug symbols for Libav related packages
  stacktraces to help debugging the Libav library.
 
 Package: libav-regular-dbg
-Section: debug
+Section: oldlibs
 Priority: extra
 Architecture: any
 Depends:
- libavcodec54 (= ${binary:Version}),
+ libav-dbg,
  ${misc:Depends}
-Description: Debug symbols for Libav related packages
+Description: Debug symbols for Libav related packages (transitional package)
  Libav is a complete, cross-platform solution to decode, encode, record,
  convert and stream audio and video.
  .
- This package contains debug data of the libavcodec regular shared library.
- .
- Most people will not need this package. Please install it to produce useful
- stacktraces to help debugging the Libav library.
+ This package serves as a transitional package to libav-dbg.
 
 Package: libav-extra-dbg
-Section: debug
+Section: oldlibs
 Priority: extra
 Architecture: any
 Depends:
- libavcodec-extra-54 (= ${binary:Version}),
+ libav-dbg,
  ${misc:Depends}
-Description: Debug symbols for Libav related packages
+Description: Debug symbols for Libav related packages (transitional package)
  Libav is a complete, cross-platform solution to decode, encode, record,
  convert and stream audio and video.
  .
- This package contains debug data of the libavcodec extra shared library.
- .
- Most people will not need this package. Please install it to produce useful
- stacktraces to help debugging the Libav library.
+ This package serves as a transitional package to libav-dbg.
 
 Package: libav-doc
 Section: doc
