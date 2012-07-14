@@ -81,7 +81,8 @@ Description: Multimedia player, server, encoder and transcoder
  streaming server, the avconv audio and video encoder, and the avprobe
  stream analyzer.  They support most existing file formats (AVI, MPEG,
  OGG, Matroska, ASF...) and encoding formats (MPEG, DivX, MPEG4, AC3,
- DV...).
+ DV...). Additionally, it contains the qt-faststart utility which
+ rearranges Quicktime files to facilitate network streaming.
 
 Package: libav-dbg
 Section: debug
