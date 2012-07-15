@@ -88,17 +88,16 @@ Package: libav-dbg
 Section: debug
 Priority: extra
 Architecture: any
-Provides:
- ffmpeg-dbg
 Replaces:
- ffmpeg-dbg (<< 6:0.8.3-4),
- libav-regular-dbg (<< 6:0.8.3-4),
- libav-extra-dbg (<< 6:0.8.3-4)
+ ffmpeg-dbg (<< 6:0.8.3-5),
+ libav-regular-dbg (<< 6:0.8.3-5),
+ libav-extra-dbg (<< 6:0.8.3-5)
 Breaks:
- ffmpeg-dbg (<< 6:0.8.3-4),
- libav-regular-dbg (<< 6:0.8.3-4),
- libav-extra-dbg (<< 6:0.8.3-4)
+ ffmpeg-dbg (<< 6:0.8.3-5),
+ libav-regular-dbg (<< 6:0.8.3-5),
+ libav-extra-dbg (<< 6:0.8.3-5)
 Depends:
+ ffmpeg (= ${binary:Version}),
  libav-tools (= ${binary:Version}),
  libavcodec54 (= ${binary:Version}),
  libavdevice53 (= ${binary:Version}),
