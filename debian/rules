@@ -175,7 +175,7 @@ binary-arch: build install
 	done
 	for pkg in $(LIB_PKGS2); do \
 	    upkg=$$(echo "$$pkg" | sed -r 's/([0-9]+)$$/-extra-\1/'); \
-	    dh_makeshlibs -p"$$pkg" -V"$$pkg (>= $(DEB_VERSION)) | $$upkg (>= $(DEB_VERSION))"; \
+	    dh_makeshlibs -p"$$pkg" -V"$$pkg (>= $(SHLIBS_VERSION)) | $$upkg (>= $(EPOCH)$(UPSTREAM_VERSION))"; \
 	done
 	dh_shlibdeps
 	dh_installdeb
