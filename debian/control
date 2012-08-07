@@ -117,7 +117,7 @@ Description: Debug symbols for Libav related packages
 Package: libav-regular-dbg
 Section: oldlibs
 Priority: extra
-Architecture: any
+Architecture: all
 Depends:
  libav-dbg,
  ${misc:Depends}
