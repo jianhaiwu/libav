@@ -136,12 +136,10 @@ Pre-Depends: ${misc:Pre-Depends}
 Depends:
  ${misc:Depends},
  ${shlibs:Depends}
-Provides:
+Conflicts:
  libavutil-extra-51
 Replaces:
  libavutil-extra-51
-Breaks:
- libavutil-extra-51 (<< 5:0.8.1-2)
 Description: Libav utility library
  Libav is a complete, cross-platform solution to decode, encode, record,
  convert and stream audio and video.
@@ -174,8 +172,6 @@ Pre-Depends: ${misc:Pre-Depends}
 Depends:
  ${misc:Depends},
  ${shlibs:Depends}
-Provides:
- libavdevice-extra-53
 Replaces:
  libavdevice-extra-53
 Breaks:
@@ -193,8 +189,6 @@ Pre-Depends: ${misc:Pre-Depends}
 Depends:
  ${misc:Depends},
  ${shlibs:Depends}
-Provides:
- libavformat-extra-54
 Replaces:
  libavformat-extra-54
 Breaks:
@@ -215,8 +209,6 @@ Pre-Depends: ${misc:Pre-Depends}
 Depends:
  ${misc:Depends},
  ${shlibs:Depends}
-Provides:
- libavfilter-extra-3
 Replaces:
  libavfilter-extra-3
 Breaks:
@@ -234,8 +226,6 @@ Pre-Depends: ${misc:Pre-Depends}
 Depends:
  ${misc:Depends},
  ${shlibs:Depends}
-Provides:
- libswscale-extra-2
 Replaces:
  libswscale-extra-2
 Breaks:
