@@ -21,11 +21,16 @@
 #ifndef AVUTIL_CPU_H
 #define AVUTIL_CPU_H
 
+#include "version.h"
+
 #define AV_CPU_FLAG_FORCE    0x80000000 /* force usage of selected flags (OR) */
 
     /* lower 16 bits - CPU features */
 #define AV_CPU_FLAG_MMX          0x0001 ///< standard MMX
+#define AV_CPU_FLAG_MMXEXT       0x0002 ///< SSE integer functions or AMD MMX ext
+#if LIBAVUTIL_VERSION_MAJOR < 52
 #define AV_CPU_FLAG_MMX2         0x0002 ///< SSE integer functions or AMD MMX ext
+#endif
 #define AV_CPU_FLAG_3DNOW        0x0004 ///< AMD 3DNOW
 #define AV_CPU_FLAG_SSE          0x0008 ///< SSE functions
 #define AV_CPU_FLAG_SSE2         0x0010 ///< PIV SSE2 functions
@@ -40,6 +45,8 @@
 #define AV_CPU_FLAG_AVX          0x4000 ///< AVX functions: requires OS support even if YMM registers aren't used
 #define AV_CPU_FLAG_XOP          0x0400 ///< Bulldozer XOP functions
 #define AV_CPU_FLAG_FMA4         0x0800 ///< Bulldozer FMA4 functions
+#define AV_CPU_FLAG_CMOV         0x1000 ///< i686 cmov
+
 #define AV_CPU_FLAG_ALTIVEC      0x0001 ///< standard
 
 #define AV_CPU_FLAG_ARMV5TE      (1 << 0)

@@ -36,6 +36,8 @@
 #include "avcodec.h"
 #include "dsputil.h"
 #include "libavutil/imgutils.h"
+#include "libavutil/internal.h"
+#include "libavutil/mem.h"
 
 #include "truemotion1data.h"
 
@@ -354,14 +356,7 @@ static int truemotion1_decode_header(TrueMotion1Context *s)
     if (s->flags & FLAG_SPRITE) {
         av_log_ask_for_sample(s->avctx, "SPRITE frame found.\n");
         /* FIXME header.width, height, xoffset and yoffset aren't initialized */
-#if 0
-        s->w = header.width;
-        s->h = header.height;
-        s->x = header.xoffset;
-        s->y = header.yoffset;
-#else
         return -1;
-#endif
     } else {
         s->w = header.xsize;
         s->h = header.ysize;
@@ -893,7 +888,7 @@ static av_cold int truemotion1_decode_end(AVCodecContext *avctx)
 AVCodec ff_truemotion1_decoder = {
     .name           = "truemotion1",
     .type           = AVMEDIA_TYPE_VIDEO,
-    .id             = CODEC_ID_TRUEMOTION1,
+    .id             = AV_CODEC_ID_TRUEMOTION1,
     .priv_data_size = sizeof(TrueMotion1Context),
     .init           = truemotion1_decode_init,
     .close          = truemotion1_decode_end,

@@ -270,7 +270,7 @@ static int mpc8_decode_frame(AVCodecContext * avctx, void *data,
         maxband = c->last_max_band + get_vlc2(gb, band_vlc.table, MPC8_BANDS_BITS, 2);
         if(maxband > 32) maxband -= 33;
     }
-    if(maxband > c->maxbands)
+    if(maxband > c->maxbands + 1)
         return AVERROR_INVALIDDATA;
     c->last_max_band = maxband;
 
@@ -405,11 +405,14 @@ static int mpc8_decode_frame(AVCodecContext * avctx, void *data,
         }
     }
 
-    ff_mpc_dequantize_and_synth(c, maxband, c->frame.data[0], avctx->channels);
+    ff_mpc_dequantize_and_synth(c, maxband - 1, c->frame.data[0],
+                                avctx->channels);
 
     c->cur_frame++;
 
     c->last_bits_used = get_bits_count(gb);
+    if(get_bits_left(gb) < 8) // we have only padding left
+        c->last_bits_used = buf_size << 3;
     if(c->cur_frame >= c->frames)
         c->cur_frame = 0;
 
@@ -419,13 +422,20 @@ static int mpc8_decode_frame(AVCodecContext * avctx, void *data,
     return c->cur_frame ? c->last_bits_used >> 3 : buf_size;
 }
 
+static av_cold void mpc8_decode_flush(AVCodecContext *avctx)
+{
+    MPCContext *c = avctx->priv_data;
+    c->cur_frame = 0;
+}
+
 AVCodec ff_mpc8_decoder = {
     .name           = "mpc8",
     .type           = AVMEDIA_TYPE_AUDIO,
-    .id             = CODEC_ID_MUSEPACK8,
+    .id             = AV_CODEC_ID_MUSEPACK8,
     .priv_data_size = sizeof(MPCContext),
     .init           = mpc8_decode_init,
     .decode         = mpc8_decode_frame,
+    .flush          = mpc8_decode_flush,
     .capabilities   = CODEC_CAP_DR1,
     .long_name      = NULL_IF_CONFIG_SMALL("Musepack SV8"),
 };

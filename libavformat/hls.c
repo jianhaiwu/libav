@@ -30,9 +30,9 @@
 #include "libavutil/mathematics.h"
 #include "libavutil/opt.h"
 #include "libavutil/dict.h"
+#include "libavutil/time.h"
 #include "avformat.h"
 #include "internal.h"
-#include <unistd.h>
 #include "avio_internal.h"
 #include "url.h"
 
@@ -407,7 +407,7 @@ reload:
             while (av_gettime() - v->last_load_time < reload_interval) {
                 if (ff_check_interrupt(c->interrupt_callback))
                     return AVERROR_EXIT;
-                usleep(100*1000);
+                av_usleep(100*1000);
             }
             /* Enough time has elapsed since the last reload */
             goto reload;
@@ -419,8 +419,6 @@ reload:
     }
     ret = ffurl_read(v->input, buf, buf_size);
     if (ret > 0)
-        return ret;
-    if (ret < 0 && ret != AVERROR_EOF)
         return ret;
     ffurl_close(v->input);
     v->input = NULL;
@@ -744,7 +742,7 @@ static int hls_probe(AVProbeData *p)
 
 AVInputFormat ff_hls_demuxer = {
     .name           = "hls,applehttp",
-    .long_name      = NULL_IF_CONFIG_SMALL("Apple HTTP Live Streaming format"),
+    .long_name      = NULL_IF_CONFIG_SMALL("Apple HTTP Live Streaming"),
     .priv_data_size = sizeof(HLSContext),
     .read_probe     = hls_probe,
     .read_header    = hls_read_header,

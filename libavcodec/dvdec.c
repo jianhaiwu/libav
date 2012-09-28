@@ -313,7 +313,7 @@ static int dvvideo_decode_frame(AVCodecContext *avctx,
                                  void *data, int *data_size,
                                  AVPacket *avpkt)
 {
-    const uint8_t *buf = avpkt->data;
+    uint8_t *buf = avpkt->data;
     int buf_size = avpkt->size;
     DVVideoContext *s = avctx->priv_data;
     const uint8_t* vsc_pack;
@@ -375,7 +375,7 @@ static int dvvideo_close(AVCodecContext *c)
 AVCodec ff_dvvideo_decoder = {
     .name           = "dvvideo",
     .type           = AVMEDIA_TYPE_VIDEO,
-    .id             = CODEC_ID_DVVIDEO,
+    .id             = AV_CODEC_ID_DVVIDEO,
     .priv_data_size = sizeof(DVVideoContext),
     .init           = ff_dvvideo_init,
     .close          = dvvideo_close,

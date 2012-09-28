@@ -26,8 +26,10 @@
 #include "avformat.h"
 #include "avio_internal.h"
 #include "internal.h"
+#include "libavutil/opt.h"
 
 typedef struct {
+    const AVClass *class;  /**< Class for private options. */
     int img_number;
     int is_pipe;
     char path[1024];
@@ -37,7 +39,6 @@ static int write_header(AVFormatContext *s)
 {
     VideoMuxData *img = s->priv_data;
 
-    img->img_number = 1;
     av_strlcpy(img->path, s->filename, sizeof(img->path));
 
     /* find format */
@@ -72,7 +73,7 @@ static int write_packet(AVFormatContext *s, AVPacket *pkt)
                 return AVERROR(EIO);
             }
 
-            if(codec->codec_id != CODEC_ID_RAWVIDEO)
+            if(codec->codec_id != AV_CODEC_ID_RAWVIDEO)
                 break;
             filename[ strlen(filename) - 1 ]= 'U' + i;
         }
@@ -80,17 +81,15 @@ static int write_packet(AVFormatContext *s, AVPacket *pkt)
         pb[0] = s->pb;
     }
 
-    if(codec->codec_id == CODEC_ID_RAWVIDEO){
+    if(codec->codec_id == AV_CODEC_ID_RAWVIDEO){
         int ysize = codec->width * codec->height;
         avio_write(pb[0], pkt->data        , ysize);
         avio_write(pb[1], pkt->data + ysize, (pkt->size - ysize)/2);
         avio_write(pb[2], pkt->data + ysize +(pkt->size - ysize)/2, (pkt->size - ysize)/2);
-        avio_flush(pb[1]);
-        avio_flush(pb[2]);
         avio_close(pb[1]);
         avio_close(pb[2]);
     }else{
-        if(ff_guess_image2_codec(s->filename) == CODEC_ID_JPEG2000){
+        if(ff_guess_image2_codec(s->filename) == AV_CODEC_ID_JPEG2000){
             AVStream *st = s->streams[0];
             if(st->codec->extradata_size > 8 &&
                AV_RL32(st->codec->extradata+4) == MKTAG('j','p','2','h')){
@@ -124,7 +123,21 @@ static int write_packet(AVFormatContext *s, AVPacket *pkt)
     return 0;
 }
 
+#define OFFSET(x) offsetof(VideoMuxData, x)
+#define ENC AV_OPT_FLAG_ENCODING_PARAM
+static const AVOption muxoptions[] = {
+    { "start_number", "first number in the sequence", OFFSET(img_number), AV_OPT_TYPE_INT, {.i64 = 1}, 1, INT_MAX, ENC },
+    { NULL },
+};
+
 #if CONFIG_IMAGE2_MUXER
+static const AVClass img2mux_class = {
+    .class_name = "image2 muxer",
+    .item_name  = av_default_item_name,
+    .option     = muxoptions,
+    .version    = LIBAVUTIL_VERSION_INT,
+};
+
 AVOutputFormat ff_image2_muxer = {
     .name           = "image2",
     .long_name      = NULL_IF_CONFIG_SMALL("image2 sequence"),
@@ -132,10 +145,11 @@ AVOutputFormat ff_image2_muxer = {
                       "ppm,sgi,tga,tif,tiff,jp2,xwd,sun,ras,rs,im1,im8,im24,"
                       "sunras,xbm",
     .priv_data_size = sizeof(VideoMuxData),
-    .video_codec    = CODEC_ID_MJPEG,
+    .video_codec    = AV_CODEC_ID_MJPEG,
     .write_header   = write_header,
     .write_packet   = write_packet,
-    .flags          = AVFMT_NOTIMESTAMPS | AVFMT_NODIMENSIONS | AVFMT_NOFILE
+    .flags          = AVFMT_NOTIMESTAMPS | AVFMT_NODIMENSIONS | AVFMT_NOFILE,
+    .priv_class     = &img2mux_class,
 };
 #endif
 #if CONFIG_IMAGE2PIPE_MUXER
@@ -143,7 +157,7 @@ AVOutputFormat ff_image2pipe_muxer = {
     .name           = "image2pipe",
     .long_name      = NULL_IF_CONFIG_SMALL("piped image2 sequence"),
     .priv_data_size = sizeof(VideoMuxData),
-    .video_codec    = CODEC_ID_MJPEG,
+    .video_codec    = AV_CODEC_ID_MJPEG,
     .write_header   = write_header,
     .write_packet   = write_packet,
     .flags          = AVFMT_NOTIMESTAMPS | AVFMT_NODIMENSIONS

@@ -43,6 +43,8 @@
 #include "libavutil/random_seed.h"
 #include "libavutil/parseutils.h"
 #include "libavutil/opt.h"
+#include "libavutil/time.h"
+
 #include <stdarg.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -51,7 +53,6 @@
 #include <poll.h>
 #endif
 #include <errno.h>
-#include <sys/time.h>
 #include <time.h>
 #include <sys/wait.h>
 #include <signal.h>
@@ -2572,8 +2573,11 @@ static int http_start_receive_data(HTTPContext *c)
     if (c->stream->truncate) {
         /* truncate feed file */
         ffm_write_write_index(c->feed_fd, FFM_PACKET_SIZE);
-        ftruncate(c->feed_fd, FFM_PACKET_SIZE);
         http_log("Truncating feed file '%s'\n", c->stream->feed_filename);
+        if (ftruncate(c->feed_fd, FFM_PACKET_SIZE) < 0) {
+            http_log("Error truncating feed file: %s\n", strerror(errno));
+            return -1;
+        }
     } else {
         if ((c->stream->feed_write_index = ffm_read_write_index(fd)) < 0) {
             http_log("Error reading write index from feed file: %s\n", strerror(errno));
@@ -3537,7 +3541,7 @@ static void extract_mpeg4_header(AVFormatContext *infile)
     mpeg4_count = 0;
     for(i=0;i<infile->nb_streams;i++) {
         st = infile->streams[i];
-        if (st->codec->codec_id == CODEC_ID_MPEG4 &&
+        if (st->codec->codec_id == AV_CODEC_ID_MPEG4 &&
             st->codec->extradata_size == 0) {
             mpeg4_count++;
         }
@@ -3550,7 +3554,7 @@ static void extract_mpeg4_header(AVFormatContext *infile)
         if (av_read_packet(infile, &pkt) < 0)
             break;
         st = infile->streams[pkt.stream_index];
-        if (st->codec->codec_id == CODEC_ID_MPEG4 &&
+        if (st->codec->codec_id == AV_CODEC_ID_MPEG4 &&
             st->codec->extradata_size == 0) {
             av_freep(&st->codec->extradata);
             /* fill extradata with the header */
@@ -3864,22 +3868,22 @@ static void add_codec(FFStream *stream, AVCodecContext *av)
     memcpy(st->codec, av, sizeof(AVCodecContext));
 }
 
-static enum CodecID opt_audio_codec(const char *arg)
+static enum AVCodecID opt_audio_codec(const char *arg)
 {
     AVCodec *p= avcodec_find_encoder_by_name(arg);
 
     if (p == NULL || p->type != AVMEDIA_TYPE_AUDIO)
-        return CODEC_ID_NONE;
+        return AV_CODEC_ID_NONE;
 
     return p->id;
 }
 
-static enum CodecID opt_video_codec(const char *arg)
+static enum AVCodecID opt_video_codec(const char *arg)
 {
     AVCodec *p= avcodec_find_encoder_by_name(arg);
 
     if (p == NULL || p->type != AVMEDIA_TYPE_VIDEO)
-        return CODEC_ID_NONE;
+        return AV_CODEC_ID_NONE;
 
     return p->id;
 }
@@ -3922,7 +3926,7 @@ static int avserver_opt_default(const char *opt, const char *arg,
 
 static int avserver_opt_preset(const char *arg,
                        AVCodecContext *avctx, int type,
-                       enum CodecID *audio_id, enum CodecID *video_id)
+                       enum AVCodecID *audio_id, enum AVCodecID *video_id)
 {
     FILE *f=NULL;
     char filename[1000], tmp[1000], tmp2[1000], line[1000];
@@ -4004,7 +4008,7 @@ static int parse_ffconfig(const char *filename)
     FFStream **last_stream, *stream, *redirect;
     FFStream **last_feed, *feed, *s;
     AVCodecContext audio_enc, video_enc;
-    enum CodecID audio_id, video_id;
+    enum AVCodecID audio_id, video_id;
 
     f = fopen(filename, "r");
     if (!f) {
@@ -4021,8 +4025,8 @@ static int parse_ffconfig(const char *filename)
     stream = NULL;
     feed = NULL;
     redirect = NULL;
-    audio_id = CODEC_ID_NONE;
-    video_id = CODEC_ID_NONE;
+    audio_id = AV_CODEC_ID_NONE;
+    video_id = AV_CODEC_ID_NONE;
 
 #define ERROR(...) report_config_error(filename, line_num, &errors, __VA_ARGS__)
     for(;;) {
@@ -4214,8 +4218,8 @@ static int parse_ffconfig(const char *filename)
                 stream->fmt = avserver_guess_format(NULL, stream->filename, NULL);
                 avcodec_get_context_defaults3(&video_enc, NULL);
                 avcodec_get_context_defaults3(&audio_enc, NULL);
-                audio_id = CODEC_ID_NONE;
-                video_id = CODEC_ID_NONE;
+                audio_id = AV_CODEC_ID_NONE;
+                video_id = AV_CODEC_ID_NONE;
                 if (stream->fmt) {
                     audio_id = stream->fmt->audio_codec;
                     video_id = stream->fmt->video_codec;
@@ -4297,13 +4301,13 @@ static int parse_ffconfig(const char *filename)
         } else if (!av_strcasecmp(cmd, "AudioCodec")) {
             get_arg(arg, sizeof(arg), &p);
             audio_id = opt_audio_codec(arg);
-            if (audio_id == CODEC_ID_NONE) {
+            if (audio_id == AV_CODEC_ID_NONE) {
                 ERROR("Unknown AudioCodec: %s\n", arg);
             }
         } else if (!av_strcasecmp(cmd, "VideoCodec")) {
             get_arg(arg, sizeof(arg), &p);
             video_id = opt_video_codec(arg);
-            if (video_id == CODEC_ID_NONE) {
+            if (video_id == AV_CODEC_ID_NONE) {
                 ERROR("Unknown VideoCodec: %s\n", arg);
             }
         } else if (!av_strcasecmp(cmd, "MaxTime")) {
@@ -4494,9 +4498,9 @@ static int parse_ffconfig(const char *filename)
             if (stream)
                 video_enc.dark_masking = atof(arg);
         } else if (!av_strcasecmp(cmd, "NoVideo")) {
-            video_id = CODEC_ID_NONE;
+            video_id = AV_CODEC_ID_NONE;
         } else if (!av_strcasecmp(cmd, "NoAudio")) {
-            audio_id = CODEC_ID_NONE;
+            audio_id = AV_CODEC_ID_NONE;
         } else if (!av_strcasecmp(cmd, "ACL")) {
             parse_acl_row(stream, feed, NULL, p, filename, line_num);
         } else if (!av_strcasecmp(cmd, "DynamicACL")) {
@@ -4534,12 +4538,12 @@ static int parse_ffconfig(const char *filename)
                 ERROR("No corresponding <Stream> for </Stream>\n");
             } else {
                 if (stream->feed && stream->fmt && strcmp(stream->fmt->name, "ffm") != 0) {
-                    if (audio_id != CODEC_ID_NONE) {
+                    if (audio_id != AV_CODEC_ID_NONE) {
                         audio_enc.codec_type = AVMEDIA_TYPE_AUDIO;
                         audio_enc.codec_id = audio_id;
                         add_codec(stream, &audio_enc);
                     }
-                    if (video_id != CODEC_ID_NONE) {
+                    if (video_id != AV_CODEC_ID_NONE) {
                         video_enc.codec_type = AVMEDIA_TYPE_VIDEO;
                         video_enc.codec_id = video_id;
                         add_codec(stream, &video_enc);
@@ -4627,12 +4631,12 @@ static void opt_debug(void)
     logfilename[0] = '-';
 }
 
-static void show_help(void)
+void show_help_default(const char *opt, const char *arg)
 {
     printf("usage: avserver [options]\n"
            "Hyper fast multi format Audio/Video streaming server\n");
     printf("\n");
-    show_help_options(options, "Main options:\n", 0, 0);
+    show_help_options(options, "Main options:", 0, 0, 0);
 }
 
 static const OptionDef options[] = {

@@ -87,6 +87,11 @@ typedef struct {
     unsigned flags;
 } MOVTrackExt;
 
+typedef struct {
+    unsigned int count;
+    unsigned int index;
+} MOVSbgp;
+
 typedef struct MOVStreamContext {
     AVIOContext *pb;
     int ffindex;          ///< AVStream index
@@ -128,6 +133,8 @@ typedef struct MOVStreamContext {
     int has_palette;
     int64_t data_size;
     int64_t track_end;    ///< used for dts generation in fragmented movie files
+    unsigned int rap_group_count;
+    MOVSbgp *rap_group;
 } MOVStreamContext;
 
 typedef struct MOVContext {
@@ -184,7 +191,7 @@ void ff_mp4_parse_es_descr(AVIOContext *pb, int *es_id);
 #define MOV_FRAG_SAMPLE_FLAG_DEPENDS_YES               0x01000000
 
 int ff_mov_read_esds(AVFormatContext *fc, AVIOContext *pb, MOVAtom atom);
-enum CodecID ff_mov_get_lpcm_codec_id(int bps, int flags);
+enum AVCodecID ff_mov_get_lpcm_codec_id(int bps, int flags);
 
 int ff_mov_read_stsd_entries(MOVContext *c, AVIOContext *pb, int entries);
 

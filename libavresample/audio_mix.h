@@ -47,7 +47,7 @@ typedef struct AudioMix {
     mix_func *mix;
     mix_func *mix_generic;
 
-    int16_t *matrix_q6[AVRESAMPLE_MAX_CHANNELS];
+    int16_t *matrix_q8[AVRESAMPLE_MAX_CHANNELS];
     int32_t *matrix_q15[AVRESAMPLE_MAX_CHANNELS];
     float   *matrix_flt[AVRESAMPLE_MAX_CHANNELS];
     void   **matrix;
@@ -69,7 +69,7 @@ typedef struct AudioMix {
  * @param in_channels    number of input channels, or 0 for any number of channels
  * @param out_channels   number of output channels, or 0 for any number of channels
  * @param ptr_align      buffer pointer alignment, in bytes
- * @param sample_align   buffer size alignment, in samples
+ * @param samples_align  buffer size alignment, in samples
  * @param descr          function type description (e.g. "C" or "SSE")
  * @param mix_func       mixing function pointer
  */

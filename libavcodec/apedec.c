@@ -393,7 +393,7 @@ static inline int range_get_symbol(APEContext *ctx,
 }
 /** @} */ // group rangecoder
 
-static inline void update_rice(APERice *rice, int x)
+static inline void update_rice(APERice *rice, unsigned int x)
 {
     int lim = rice->k ? (1 << (rice->k + 4)) : 0;
     rice->ksum += ((x + 1) / 2) - ((rice->ksum + 16) >> 5);
@@ -406,7 +406,7 @@ static inline void update_rice(APERice *rice, int x)
 
 static inline int ape_decode_value(APEContext *ctx, APERice *rice)
 {
-    int x, overflow;
+    unsigned int x, overflow;
 
     if (ctx->fileversion < 3990) {
         int tmpk;
@@ -972,8 +972,8 @@ static void ape_flush(AVCodecContext *avctx)
 #define OFFSET(x) offsetof(APEContext, x)
 #define PAR (AV_OPT_FLAG_DECODING_PARAM | AV_OPT_FLAG_AUDIO_PARAM)
 static const AVOption options[] = {
-    { "max_samples", "maximum number of samples decoded per call",             OFFSET(blocks_per_loop), AV_OPT_TYPE_INT,   { 4608 },    1,       INT_MAX, PAR, "max_samples" },
-    { "all",         "no maximum. decode all samples for each packet at once", 0,                       AV_OPT_TYPE_CONST, { INT_MAX }, INT_MIN, INT_MAX, PAR, "max_samples" },
+    { "max_samples", "maximum number of samples decoded per call",             OFFSET(blocks_per_loop), AV_OPT_TYPE_INT,   { .i64 = 4608 },    1,       INT_MAX, PAR, "max_samples" },
+    { "all",         "no maximum. decode all samples for each packet at once", 0,                       AV_OPT_TYPE_CONST, { .i64 = INT_MAX }, INT_MIN, INT_MAX, PAR, "max_samples" },
     { NULL},
 };
 
@@ -987,7 +987,7 @@ static const AVClass ape_decoder_class = {
 AVCodec ff_ape_decoder = {
     .name           = "ape",
     .type           = AVMEDIA_TYPE_AUDIO,
-    .id             = CODEC_ID_APE,
+    .id             = AV_CODEC_ID_APE,
     .priv_data_size = sizeof(APEContext),
     .init           = ape_decode_init,
     .close          = ape_decode_close,

@@ -40,6 +40,7 @@ typedef struct {
     char *video_size;       /**< Set by a private option. */
     char *framerate;        /**< Set by a private option. */
     int loop;
+    int start_number;
 } VideoDemuxData;
 
 static const int sizes[][2] = {
@@ -70,13 +71,13 @@ static int infer_size(int *width_ptr, int *height_ptr, int size)
 
 /* return -1 if no image found */
 static int find_image_range(int *pfirst_index, int *plast_index,
-                            const char *path)
+                            const char *path, int max_start)
 {
     char buf[1024];
     int range, last_index, range1, first_index;
 
     /* find the first image */
-    for(first_index = 0; first_index < 5; first_index++) {
+    for (first_index = 0; first_index < max_start; first_index++) {
         if (av_get_frame_filename(buf, sizeof(buf), path, first_index) < 0){
             *pfirst_index =
             *plast_index = 1;
@@ -182,7 +183,8 @@ static int read_header(AVFormatContext *s1)
     }
 
     if (!s->is_pipe) {
-        if (find_image_range(&first_index, &last_index, s->path) < 0)
+        if (find_image_range(&first_index, &last_index, s->path,
+                             FFMAX(s->start_number, 5)) < 0)
             return AVERROR(ENOENT);
         s->img_first = first_index;
         s->img_last = last_index;
@@ -214,7 +216,7 @@ static int read_packet(AVFormatContext *s1, AVPacket *pkt)
     char filename[1024];
     int i;
     int size[3]={0}, ret[3]={0};
-    AVIOContext *f[3];
+    AVIOContext *f[3] = {NULL};
     AVCodecContext *codec= s1->streams[0]->codec;
 
     if (!s->is_pipe) {
@@ -230,19 +232,19 @@ static int read_packet(AVFormatContext *s1, AVPacket *pkt)
         for(i=0; i<3; i++){
             if (avio_open2(&f[i], filename, AVIO_FLAG_READ,
                            &s1->interrupt_callback, NULL) < 0) {
-                if(i==1)
+                if(i>=1)
                     break;
                 av_log(s1, AV_LOG_ERROR, "Could not open file : %s\n",filename);
                 return AVERROR(EIO);
             }
             size[i]= avio_size(f[i]);
 
-            if(codec->codec_id != CODEC_ID_RAWVIDEO)
+            if(codec->codec_id != AV_CODEC_ID_RAWVIDEO)
                 break;
             filename[ strlen(filename) - 1 ]= 'U' + i;
         }
 
-        if(codec->codec_id == CODEC_ID_RAWVIDEO && !codec->width)
+        if(codec->codec_id == AV_CODEC_ID_RAWVIDEO && !codec->width)
             infer_size(&codec->width, &codec->height, size[0]);
     } else {
         f[0] = s1->pb;
@@ -257,7 +259,7 @@ static int read_packet(AVFormatContext *s1, AVPacket *pkt)
 
     pkt->size= 0;
     for(i=0; i<3; i++){
-        if(size[i]){
+        if(f[i]){
             ret[i]= avio_read(f[i], pkt->data + pkt->size, size[i]);
             if (!s->is_pipe)
                 avio_close(f[i]);
@@ -282,7 +284,8 @@ static const AVOption options[] = {
     { "pixel_format", "", OFFSET(pixel_format), AV_OPT_TYPE_STRING, {.str = NULL}, 0, 0, DEC },
     { "video_size",   "", OFFSET(video_size),   AV_OPT_TYPE_STRING, {.str = NULL}, 0, 0, DEC },
     { "framerate",    "", OFFSET(framerate),    AV_OPT_TYPE_STRING, {.str = "25"}, 0, 0, DEC },
-    { "loop",         "", OFFSET(loop),         AV_OPT_TYPE_INT,    {.dbl = 0},    0, 1, DEC },
+    { "loop",         "", OFFSET(loop),         AV_OPT_TYPE_INT,    {.i64 = 0},    0, 1, DEC },
+    { "start_number", "first number in the sequence", OFFSET(start_number), AV_OPT_TYPE_INT, {.i64 = 1}, 1, INT_MAX, DEC },
     { NULL },
 };
 

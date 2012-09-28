@@ -21,11 +21,16 @@
  * null video source
  */
 
+#include <stdio.h>
+
 #include "libavutil/avstring.h"
 #include "libavutil/eval.h"
+#include "libavutil/internal.h"
 #include "libavutil/mathematics.h"
 #include "libavutil/parseutils.h"
 #include "avfilter.h"
+#include "formats.h"
+#include "internal.h"
 
 static const char *const var_names[] = {
     "E",
@@ -49,7 +54,7 @@ typedef struct {
     double var_values[VAR_VARS_NB];
 } NullContext;
 
-static int init(AVFilterContext *ctx, const char *args, void *opaque)
+static int init(AVFilterContext *ctx, const char *args)
 {
     NullContext *priv = ctx->priv;
 
@@ -98,7 +103,7 @@ static int config_props(AVFilterLink *outlink)
     outlink->h = priv->h;
     outlink->time_base = tb;
 
-    av_log(outlink->src, AV_LOG_INFO, "w:%d h:%d tb:%d/%d\n", priv->w, priv->h,
+    av_log(outlink->src, AV_LOG_VERBOSE, "w:%d h:%d tb:%d/%d\n", priv->w, priv->h,
            tb.num, tb.den);
 
     return 0;
@@ -116,9 +121,9 @@ AVFilter avfilter_vsrc_nullsrc = {
     .init       = init,
     .priv_size = sizeof(NullContext),
 
-    .inputs    = (AVFilterPad[]) {{ .name = NULL}},
+    .inputs    = NULL,
 
-    .outputs   = (AVFilterPad[]) {
+    .outputs   = (const AVFilterPad[]) {
         {
             .name            = "default",
             .type            = AVMEDIA_TYPE_VIDEO,

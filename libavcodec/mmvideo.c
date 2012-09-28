@@ -84,8 +84,7 @@ static int mm_decode_pal(MmContext *s)
  */
 static int mm_decode_intra(MmContext * s, int half_horiz, int half_vert)
 {
-    int i, x, y;
-    i=0; x=0; y=0;
+    int x = 0, y = 0;
 
     while (bytestream2_get_bytes_left(&s->gb) > 0) {
         int run_length, color;
@@ -229,7 +228,7 @@ static av_cold int mm_decode_end(AVCodecContext *avctx)
 AVCodec ff_mmvideo_decoder = {
     .name           = "mmvideo",
     .type           = AVMEDIA_TYPE_VIDEO,
-    .id             = CODEC_ID_MMVIDEO,
+    .id             = AV_CODEC_ID_MMVIDEO,
     .priv_data_size = sizeof(MmContext),
     .init           = mm_decode_init,
     .close          = mm_decode_end,
