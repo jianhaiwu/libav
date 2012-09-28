@@ -25,7 +25,9 @@
  */
 
 #include "libavutil/cpu.h"
-#include "libavutil/x86_cpu.h"
+#include "libavutil/internal.h"
+#include "libavutil/mem.h"
+#include "libavutil/x86/asm.h"
 #include "libavcodec/dsputil.h"
 #include "dsputil_mmx.h"
 #include "libavcodec/vc1dsp.h"
@@ -716,8 +718,7 @@ static void vc1_h_loop_filter16_sse4(uint8_t *src, int stride, int pq)
     ff_vc1_h_loop_filter8_sse4(src,          stride, pq);
     ff_vc1_h_loop_filter8_sse4(src+8*stride, stride, pq);
 }
-
-#endif
+#endif /* HAVE_YASM */
 
 void ff_put_vc1_chroma_mc8_mmx_nornd  (uint8_t *dst, uint8_t *src,
                                        int stride, int h, int x, int y);
@@ -757,7 +758,7 @@ void ff_vc1dsp_init_mmx(VC1DSPContext *dsp)
         dsp->put_vc1_mspel_pixels_tab[15] = put_vc1_mspel_mc33_mmx;
     }
 
-    if (mm_flags & AV_CPU_FLAG_MMX2){
+    if (mm_flags & AV_CPU_FLAG_MMXEXT) {
         dsp->avg_vc1_mspel_pixels_tab[ 0] = ff_avg_vc1_mspel_mc00_mmx2;
         dsp->avg_vc1_mspel_pixels_tab[ 4] = avg_vc1_mspel_mc01_mmx2;
         dsp->avg_vc1_mspel_pixels_tab[ 8] = avg_vc1_mspel_mc02_mmx2;
@@ -798,7 +799,7 @@ void ff_vc1dsp_init_mmx(VC1DSPContext *dsp)
         dsp->put_no_rnd_vc1_chroma_pixels_tab[0]= ff_put_vc1_chroma_mc8_mmx_nornd;
     }
 
-    if (mm_flags & AV_CPU_FLAG_MMX2) {
+    if (mm_flags & AV_CPU_FLAG_MMXEXT) {
         ASSIGN_LF(mmx2);
         dsp->avg_no_rnd_vc1_chroma_pixels_tab[0]= ff_avg_vc1_chroma_mc8_mmx2_nornd;
     } else if (mm_flags & AV_CPU_FLAG_3DNOW) {
@@ -820,5 +821,5 @@ void ff_vc1dsp_init_mmx(VC1DSPContext *dsp)
         dsp->vc1_h_loop_filter8  = ff_vc1_h_loop_filter8_sse4;
         dsp->vc1_h_loop_filter16 = vc1_h_loop_filter16_sse4;
     }
-#endif
+#endif /* HAVE_YASM */
 }

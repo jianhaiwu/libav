@@ -76,8 +76,8 @@ static uint64_t get_fourcc(AVIOContext *bc)
 }
 
 #ifdef TRACE
-static inline uint64_t get_v_trace(AVIOContext *bc, char *file,
-                                   char *func, int line)
+static inline uint64_t get_v_trace(AVIOContext *bc, const char *file,
+                                   const char *func, int line)
 {
     uint64_t v = ffio_read_varlen(bc);
 
@@ -86,8 +86,8 @@ static inline uint64_t get_v_trace(AVIOContext *bc, char *file,
     return v;
 }
 
-static inline int64_t get_s_trace(AVIOContext *bc, char *file,
-                                  char *func, int line)
+static inline int64_t get_s_trace(AVIOContext *bc, const char *file,
+                                  const char *func, int line)
 {
     int64_t v = get_s(bc);
 
@@ -96,18 +96,8 @@ static inline int64_t get_s_trace(AVIOContext *bc, char *file,
     return v;
 }
 
-static inline uint64_t get_vb_trace(AVIOContext *bc, char *file,
-                                    char *func, int line)
-{
-    uint64_t v = get_vb(bc);
-
-    av_log(NULL, AV_LOG_DEBUG, "get_vb %5"PRId64" / %"PRIX64" in %s %s:%d\n",
-           v, v, file, func, line);
-    return v;
-}
 #define ffio_read_varlen(bc) get_v_trace(bc,  __FILE__, __PRETTY_FUNCTION__, __LINE__)
 #define get_s(bc)            get_s_trace(bc,  __FILE__, __PRETTY_FUNCTION__, __LINE__)
-#define get_vb(bc)           get_vb_trace(bc, __FILE__, __PRETTY_FUNCTION__, __LINE__)
 #endif
 
 static int get_packetheader(NUTContext *nut, AVIOContext *bc,
@@ -379,7 +369,7 @@ static int decode_stream_header(NUTContext *nut)
         av_log(s, AV_LOG_ERROR, "unknown stream class (%d)\n", class);
         return -1;
     }
-    if (class < 3 && st->codec->codec_id == CODEC_ID_NONE)
+    if (class < 3 && st->codec->codec_id == AV_CODEC_ID_NONE)
         av_log(s, AV_LOG_ERROR,
                "Unknown codec tag '0x%04x' for stream number %d\n",
                (unsigned int) tmp, stream_id);
@@ -991,7 +981,7 @@ static int nut_read_close(AVFormatContext *s)
 
 AVInputFormat ff_nut_demuxer = {
     .name           = "nut",
-    .long_name      = NULL_IF_CONFIG_SMALL("NUT format"),
+    .long_name      = NULL_IF_CONFIG_SMALL("NUT"),
     .priv_data_size = sizeof(NUTContext),
     .read_probe     = nut_probe,
     .read_header    = nut_read_header,

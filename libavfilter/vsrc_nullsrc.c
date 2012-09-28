@@ -21,8 +21,11 @@
  * null video source
  */
 
+#include <stdio.h>
+
 #include "libavutil/avstring.h"
 #include "libavutil/eval.h"
+#include "libavutil/internal.h"
 #include "libavutil/mathematics.h"
 #include "libavutil/parseutils.h"
 #include "avfilter.h"
@@ -118,9 +121,9 @@ AVFilter avfilter_vsrc_nullsrc = {
     .init       = init,
     .priv_size = sizeof(NullContext),
 
-    .inputs    = (AVFilterPad[]) {{ .name = NULL}},
+    .inputs    = NULL,
 
-    .outputs   = (AVFilterPad[]) {
+    .outputs   = (const AVFilterPad[]) {
         {
             .name            = "default",
             .type            = AVMEDIA_TYPE_VIDEO,

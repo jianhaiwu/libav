@@ -26,6 +26,7 @@
 #include "libavutil/opt.h"
 #include "libavutil/pixdesc.h"
 #include "libavutil/dict.h"
+#include "libavutil/libm.h"
 #include "libavdevice/avdevice.h"
 #include "cmdutils.h"
 
@@ -44,7 +45,7 @@ static int use_byte_value_binary_prefix = 0;
 static int use_value_sexagesimal_format = 0;
 
 /* globals */
-static const OptionDef options[];
+static const OptionDef *options;
 
 /* AVprobe context */
 static const char *input_filename;
@@ -468,7 +469,7 @@ static char *value_string(char *buf, int buf_size, double val, const char *unit)
         int index;
 
         if (unit == unit_byte_str && use_byte_value_binary_prefix) {
-            index = (int) (log(val)/log(2)) / 10;
+            index = (int) log2(val) / 10;
             index = av_clip(index, 0, FF_ARRAY_ELEMS(binary_unit_prefixes) - 1);
             val  /= pow(2, index * 10);
             prefix_string = binary_unit_prefixes[index];
@@ -580,7 +581,7 @@ static void show_stream(AVFormatContext *fmt_ctx, int stream_idx)
 {
     AVStream *stream = fmt_ctx->streams[stream_idx];
     AVCodecContext *dec_ctx;
-    AVCodec *dec;
+    const AVCodec *dec;
     const char *profile;
     char val_str[128];
     AVRational display_aspect_ratio;
@@ -651,9 +652,6 @@ static void show_stream(AVFormatContext *fmt_ctx, int stream_idx)
 
     if (fmt_ctx->iformat->flags & AVFMT_SHOW_IDS)
         probe_int("id", stream->id);
-    probe_str("r_frame_rate",
-              rational_string(val_str, sizeof(val_str), "/",
-              &stream->r_frame_rate));
     probe_str("avg_frame_rate",
               rational_string(val_str, sizeof(val_str), "/",
               &stream->avg_frame_rate));
@@ -733,7 +731,7 @@ static int open_input_file(AVFormatContext **fmt_ctx_ptr, const char *filename)
         AVStream *stream = fmt_ctx->streams[i];
         AVCodec *codec;
 
-        if (stream->codec->codec_id == CODEC_ID_PROBE) {
+        if (stream->codec->codec_id == AV_CODEC_ID_PROBE) {
             fprintf(stderr, "Failed to probe codec for input stream %d\n",
                     stream->index);
         } else if (!(codec = avcodec_find_decoder(stream->codec->codec_id))) {
@@ -796,7 +794,7 @@ static void show_usage(void)
     printf("\n");
 }
 
-static int opt_format(const char *opt, const char *arg)
+static int opt_format(void *optctx, const char *opt, const char *arg)
 {
     iformat = av_find_input_format(arg);
     if (!iformat) {
@@ -806,7 +804,7 @@ static int opt_format(const char *opt, const char *arg)
     return 0;
 }
 
-static int opt_output_format(const char *opt, const char *arg)
+static int opt_output_format(void *optctx, const char *opt, const char *arg)
 {
 
     if (!strcmp(arg, "json")) {
@@ -840,7 +838,7 @@ static int opt_output_format(const char *opt, const char *arg)
     return 0;
 }
 
-static int opt_show_format_entry(const char *opt, const char *arg)
+static int opt_show_format_entry(void *optctx, const char *opt, const char *arg)
 {
     do_show_format = 1;
     nb_fmt_entries_to_show++;
@@ -870,43 +868,44 @@ static void opt_input_file(void *optctx, const char *arg)
     input_filename = arg;
 }
 
-static void show_help(void)
+void show_help_default(const char *opt, const char *arg)
 {
     av_log_set_callback(log_callback_help);
     show_usage();
-    show_help_options(options, "Main options:\n", 0, 0);
+    show_help_options(options, "Main options:", 0, 0, 0);
     printf("\n");
     show_help_children(avformat_get_class(), AV_OPT_FLAG_DECODING_PARAM);
 }
 
-static void opt_pretty(void)
+static int opt_pretty(void *optctx, const char *opt, const char *arg)
 {
     show_value_unit              = 1;
     use_value_prefix             = 1;
     use_byte_value_binary_prefix = 1;
     use_value_sexagesimal_format = 1;
+    return 0;
 }
 
-static const OptionDef options[] = {
+static const OptionDef real_options[] = {
 #include "cmdutils_common_opts.h"
-    { "f", HAS_ARG, {(void*)opt_format}, "force format", "format" },
-    { "of", HAS_ARG, {(void*)&opt_output_format}, "output the document either as ini or json", "output_format" },
-    { "unit", OPT_BOOL, {(void*)&show_value_unit},
+    { "f", HAS_ARG, {.func_arg = opt_format}, "force format", "format" },
+    { "of", HAS_ARG, {.func_arg = opt_output_format}, "output the document either as ini or json", "output_format" },
+    { "unit", OPT_BOOL, {&show_value_unit},
       "show unit of the displayed values" },
-    { "prefix", OPT_BOOL, {(void*)&use_value_prefix},
+    { "prefix", OPT_BOOL, {&use_value_prefix},
       "use SI prefixes for the displayed values" },
-    { "byte_binary_prefix", OPT_BOOL, {(void*)&use_byte_value_binary_prefix},
+    { "byte_binary_prefix", OPT_BOOL, {&use_byte_value_binary_prefix},
       "use binary prefixes for byte units" },
-    { "sexagesimal", OPT_BOOL,  {(void*)&use_value_sexagesimal_format},
+    { "sexagesimal", OPT_BOOL,  {&use_value_sexagesimal_format},
       "use sexagesimal format HOURS:MM:SS.MICROSECONDS for time units" },
-    { "pretty", 0, {(void*)&opt_pretty},
+    { "pretty", 0, {.func_arg = opt_pretty},
       "prettify the format of displayed values, make it more human readable" },
-    { "show_format",  OPT_BOOL, {(void*)&do_show_format} , "show format/container info" },
-    { "show_format_entry", HAS_ARG, {(void*)opt_show_format_entry},
+    { "show_format",  OPT_BOOL, {&do_show_format} , "show format/container info" },
+    { "show_format_entry", HAS_ARG, {.func_arg = opt_show_format_entry},
       "show a particular entry from the format/container info", "entry" },
-    { "show_packets", OPT_BOOL, {(void*)&do_show_packets}, "show packets info" },
-    { "show_streams", OPT_BOOL, {(void*)&do_show_streams}, "show streams info" },
-    { "default", HAS_ARG | OPT_AUDIO | OPT_VIDEO | OPT_EXPERT, {(void*)opt_default},
+    { "show_packets", OPT_BOOL, {&do_show_packets}, "show packets info" },
+    { "show_streams", OPT_BOOL, {&do_show_streams}, "show streams info" },
+    { "default", HAS_ARG | OPT_AUDIO | OPT_VIDEO | OPT_EXPERT, {.func_arg = opt_default},
       "generic catch all option", "" },
     { NULL, },
 };
@@ -927,6 +926,7 @@ int main(int argc, char **argv)
     if (!buffer)
         exit(1);
 
+    options = real_options;
     parse_loglevel(argc, argv, options);
     av_register_all();
     avformat_network_init();

@@ -62,8 +62,8 @@ typedef struct {
 static const AVOption movie_options[]= {
 {"format_name",  "set format name",         OFFSET(format_name),  AV_OPT_TYPE_STRING, {.str =  0},  CHAR_MIN, CHAR_MAX },
 {"f",            "set format name",         OFFSET(format_name),  AV_OPT_TYPE_STRING, {.str =  0},  CHAR_MIN, CHAR_MAX },
-{"stream_index", "set stream index",        OFFSET(stream_index), AV_OPT_TYPE_INT,    {.dbl = -1},  -1,       INT_MAX  },
-{"si",           "set stream index",        OFFSET(stream_index), AV_OPT_TYPE_INT,    {.dbl = -1},  -1,       INT_MAX  },
+{"stream_index", "set stream index",        OFFSET(stream_index), AV_OPT_TYPE_INT,    {.i64 = -1},  -1,       INT_MAX  },
+{"si",           "set stream index",        OFFSET(stream_index), AV_OPT_TYPE_INT,    {.i64 = -1},  -1,       INT_MAX  },
 {"seek_point",   "set seekpoint (seconds)", OFFSET(seek_point_d), AV_OPT_TYPE_DOUBLE, {.dbl =  0},  0,        (INT64_MAX-1) / 1000000 },
 {"sp",           "set seekpoint (seconds)", OFFSET(seek_point_d), AV_OPT_TYPE_DOUBLE, {.dbl =  0},  0,        (INT64_MAX-1) / 1000000 },
 {NULL},
@@ -197,7 +197,7 @@ static av_cold void uninit(AVFilterContext *ctx)
     if (movie->format_ctx)
         avformat_close_input(&movie->format_ctx);
     avfilter_unref_buffer(movie->picref);
-    av_freep(&movie->frame);
+    avcodec_free_frame(&movie->frame);
 }
 
 static int query_formats(AVFilterContext *ctx)
@@ -289,13 +289,24 @@ static int request_frame(AVFilterLink *outlink)
         return ret;
 
     outpicref = avfilter_ref_buffer(movie->picref, ~0);
-    ff_start_frame(outlink, outpicref);
-    ff_draw_slice(outlink, 0, outlink->h, 1);
-    ff_end_frame(outlink);
-    avfilter_unref_buffer(movie->picref);
-    movie->picref = NULL;
+    if (!outpicref) {
+        ret = AVERROR(ENOMEM);
+        goto fail;
+    }
 
-    return 0;
+    ret = ff_start_frame(outlink, outpicref);
+    if (ret < 0)
+        goto fail;
+
+    ret = ff_draw_slice(outlink, 0, outlink->h, 1);
+    if (ret < 0)
+        goto fail;
+
+    ret = ff_end_frame(outlink);
+fail:
+    avfilter_unref_bufferp(&movie->picref);
+
+    return ret;
 }
 
 AVFilter avfilter_vsrc_movie = {
@@ -306,10 +317,10 @@ AVFilter avfilter_vsrc_movie = {
     .uninit        = uninit,
     .query_formats = query_formats,
 
-    .inputs    = (AVFilterPad[]) {{ .name = NULL }},
-    .outputs   = (AVFilterPad[]) {{ .name            = "default",
-                                    .type            = AVMEDIA_TYPE_VIDEO,
-                                    .request_frame   = request_frame,
-                                    .config_props    = config_output_props, },
-                                  { .name = NULL}},
+    .inputs    = NULL,
+    .outputs   = (const AVFilterPad[]) {{ .name            = "default",
+                                          .type            = AVMEDIA_TYPE_VIDEO,
+                                          .request_frame   = request_frame,
+                                          .config_props    = config_output_props, },
+                                        { .name = NULL}},
 };

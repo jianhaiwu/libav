@@ -23,12 +23,16 @@
  * scale video filter
  */
 
+#include <stdio.h>
+#include <string.h>
+
 #include "avfilter.h"
 #include "formats.h"
 #include "internal.h"
 #include "video.h"
 #include "libavutil/avstring.h"
 #include "libavutil/eval.h"
+#include "libavutil/internal.h"
 #include "libavutil/mathematics.h"
 #include "libavutil/opt.h"
 #include "libavutil/pixdesc.h"
@@ -252,26 +256,31 @@ fail:
     return ret;
 }
 
-static void start_frame(AVFilterLink *link, AVFilterBufferRef *picref)
+static int start_frame(AVFilterLink *link, AVFilterBufferRef *picref)
 {
     ScaleContext *scale = link->dst->priv;
     AVFilterLink *outlink = link->dst->outputs[0];
-    AVFilterBufferRef *outpicref;
+    AVFilterBufferRef *outpicref, *for_next_filter;
+    int ret = 0;
 
     if (!scale->sws) {
-        ff_start_frame(outlink, avfilter_ref_buffer(picref, ~0));
-        return;
+        outpicref = avfilter_ref_buffer(picref, ~0);
+        if (!outpicref)
+            return AVERROR(ENOMEM);
+        return ff_start_frame(outlink, outpicref);
     }
 
     scale->hsub = av_pix_fmt_descriptors[link->format].log2_chroma_w;
     scale->vsub = av_pix_fmt_descriptors[link->format].log2_chroma_h;
 
     outpicref = ff_get_video_buffer(outlink, AV_PERM_WRITE, outlink->w, outlink->h);
+    if (!outpicref)
+        return AVERROR(ENOMEM);
+
     avfilter_copy_buffer_ref_props(outpicref, picref);
     outpicref->video->w = outlink->w;
     outpicref->video->h = outlink->h;
 
-    outlink->out_buf = outpicref;
 
     av_reduce(&outpicref->video->pixel_aspect.num, &outpicref->video->pixel_aspect.den,
               (int64_t)picref->video->pixel_aspect.num * outlink->h * link->w,
@@ -279,19 +288,30 @@ static void start_frame(AVFilterLink *link, AVFilterBufferRef *picref)
               INT_MAX);
 
     scale->slice_y = 0;
-    ff_start_frame(outlink, avfilter_ref_buffer(outpicref, ~0));
+    for_next_filter = avfilter_ref_buffer(outpicref, ~0);
+    if (for_next_filter)
+        ret = ff_start_frame(outlink, for_next_filter);
+    else
+        ret = AVERROR(ENOMEM);
+
+    if (ret < 0) {
+        avfilter_unref_bufferp(&outpicref);
+        return ret;
+    }
+
+    outlink->out_buf = outpicref;
+    return 0;
 }
 
-static void draw_slice(AVFilterLink *link, int y, int h, int slice_dir)
+static int draw_slice(AVFilterLink *link, int y, int h, int slice_dir)
 {
     ScaleContext *scale = link->dst->priv;
-    int out_h;
+    int out_h, ret;
     AVFilterBufferRef *cur_pic = link->cur_buf;
     const uint8_t *data[4];
 
     if (!scale->sws) {
-        ff_draw_slice(link->dst->outputs[0], y, h, slice_dir);
-        return;
+        return ff_draw_slice(link->dst->outputs[0], y, h, slice_dir);
     }
 
     if (scale->slice_y == 0 && slice_dir == -1)
@@ -310,9 +330,10 @@ static void draw_slice(AVFilterLink *link, int y, int h, int slice_dir)
 
     if (slice_dir == -1)
         scale->slice_y -= out_h;
-    ff_draw_slice(link->dst->outputs[0], scale->slice_y, out_h, slice_dir);
+    ret = ff_draw_slice(link->dst->outputs[0], scale->slice_y, out_h, slice_dir);
     if (slice_dir == 1)
         scale->slice_y += out_h;
+    return ret;
 }
 
 AVFilter avfilter_vf_scale = {
@@ -326,14 +347,14 @@ AVFilter avfilter_vf_scale = {
 
     .priv_size = sizeof(ScaleContext),
 
-    .inputs    = (AVFilterPad[]) {{ .name             = "default",
-                                    .type             = AVMEDIA_TYPE_VIDEO,
-                                    .start_frame      = start_frame,
-                                    .draw_slice       = draw_slice,
-                                    .min_perms        = AV_PERM_READ, },
-                                  { .name = NULL}},
-    .outputs   = (AVFilterPad[]) {{ .name             = "default",
-                                    .type             = AVMEDIA_TYPE_VIDEO,
-                                    .config_props     = config_props, },
-                                  { .name = NULL}},
+    .inputs    = (const AVFilterPad[]) {{ .name             = "default",
+                                          .type             = AVMEDIA_TYPE_VIDEO,
+                                          .start_frame      = start_frame,
+                                          .draw_slice       = draw_slice,
+                                          .min_perms        = AV_PERM_READ, },
+                                        { .name = NULL}},
+    .outputs   = (const AVFilterPad[]) {{ .name             = "default",
+                                          .type             = AVMEDIA_TYPE_VIDEO,
+                                          .config_props     = config_props, },
+                                        { .name = NULL}},
 };

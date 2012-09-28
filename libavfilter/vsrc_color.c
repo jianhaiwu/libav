@@ -23,6 +23,9 @@
  * color source
  */
 
+#include <stdio.h>
+#include <string.h>
+
 #include "avfilter.h"
 #include "formats.h"
 #include "internal.h"
@@ -30,7 +33,9 @@
 #include "libavutil/pixdesc.h"
 #include "libavutil/colorspace.h"
 #include "libavutil/imgutils.h"
+#include "libavutil/internal.h"
 #include "libavutil/mathematics.h"
+#include "libavutil/mem.h"
 #include "libavutil/parseutils.h"
 #include "drawutils.h"
 
@@ -142,19 +147,39 @@ static int color_request_frame(AVFilterLink *link)
 {
     ColorContext *color = link->src->priv;
     AVFilterBufferRef *picref = ff_get_video_buffer(link, AV_PERM_WRITE, color->w, color->h);
+    AVFilterBufferRef *buf_out;
+    int ret;
+
+    if (!picref)
+        return AVERROR(ENOMEM);
+
     picref->video->pixel_aspect = (AVRational) {1, 1};
     picref->pts                 = color->pts++;
     picref->pos                 = -1;
 
-    ff_start_frame(link, avfilter_ref_buffer(picref, ~0));
+    buf_out = avfilter_ref_buffer(picref, ~0);
+    if (!buf_out) {
+        ret = AVERROR(ENOMEM);
+        goto fail;
+    }
+
+    ret = ff_start_frame(link, buf_out);
+    if (ret < 0)
+        goto fail;
+
     ff_draw_rectangle(picref->data, picref->linesize,
                       color->line, color->line_step, color->hsub, color->vsub,
                       0, 0, color->w, color->h);
-    ff_draw_slice(link, 0, color->h, 1);
-    ff_end_frame(link);
+    ret = ff_draw_slice(link, 0, color->h, 1);
+    if (ret < 0)
+        goto fail;
+
+    ret = ff_end_frame(link);
+
+fail:
     avfilter_unref_buffer(picref);
 
-    return 0;
+    return ret;
 }
 
 AVFilter avfilter_vsrc_color = {
@@ -167,11 +192,11 @@ AVFilter avfilter_vsrc_color = {
 
     .query_formats = query_formats,
 
-    .inputs    = (AVFilterPad[]) {{ .name = NULL}},
+    .inputs    = NULL,
 
-    .outputs   = (AVFilterPad[]) {{ .name            = "default",
-                                    .type            = AVMEDIA_TYPE_VIDEO,
-                                    .request_frame   = color_request_frame,
-                                    .config_props    = color_config_props },
-                                  { .name = NULL}},
+    .outputs   = (const AVFilterPad[]) {{ .name            = "default",
+                                          .type            = AVMEDIA_TYPE_VIDEO,
+                                          .request_frame   = color_request_frame,
+                                          .config_props    = color_config_props },
+                                        { .name = NULL}},
 };

@@ -29,6 +29,7 @@
 #include "libavutil/opt.h"
 
 #include "avcodec.h"
+#include "config.h"
 #if CONFIG_ZLIB
 #include <zlib.h>
 #endif
@@ -213,7 +214,7 @@ static int encode_frame(AVCodecContext * avctx, AVPacket *pkt,
     uint32_t *strip_offsets = NULL;
     int bytes_per_row;
     uint32_t res[2] = { 72, 1 };        // image resolution (72/1)
-    static const uint16_t bpp_tab[] = { 8, 8, 8, 8 };
+    uint16_t bpp_tab[] = { 8, 8, 8, 8 };
     int ret;
     int is_yuv = 0;
     uint8_t *yuv_line = NULL;
@@ -231,7 +232,22 @@ static int encode_frame(AVCodecContext * avctx, AVPacket *pkt,
     s->subsampling[0] = 1;
     s->subsampling[1] = 1;
 
+    s->bpp_tab_size = 0;
     switch (avctx->pix_fmt) {
+    case PIX_FMT_RGB48LE:
+        s->bpp = 48;
+        s->photometric_interpretation = 2;
+        s->bpp_tab_size = 3;
+        for (i = 0; i < s->bpp_tab_size; i++) {
+            bpp_tab[i] = 16;
+        }
+        break;
+    case PIX_FMT_GRAY16LE:
+        s->bpp = 16;
+        s->photometric_interpretation = 1;
+        s->bpp_tab_size = 1;
+        bpp_tab[0] = 16;
+        break;
     case PIX_FMT_RGB24:
         s->bpp = 24;
         s->photometric_interpretation = 2;
@@ -271,7 +287,7 @@ static int encode_frame(AVCodecContext * avctx, AVPacket *pkt,
                "This colors format is not supported\n");
         return -1;
     }
-    if (!is_yuv)
+    if (!s->bpp_tab_size)
         s->bpp_tab_size = (s->bpp >> 3);
 
     if (s->compr == TIFF_DEFLATE || s->compr == TIFF_ADOBE_DEFLATE || s->compr == TIFF_LZW)
@@ -449,12 +465,12 @@ fail:
 #define OFFSET(x) offsetof(TiffEncoderContext, x)
 #define VE AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_ENCODING_PARAM
 static const AVOption options[] = {
-    { "compression_algo", NULL, OFFSET(compr), AV_OPT_TYPE_INT, {TIFF_PACKBITS}, TIFF_RAW, TIFF_DEFLATE, VE, "compression_algo" },
-    { "packbits", NULL, 0, AV_OPT_TYPE_CONST, {TIFF_PACKBITS}, 0, 0, VE, "compression_algo" },
-    { "raw",      NULL, 0, AV_OPT_TYPE_CONST, {TIFF_RAW},      0, 0, VE, "compression_algo" },
-    { "lzw",      NULL, 0, AV_OPT_TYPE_CONST, {TIFF_LZW},      0, 0, VE, "compression_algo" },
+    { "compression_algo", NULL, OFFSET(compr), AV_OPT_TYPE_INT, {.i64 = TIFF_PACKBITS}, TIFF_RAW, TIFF_DEFLATE, VE, "compression_algo" },
+    { "packbits", NULL, 0, AV_OPT_TYPE_CONST, {.i64 = TIFF_PACKBITS}, 0, 0, VE, "compression_algo" },
+    { "raw",      NULL, 0, AV_OPT_TYPE_CONST, {.i64 = TIFF_RAW},      0, 0, VE, "compression_algo" },
+    { "lzw",      NULL, 0, AV_OPT_TYPE_CONST, {.i64 = TIFF_LZW},      0, 0, VE, "compression_algo" },
 #if CONFIG_ZLIB
-    { "deflate",  NULL, 0, AV_OPT_TYPE_CONST, {TIFF_DEFLATE},  0, 0, VE, "compression_algo" },
+    { "deflate",  NULL, 0, AV_OPT_TYPE_CONST, {.i64 = TIFF_DEFLATE},  0, 0, VE, "compression_algo" },
 #endif
     { NULL },
 };
@@ -469,11 +485,12 @@ static const AVClass tiffenc_class = {
 AVCodec ff_tiff_encoder = {
     .name           = "tiff",
     .type           = AVMEDIA_TYPE_VIDEO,
-    .id             = CODEC_ID_TIFF,
+    .id             = AV_CODEC_ID_TIFF,
     .priv_data_size = sizeof(TiffEncoderContext),
     .encode2        = encode_frame,
     .pix_fmts       = (const enum PixelFormat[]) {
-        PIX_FMT_RGB24, PIX_FMT_PAL8, PIX_FMT_GRAY8,
+        PIX_FMT_RGB24, PIX_FMT_RGB48LE, PIX_FMT_PAL8,
+        PIX_FMT_GRAY8, PIX_FMT_GRAY16LE,
         PIX_FMT_MONOBLACK, PIX_FMT_MONOWHITE,
         PIX_FMT_YUV420P, PIX_FMT_YUV422P, PIX_FMT_YUV444P,
         PIX_FMT_YUV410P, PIX_FMT_YUV411P,

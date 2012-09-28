@@ -21,9 +21,13 @@
  * null audio source
  */
 
+#include <inttypes.h>
+#include <stdio.h>
+
 #include "avfilter.h"
 #include "internal.h"
 #include "libavutil/audioconvert.h"
+#include "libavutil/internal.h"
 
 typedef struct {
     uint64_t channel_layout;
@@ -87,11 +91,11 @@ AVFilter avfilter_asrc_anullsrc = {
     .init        = init,
     .priv_size   = sizeof(ANullContext),
 
-    .inputs      = (AVFilterPad[]) {{ .name = NULL}},
+    .inputs      = NULL,
 
-    .outputs     = (AVFilterPad[]) {{ .name = "default",
-                                      .type = AVMEDIA_TYPE_AUDIO,
-                                      .config_props = config_props,
-                                      .request_frame = request_frame, },
-                                    { .name = NULL}},
+    .outputs     = (const AVFilterPad[]) {{ .name = "default",
+                                            .type = AVMEDIA_TYPE_AUDIO,
+                                            .config_props = config_props,
+                                            .request_frame = request_frame, },
+                                          { .name = NULL}},
 };

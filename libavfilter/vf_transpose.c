@@ -25,9 +25,12 @@
  * Based on MPlayer libmpcodecs/vf_rotate.c.
  */
 
+#include <stdio.h>
+
 #include "libavutil/intreadwrite.h"
 #include "libavutil/pixdesc.h"
 #include "libavutil/imgutils.h"
+#include "libavutil/internal.h"
 #include "avfilter.h"
 #include "formats.h"
 #include "internal.h"
@@ -117,12 +120,16 @@ static int config_props_output(AVFilterLink *outlink)
     return 0;
 }
 
-static void start_frame(AVFilterLink *inlink, AVFilterBufferRef *picref)
+static int start_frame(AVFilterLink *inlink, AVFilterBufferRef *picref)
 {
     AVFilterLink *outlink = inlink->dst->outputs[0];
+    AVFilterBufferRef *buf_out;
 
     outlink->out_buf = ff_get_video_buffer(outlink, AV_PERM_WRITE,
                                            outlink->w, outlink->h);
+    if (!outlink->out_buf)
+        return AVERROR(ENOMEM);
+
     outlink->out_buf->pts = picref->pts;
 
     if (picref->video->pixel_aspect.num == 0) {
@@ -132,16 +139,19 @@ static void start_frame(AVFilterLink *inlink, AVFilterBufferRef *picref)
         outlink->out_buf->video->pixel_aspect.den = picref->video->pixel_aspect.num;
     }
 
-    ff_start_frame(outlink, avfilter_ref_buffer(outlink->out_buf, ~0));
+    buf_out = avfilter_ref_buffer(outlink->out_buf, ~0);
+    if (!buf_out)
+        return AVERROR(ENOMEM);
+    return ff_start_frame(outlink, buf_out);
 }
 
-static void end_frame(AVFilterLink *inlink)
+static int end_frame(AVFilterLink *inlink)
 {
     TransContext *trans = inlink->dst->priv;
     AVFilterBufferRef *inpic  = inlink->cur_buf;
     AVFilterBufferRef *outpic = inlink->dst->outputs[0]->out_buf;
     AVFilterLink *outlink = inlink->dst->outputs[0];
-    int plane;
+    int plane, ret;
 
     for (plane = 0; outpic->data[plane]; plane++) {
         int hsub = plane == 1 || plane == 2 ? trans->hsub : 0;
@@ -192,10 +202,10 @@ static void end_frame(AVFilterLink *inlink)
         }
     }
 
-    avfilter_unref_buffer(inpic);
-    ff_draw_slice(outlink, 0, outpic->video->h, 1);
-    ff_end_frame(outlink);
-    avfilter_unref_buffer(outpic);
+    if ((ret = ff_draw_slice(outlink, 0, outpic->video->h, 1)) < 0 ||
+        (ret = ff_end_frame(outlink)) < 0)
+        return ret;
+    return 0;
 }
 
 AVFilter avfilter_vf_transpose = {
@@ -207,14 +217,14 @@ AVFilter avfilter_vf_transpose = {
 
     .query_formats = query_formats,
 
-    .inputs    = (AVFilterPad[]) {{ .name            = "default",
-                                    .type            = AVMEDIA_TYPE_VIDEO,
-                                    .start_frame     = start_frame,
-                                    .end_frame       = end_frame,
-                                    .min_perms       = AV_PERM_READ, },
-                                  { .name = NULL}},
-    .outputs   = (AVFilterPad[]) {{ .name            = "default",
-                                    .config_props    = config_props_output,
-                                    .type            = AVMEDIA_TYPE_VIDEO, },
-                                  { .name = NULL}},
+    .inputs    = (const AVFilterPad[]) {{ .name            = "default",
+                                          .type            = AVMEDIA_TYPE_VIDEO,
+                                          .start_frame     = start_frame,
+                                          .end_frame       = end_frame,
+                                          .min_perms       = AV_PERM_READ, },
+                                        { .name = NULL}},
+    .outputs   = (const AVFilterPad[]) {{ .name            = "default",
+                                          .config_props    = config_props_output,
+                                          .type            = AVMEDIA_TYPE_VIDEO, },
+                                        { .name = NULL}},
 };

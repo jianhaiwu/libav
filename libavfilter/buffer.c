@@ -17,6 +17,7 @@
  */
 
 #include "libavutil/audioconvert.h"
+#include "libavutil/common.h"
 #include "libavcodec/avcodec.h"
 
 #include "avfilter.h"
@@ -82,6 +83,12 @@ void avfilter_unref_buffer(AVFilterBufferRef *ref)
     av_free(ref->video);
     av_free(ref->audio);
     av_free(ref);
+}
+
+void avfilter_unref_bufferp(AVFilterBufferRef **ref)
+{
+    avfilter_unref_buffer(*ref);
+    *ref = NULL;
 }
 
 int avfilter_copy_frame_props(AVFilterBufferRef *dst, const AVFrame *src)

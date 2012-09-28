@@ -32,6 +32,7 @@
 #include "libavutil/audio_fifo.h"
 #include "libavutil/avassert.h"
 #include "libavutil/avstring.h"
+#include "libavutil/common.h"
 #include "libavutil/float_dsp.h"
 #include "libavutil/mathematics.h"
 #include "libavutil/opt.h"
@@ -175,15 +176,15 @@ typedef struct MixContext {
 #define A AV_OPT_FLAG_AUDIO_PARAM
 static const AVOption options[] = {
     { "inputs", "Number of inputs.",
-            OFFSET(nb_inputs), AV_OPT_TYPE_INT, { 2 }, 1, 32, A },
+            OFFSET(nb_inputs), AV_OPT_TYPE_INT, { .i64 = 2 }, 1, 32, A },
     { "duration", "How to determine the end-of-stream.",
-            OFFSET(duration_mode), AV_OPT_TYPE_INT, { DURATION_LONGEST }, 0,  2, A, "duration" },
-        { "longest",  "Duration of longest input.",  0, AV_OPT_TYPE_CONST, { DURATION_LONGEST  }, INT_MIN, INT_MAX, A, "duration" },
-        { "shortest", "Duration of shortest input.", 0, AV_OPT_TYPE_CONST, { DURATION_SHORTEST }, INT_MIN, INT_MAX, A, "duration" },
-        { "first",    "Duration of first input.",    0, AV_OPT_TYPE_CONST, { DURATION_FIRST    }, INT_MIN, INT_MAX, A, "duration" },
+            OFFSET(duration_mode), AV_OPT_TYPE_INT, { .i64 = DURATION_LONGEST }, 0,  2, A, "duration" },
+        { "longest",  "Duration of longest input.",  0, AV_OPT_TYPE_CONST, { .i64 = DURATION_LONGEST  }, INT_MIN, INT_MAX, A, "duration" },
+        { "shortest", "Duration of shortest input.", 0, AV_OPT_TYPE_CONST, { .i64 = DURATION_SHORTEST }, INT_MIN, INT_MAX, A, "duration" },
+        { "first",    "Duration of first input.",    0, AV_OPT_TYPE_CONST, { .i64 = DURATION_FIRST    }, INT_MIN, INT_MAX, A, "duration" },
     { "dropout_transition", "Transition time, in seconds, for volume "
                             "renormalization when an input stream ends.",
-            OFFSET(dropout_transition), AV_OPT_TYPE_FLOAT, { 2.0 }, 0, INT_MAX, A },
+            OFFSET(dropout_transition), AV_OPT_TYPE_FLOAT, { .dbl = 2.0 }, 0, INT_MAX, A },
     { NULL },
 };
 
@@ -311,9 +312,7 @@ static int output_frame(AVFilterLink *outlink, int nb_samples)
     if (s->next_pts != AV_NOPTS_VALUE)
         s->next_pts += nb_samples;
 
-    ff_filter_samples(outlink, out_buf);
-
-    return 0;
+    return ff_filter_samples(outlink, out_buf);
 }
 
 /**
@@ -454,31 +453,37 @@ static int request_frame(AVFilterLink *outlink)
     return output_frame(outlink, available_samples);
 }
 
-static void filter_samples(AVFilterLink *inlink, AVFilterBufferRef *buf)
+static int filter_samples(AVFilterLink *inlink, AVFilterBufferRef *buf)
 {
     AVFilterContext  *ctx = inlink->dst;
     MixContext       *s = ctx->priv;
     AVFilterLink *outlink = ctx->outputs[0];
-    int i;
+    int i, ret = 0;
 
     for (i = 0; i < ctx->nb_inputs; i++)
         if (ctx->inputs[i] == inlink)
             break;
     if (i >= ctx->nb_inputs) {
         av_log(ctx, AV_LOG_ERROR, "unknown input link\n");
-        return;
+        ret = AVERROR(EINVAL);
+        goto fail;
     }
 
     if (i == 0) {
         int64_t pts = av_rescale_q(buf->pts, inlink->time_base,
                                    outlink->time_base);
-        frame_list_add_frame(s->frame_list, buf->audio->nb_samples, pts);
+        ret = frame_list_add_frame(s->frame_list, buf->audio->nb_samples, pts);
+        if (ret < 0)
+            goto fail;
     }
 
-    av_audio_fifo_write(s->fifos[i], (void **)buf->extended_data,
-                        buf->audio->nb_samples);
+    ret = av_audio_fifo_write(s->fifos[i], (void **)buf->extended_data,
+                              buf->audio->nb_samples);
 
+fail:
     avfilter_unref_buffer(buf);
+
+    return ret;
 }
 
 static int init(AVFilterContext *ctx, const char *args)
@@ -551,7 +556,7 @@ AVFilter avfilter_af_amix = {
     .uninit         = uninit,
     .query_formats  = query_formats,
 
-    .inputs    = (const AVFilterPad[]) {{ .name = NULL}},
+    .inputs    = NULL,
     .outputs   = (const AVFilterPad[]) {{ .name          = "default",
                                           .type          = AVMEDIA_TYPE_AUDIO,
                                           .config_props  = config_output,

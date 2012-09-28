@@ -26,6 +26,7 @@
  */
 
 #include "libavutil/avstring.h"
+#include "libavutil/common.h"
 #include "libavutil/eval.h"
 #include "libavutil/pixdesc.h"
 #include "avfilter.h"
@@ -306,7 +307,7 @@ static void vblur(uint8_t *dst, int dst_linesize, const uint8_t *src, int src_li
                    h, radius, power, temp);
 }
 
-static void draw_slice(AVFilterLink *inlink, int y0, int h0, int slice_dir)
+static int draw_slice(AVFilterLink *inlink, int y0, int h0, int slice_dir)
 {
     AVFilterContext *ctx = inlink->dst;
     BoxBlurContext *boxblur = ctx->priv;
@@ -330,7 +331,7 @@ static void draw_slice(AVFilterLink *inlink, int y0, int h0, int slice_dir)
               w[plane], h[plane], boxblur->radius[plane], boxblur->power[plane],
               boxblur->temp);
 
-    ff_draw_slice(outlink, y0, h0, slice_dir);
+    return ff_draw_slice(outlink, y0, h0, slice_dir);
 }
 
 AVFilter avfilter_vf_boxblur = {
@@ -341,13 +342,13 @@ AVFilter avfilter_vf_boxblur = {
     .uninit        = uninit,
     .query_formats = query_formats,
 
-    .inputs    = (AVFilterPad[]) {{ .name             = "default",
-                                    .type             = AVMEDIA_TYPE_VIDEO,
-                                    .config_props     = config_input,
-                                    .draw_slice       = draw_slice,
-                                    .min_perms        = AV_PERM_READ },
-                                  { .name = NULL}},
-    .outputs   = (AVFilterPad[]) {{ .name             = "default",
-                                    .type             = AVMEDIA_TYPE_VIDEO, },
-                                  { .name = NULL}},
+    .inputs    = (const AVFilterPad[]) {{ .name             = "default",
+                                          .type             = AVMEDIA_TYPE_VIDEO,
+                                          .config_props     = config_input,
+                                          .draw_slice       = draw_slice,
+                                          .min_perms        = AV_PERM_READ },
+                                        { .name = NULL}},
+    .outputs   = (const AVFilterPad[]) {{ .name             = "default",
+                                          .type             = AVMEDIA_TYPE_VIDEO, },
+                                        { .name = NULL}},
 };

@@ -31,6 +31,7 @@
 #include "video.h"
 
 #include "libavutil/audioconvert.h"
+#include "libavutil/common.h"
 #include "libavutil/fifo.h"
 #include "libavutil/imgutils.h"
 #include "libavutil/opt.h"
@@ -69,7 +70,7 @@ typedef struct {
         return AVERROR(EINVAL);\
     }
 
-int av_buffersrc_write_frame(AVFilterContext *buffer_filter, AVFrame *frame)
+int av_buffersrc_write_frame(AVFilterContext *buffer_filter, const AVFrame *frame)
 {
     BufferSourceContext *c = buffer_filter->priv;
     AVFilterBufferRef *buf;
@@ -92,6 +93,9 @@ int av_buffersrc_write_frame(AVFilterContext *buffer_filter, AVFrame *frame)
                                  frame->format);
         buf = ff_get_video_buffer(buffer_filter->outputs[0], AV_PERM_WRITE,
                                   c->w, c->h);
+        if (!buf)
+            return AVERROR(ENOMEM);
+
         av_image_copy(buf->data, buf->linesize, frame->data, frame->linesize,
                       c->pix_fmt, c->w, c->h);
         break;
@@ -100,6 +104,9 @@ int av_buffersrc_write_frame(AVFilterContext *buffer_filter, AVFrame *frame)
                                  frame->format);
         buf = ff_get_audio_buffer(buffer_filter->outputs[0], AV_PERM_WRITE,
                                   frame->nb_samples);
+        if (!buf)
+            return AVERROR(ENOMEM);
+
         av_samples_copy(buf->extended_data, frame->extended_data,
                         0, 0, frame->nb_samples,
                         av_get_channel_layout_nb_channels(frame->channel_layout),
@@ -185,8 +192,8 @@ static av_cold int init_video(AVFilterContext *ctx, const char *args)
 #define OFFSET(x) offsetof(BufferSourceContext, x)
 #define A AV_OPT_FLAG_AUDIO_PARAM
 static const AVOption audio_options[] = {
-    { "time_base",      NULL, OFFSET(time_base),           AV_OPT_TYPE_RATIONAL, { 0 }, 0, INT_MAX, A },
-    { "sample_rate",    NULL, OFFSET(sample_rate),         AV_OPT_TYPE_INT,      { 0 }, 0, INT_MAX, A },
+    { "time_base",      NULL, OFFSET(time_base),           AV_OPT_TYPE_RATIONAL, { .dbl = 0 }, 0, INT_MAX, A },
+    { "sample_rate",    NULL, OFFSET(sample_rate),         AV_OPT_TYPE_INT,      { .i64 = 0 }, 0, INT_MAX, A },
     { "sample_fmt",     NULL, OFFSET(sample_fmt_str),      AV_OPT_TYPE_STRING,             .flags = A },
     { "channel_layout", NULL, OFFSET(channel_layout_str),  AV_OPT_TYPE_STRING,             .flags = A },
     { NULL },
@@ -312,6 +319,7 @@ static int request_frame(AVFilterLink *link)
 {
     BufferSourceContext *c = link->src->priv;
     AVFilterBufferRef *buf;
+    int ret = 0;
 
     if (!av_fifo_size(c->fifo)) {
         if (c->eof)
@@ -322,20 +330,20 @@ static int request_frame(AVFilterLink *link)
 
     switch (link->type) {
     case AVMEDIA_TYPE_VIDEO:
-        ff_start_frame(link, avfilter_ref_buffer(buf, ~0));
-        ff_draw_slice(link, 0, link->h, 1);
-        ff_end_frame(link);
+        if ((ret = ff_start_frame(link, buf)) < 0 ||
+            (ret = ff_draw_slice(link, 0, link->h, 1)) < 0 ||
+            (ret = ff_end_frame(link)) < 0)
+            return ret;
         break;
     case AVMEDIA_TYPE_AUDIO:
-        ff_filter_samples(link, avfilter_ref_buffer(buf, ~0));
+        ret = ff_filter_samples(link, buf);
         break;
     default:
+        avfilter_unref_bufferp(&buf);
         return AVERROR(EINVAL);
     }
 
-    avfilter_unref_buffer(buf);
-
-    return 0;
+    return ret;
 }
 
 static int poll_frame(AVFilterLink *link)
@@ -356,13 +364,13 @@ AVFilter avfilter_vsrc_buffer = {
     .init      = init_video,
     .uninit    = uninit,
 
-    .inputs    = (AVFilterPad[]) {{ .name = NULL }},
-    .outputs   = (AVFilterPad[]) {{ .name            = "default",
-                                    .type            = AVMEDIA_TYPE_VIDEO,
-                                    .request_frame   = request_frame,
-                                    .poll_frame      = poll_frame,
-                                    .config_props    = config_props, },
-                                  { .name = NULL}},
+    .inputs    = NULL,
+    .outputs   = (const AVFilterPad[]) {{ .name            = "default",
+                                          .type            = AVMEDIA_TYPE_VIDEO,
+                                          .request_frame   = request_frame,
+                                          .poll_frame      = poll_frame,
+                                          .config_props    = config_props, },
+                                        { .name = NULL}},
 };
 
 AVFilter avfilter_asrc_abuffer = {
@@ -374,11 +382,11 @@ AVFilter avfilter_asrc_abuffer = {
     .init      = init_audio,
     .uninit    = uninit,
 
-    .inputs    = (AVFilterPad[]) {{ .name = NULL }},
-    .outputs   = (AVFilterPad[]) {{ .name            = "default",
-                                    .type            = AVMEDIA_TYPE_AUDIO,
-                                    .request_frame   = request_frame,
-                                    .poll_frame      = poll_frame,
-                                    .config_props    = config_props, },
-                                  { .name = NULL}},
+    .inputs    = NULL,
+    .outputs   = (const AVFilterPad[]) {{ .name            = "default",
+                                          .type            = AVMEDIA_TYPE_AUDIO,
+                                          .request_frame   = request_frame,
+                                          .poll_frame      = poll_frame,
+                                          .config_props    = config_props, },
+                                        { .name = NULL}},
 };

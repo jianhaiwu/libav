@@ -19,6 +19,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <stdlib.h>
+#include <string.h>
+
 #include "libavutil/imgutils.h"
 #include "avcodec.h"
 #include "pnm.h"
@@ -67,7 +70,7 @@ int ff_pnm_decode_header(AVCodecContext *avctx, PNMContext * const s)
     if (s->type==1 || s->type==4) {
         avctx->pix_fmt = PIX_FMT_MONOWHITE;
     } else if (s->type==2 || s->type==5) {
-        if (avctx->codec_id == CODEC_ID_PGMYUV)
+        if (avctx->codec_id == AV_CODEC_ID_PGMYUV)
             avctx->pix_fmt = PIX_FMT_YUV420P;
         else
             avctx->pix_fmt = PIX_FMT_GRAY8;

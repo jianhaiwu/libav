@@ -26,6 +26,7 @@
  */
 
 #include "avcodec.h"
+#include "config.h"
 #if CONFIG_ZLIB
 #include <zlib.h>
 #endif
@@ -258,7 +259,7 @@ static int init_image(TiffContext *s)
         s->avctx->pix_fmt = PIX_FMT_RGB24;
         break;
     case 161:
-        s->avctx->pix_fmt = PIX_FMT_GRAY16BE;
+        s->avctx->pix_fmt = s->le ? PIX_FMT_GRAY16LE : PIX_FMT_GRAY16BE;
         break;
     case 324:
         s->avctx->pix_fmt = PIX_FMT_RGBA;
@@ -685,7 +686,7 @@ static av_cold int tiff_end(AVCodecContext *avctx)
 AVCodec ff_tiff_decoder = {
     .name           = "tiff",
     .type           = AVMEDIA_TYPE_VIDEO,
-    .id             = CODEC_ID_TIFF,
+    .id             = AV_CODEC_ID_TIFF,
     .priv_data_size = sizeof(TiffContext),
     .init           = tiff_init,
     .close          = tiff_end,

@@ -25,6 +25,7 @@
 
 #include "libavutil/audioconvert.h"
 #include "libavutil/avstring.h"
+#include "libavutil/common.h"
 #include "libavutil/opt.h"
 
 #include "audio.h"
@@ -138,10 +139,10 @@ AVFilter avfilter_af_aformat = {
     .query_formats = query_formats,
     .priv_size     = sizeof(AFormatContext),
 
-    .inputs        = (AVFilterPad[]) {{ .name            = "default",
-                                        .type            = AVMEDIA_TYPE_AUDIO, },
-                                      { .name = NULL}},
-    .outputs       = (AVFilterPad[]) {{ .name            = "default",
-                                        .type            = AVMEDIA_TYPE_AUDIO},
-                                      { .name = NULL}},
+    .inputs        = (const AVFilterPad[]) {{ .name            = "default",
+                                              .type            = AVMEDIA_TYPE_AUDIO, },
+                                            { .name = NULL}},
+    .outputs       = (const AVFilterPad[]) {{ .name            = "default",
+                                              .type            = AVMEDIA_TYPE_AUDIO},
+                                            { .name = NULL}},
 };

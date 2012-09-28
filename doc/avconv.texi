@@ -479,7 +479,7 @@ Use same quantizer as source (implies VBR).
 Note that this is NOT SAME QUALITY. Do not use this option unless you know you
 need it.
 
-@item -pass @var{n}
+@item -pass[:@var{stream_specifier}] @var{n} (@emph{output,per-stream})
 Select the pass number (1 or 2). It is used to do two-pass
 video encoding. The statistics of the video are recorded in the first
 pass into a log file (see also the option -passlogfile),
@@ -492,7 +492,7 @@ avconv -i foo.mov -c:v libxvid -pass 1 -an -f rawvideo -y NUL
 avconv -i foo.mov -c:v libxvid -pass 1 -an -f rawvideo -y /dev/null
 @end example
 
-@item -passlogfile @var{prefix} (@emph{global})
+@item -passlogfile[:@var{stream_specifier}] @var{prefix} (@emph{output,per-stream})
 Set two-pass log file name prefix to @var{prefix}, the default file name
 prefix is ``av2pass''. The complete file name will be
 @file{PREFIX-N.log}, where N is a number specific to the output
@@ -593,13 +593,6 @@ Force audio tag/fourcc. This is an alias for @code{-tag:a}.
 Set the subtitle codec. This is an alias for @code{-codec:s}.
 @item -sn (@emph{output})
 Disable subtitle recording.
-@end table
-
-@section Audio/Video grab options
-
-@table @option
-@item -isync (@emph{global})
-Synchronize read on input.
 @end table
 
 @section Advanced options
@@ -752,7 +745,7 @@ This option has been deprecated. Use the @code{asyncts} audio filter instead.
 Copy timestamps from input to output.
 @item -copytb
 Copy input stream time base from input to output when stream copying.
-@item -shortest
+@item -shortest (@emph{output})
 Finish encoding when the shortest input stream ends.
 @item -dts_delta_threshold
 Timestamp discontinuity delta threshold.
@@ -805,6 +798,9 @@ the matching type.
 Output link labels are referred to with @option{-map}. Unlabeled outputs are
 added to the first output file.
 
+Note that with this option it is possible to use only lavfi sources without
+normal input files.
+
 For example, to overlay an image over video
 @example
 avconv -i video.mkv -i image.png -filter_complex '[0:v][1:v]overlay[out]' -map
@@ -826,6 +822,11 @@ Furthermore we can omit the output label and the single output from the filter
 graph will be added to the output file automatically, so we can simply write
 @example
 avconv -i video.mkv -i image.png -filter_complex 'overlay' out.mkv
+@end example
+
+To generate 5 seconds of pure red video using lavfi @code{color} source:
+@example
+avconv -filter_complex 'color=red' -t 5 out.mkv
 @end example
 @end table
 @c man end OPTIONS

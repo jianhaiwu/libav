@@ -44,8 +44,8 @@
 #include <math.h>
 
 #include "avcodec.h"
+#include "dsputil.h"
 #include "libavutil/common.h"
-#include "celp_math.h"
 #include "celp_filters.h"
 #include "acelp_filters.h"
 #include "acelp_vectors.h"
@@ -784,8 +784,8 @@ static int synthesis(AMRContext *p, float *lpc,
 
     // emphasize pitch vector contribution
     if (p->pitch_gain[4] > 0.5 && !overflow) {
-        float energy = ff_dot_productf(excitation, excitation,
-                                       AMR_SUBFRAME_SIZE);
+        float energy = ff_scalarproduct_float_c(excitation, excitation,
+                                                AMR_SUBFRAME_SIZE);
         float pitch_factor =
             p->pitch_gain[4] *
             (p->cur_frame_mode == MODE_12k2 ?
@@ -861,8 +861,8 @@ static float tilt_factor(float *lpc_n, float *lpc_d)
     ff_celp_lp_synthesis_filterf(hf, lpc_d, hf, AMR_TILT_RESPONSE,
                                  LP_FILTER_ORDER);
 
-    rh0 = ff_dot_productf(hf, hf,     AMR_TILT_RESPONSE);
-    rh1 = ff_dot_productf(hf, hf + 1, AMR_TILT_RESPONSE - 1);
+    rh0 = ff_scalarproduct_float_c(hf, hf,     AMR_TILT_RESPONSE);
+    rh1 = ff_scalarproduct_float_c(hf, hf + 1, AMR_TILT_RESPONSE - 1);
 
     // The spec only specifies this check for 12.2 and 10.2 kbit/s
     // modes. But in the ref source the tilt is always non-negative.
@@ -882,8 +882,8 @@ static void postfilter(AMRContext *p, float *lpc, float *buf_out)
     int i;
     float *samples          = p->samples_in + LP_FILTER_ORDER; // Start of input
 
-    float speech_gain       = ff_dot_productf(samples, samples,
-                                              AMR_SUBFRAME_SIZE);
+    float speech_gain       = ff_scalarproduct_float_c(samples, samples,
+                                                       AMR_SUBFRAME_SIZE);
 
     float pole_out[AMR_SUBFRAME_SIZE + LP_FILTER_ORDER];  // Output of pole filter
     const float *gamma_n, *gamma_d;                       // Formant filter factor table
@@ -988,8 +988,10 @@ static int amrnb_decode_frame(AVCodecContext *avctx, void *data,
 
         p->fixed_gain[4] =
             ff_amr_set_fixed_gain(fixed_gain_factor,
-                       ff_dot_productf(p->fixed_vector, p->fixed_vector,
-                                       AMR_SUBFRAME_SIZE)/AMR_SUBFRAME_SIZE,
+                                  ff_scalarproduct_float_c(p->fixed_vector,
+                                                           p->fixed_vector,
+                                                           AMR_SUBFRAME_SIZE) /
+                                  AMR_SUBFRAME_SIZE,
                        p->prediction_error,
                        energy_mean[p->cur_frame_mode], energy_pred_fac);
 
@@ -1057,12 +1059,12 @@ static int amrnb_decode_frame(AVCodecContext *avctx, void *data,
 AVCodec ff_amrnb_decoder = {
     .name           = "amrnb",
     .type           = AVMEDIA_TYPE_AUDIO,
-    .id             = CODEC_ID_AMR_NB,
+    .id             = AV_CODEC_ID_AMR_NB,
     .priv_data_size = sizeof(AMRContext),
     .init           = amrnb_decode_init,
     .decode         = amrnb_decode_frame,
     .capabilities   = CODEC_CAP_DR1,
-    .long_name      = NULL_IF_CONFIG_SMALL("Adaptive Multi-Rate NarrowBand"),
+    .long_name      = NULL_IF_CONFIG_SMALL("AMR-NB (Adaptive Multi-Rate NarrowBand)"),
     .sample_fmts    = (const enum AVSampleFormat[]){ AV_SAMPLE_FMT_FLT,
                                                      AV_SAMPLE_FMT_NONE },
 };
