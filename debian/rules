@@ -97,10 +97,6 @@ clean:
 		$(addprefix debian-extra-, $(FLAVORS)) doxy
 	dh_clean $(DH_INSTALL_FILES) $(wildcard formats*.txt) $(wildcard codecs*.txt)
 
-get-orig-source:
-	dh_testdir
-	sh debian/get-orig-source.sh -d $(SVN_VERSION)
-
 # The trailing newline is important!
 define install_flavor
 	$(MAKE) -C debian-$(1) install DESTDIR=$(CURDIR)/debian/tmp \
