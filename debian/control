@@ -36,6 +36,7 @@ Build-Depends:
  libopencore-amrwb-dev,
  libopencv-dev,
  libopenjpeg-dev,
+ libopus-dev,
  libpulse-dev,
  libraw1394-dev [linux-any],
  librtmp-dev (>= 2.2e-4),
