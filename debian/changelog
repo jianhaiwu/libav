@@ -1,3 +1,58 @@
+libav (6:0.8.99-3213-gd16860a-1) UNRELEASED; urgency=low
+
+  [ Fabian Greffrath ]
+  * Imported Upstream version 6:0.8.99-3213-gd16860a
+
+  [ Andres Mejia ]
+  * Update libav-doc doc base. (Closes: #674139)
+
+  [ Fabian Greffrath ]
+  * Use the cond_enable() macro for all additional features in
+    debian/confflags.
+  * Tidy up and sort configuration flags.
+  * Add a debian/README.source file that describes how to rebuild libav with a
+    reduced feature set in order to avoid circular build-dependencies for
+    bootstrapping.
+  * Restrict Build-Depends to "yasm [any-amd64 any-i386]" and explicitely
+    disable it if not found.
+
+  [ Reinhard Tartler ]
+  * add dependency on libavcodec54 to libav-dbg
+  * add Pre-Depend on dpkg to libav-tools to ensure smooth updates
+  * libav-tools.install: make files to install more explicit
+
+  [ Loïc Minier ]
+  * Install the shared flavor last
+  * control/Uploaders: update my email address
+
+  [ Reinhard Tartler ]
+  * Declare a 'Breaks' relationship against mplayer, Closes: #671934
+  * Bug fix: "Multi-Arch: foreign libraries", thanks to Stepan Golosunov.
+  * Remove Multi-arch header from the empty, transitional -extra- packages
+
+  [ Fabian Greffrath ]
+  * Mention qt-faststart in the long description (Closes: #681491.)
+  * Install all debug symbols into libav-dbg (Closes: #680602).
+  * Do not run doxygen if it is not installed.
+  * Fix up debian/changelog and get dependencies right accordingly.
+
+  [ Reinhard Tartler ]
+  * Make libav-extra-dbg arch:all
+  * Fix generation of shlibs file (Closes: #679542)
+
+  [ Fabian Greffrath ]
+  * Also make libav-regular-dbg 'arch: all' for consistency with the other debug packages.
+  * Fix generation of shlibs file not only for libavcodec*, but for all the other library packages as well.
+  * Use xz compression for binary packages, thanks Ansgar Burchardt (Closes: #683895).
+
+  [ Reinhard Tartler ]
+  * Drop the package libav-regular-dbg
+
+  [ Fabian Greffrath ]
+  * Clarify relations between libavcodec54 and libavcodec-extra-54 in debian/control.
+
+ -- Reinhard Tartler <siretart@tauware.de>  Mon, 01 Oct 2012 10:55:58 +0200
+
 libav (6:0.8.99-1537-gacb2c79-2) experimental; urgency=low
 
   [ Rico Tzschichholz ]
