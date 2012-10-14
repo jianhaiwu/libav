@@ -50,8 +50,13 @@ libav (6:0.8.99-3213-gd16860a-1) UNRELEASED; urgency=low
 
   [ Fabian Greffrath ]
   * Clarify relations between libavcodec54 and libavcodec-extra-54 in debian/control.
+  
+  [ Reinhard Tartler ]
+  * New Upstream version: 9 beta1
+  * remove compatibility links for ff* tools.
+  * New release fixes all known CVE entries so far (Closes: #688847)
 
- -- Reinhard Tartler <siretart@tauware.de>  Mon, 01 Oct 2012 10:55:58 +0200
+ -- Reinhard Tartler <siretart@tauware.de>  Sun, 14 Oct 2012 16:08:36 -0400
 
 libav (6:0.8.99-1537-gacb2c79-2) experimental; urgency=low
 
