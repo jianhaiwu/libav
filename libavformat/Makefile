@@ -12,6 +12,7 @@ OBJS = allformats.o         \
        id3v1.o              \
        id3v2.o              \
        metadata.o           \
+       mux.o                \
        options.o            \
        os_support.o         \
        riff.o               \
@@ -375,7 +376,8 @@ SKIPHEADERS-$(CONFIG_NETWORK)            += network.h rtsp.h
 EXAMPLES  = metadata                                                    \
             output                                                      \
 
-TESTPROGS = seek
+TESTPROGS = seek                                                        \
+            url                                                         \
 
 TOOLS     = aviocat                                                     \
             ismindex                                                    \
