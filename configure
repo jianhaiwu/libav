@@ -238,6 +238,7 @@ Advanced options (experts only):
                            disable buffer boundary checking in bitreaders
                            (faster, but may crash)
   --enable-memalign-hack   emulate memalign, interferes with memory debuggers
+  --enable-lto             use link-time optimization
 
 Optimization options (experts only):
   --disable-asm            disable all assembler optimizations
@@ -1107,6 +1108,12 @@ ARCH_EXT_LIST="
     vis
 "
 
+HAVE_LIST_CMDLINE='
+    inline_asm
+    symver
+    yasm
+'
+
 HAVE_LIST_PUB='
     bigendian
     fast_unaligned
@@ -1116,6 +1123,7 @@ HAVE_LIST="
     $ARCH_EXT_LIST
     $(add_suffix _external $ARCH_EXT_LIST)
     $(add_suffix _inline   $ARCH_EXT_LIST)
+    $HAVE_LIST_CMDLINE
     $HAVE_LIST_PUB
     $THREADS_LIST
     aligned_malloc
@@ -1130,8 +1138,8 @@ HAVE_LIST="
     cbrtf
     closesocket
     cmov
-    cpuid
     cpunop
+    CryptGenRandom
     dcbzl
     dev_bktr_ioctl_bt848_h
     dev_bktr_ioctl_meteor_h
@@ -1164,7 +1172,6 @@ HAVE_LIST="
     gnu_as
     ibm_asm
     inet_aton
-    inline_asm
     io_h
     isatty
     isinf
@@ -1199,7 +1206,6 @@ HAVE_LIST="
     rint
     round
     roundf
-    rweflags
     sched_getaffinity
     sdl
     sdl_video_size
@@ -1222,7 +1228,6 @@ HAVE_LIST="
     struct_sockaddr_sa_len
     struct_sockaddr_storage
     struct_v4l2_frmivalenum_discrete
-    symver
     symver_asm_label
     symver_gnu_asm
     sysconf
@@ -1244,9 +1249,7 @@ HAVE_LIST="
     windows_h
     winsock2_h
     xform_asm
-    xgetbv
     xmm_clobbers
-    yasm
 "
 
 # options emitted with CONFIG_ prefix but not available on command line
@@ -1265,6 +1268,7 @@ CONFIG_EXTRA="
     huffman
     lgplv3
     lpc
+    mpegaudio
     mpegaudiodsp
     mpegvideo
     mpegvideoenc
@@ -1278,16 +1282,15 @@ CONFIG_EXTRA="
 CMDLINE_SELECT="
     $ARCH_EXT_LIST
     $CONFIG_LIST
+    $HAVE_LIST_CMDLINE
     $THREADS_LIST
     asm
     cross_compile
     debug
     extra_warnings
-    inline_asm
     logging
+    lto
     optimizations
-    symver
-    yasm
 "
 
 PATHS_LIST='
@@ -1397,6 +1400,7 @@ log2_deps="!msvcrt"
 dct_select="rdft"
 mdct_select="fft"
 rdft_select="fft"
+mpegaudio_select="mpegaudiodsp"
 mpegaudiodsp_select="dct"
 mpegvideoenc_select="mpegvideo"
 
@@ -1459,16 +1463,16 @@ loco_decoder_select="golomb"
 mdec_decoder_select="error_resilience mpegvideo"
 mjpeg_encoder_select="aandcttables mpegvideoenc"
 mlp_decoder_select="mlp_parser"
-mp1_decoder_select="mpegaudiodsp"
-mp1float_decoder_select="mpegaudiodsp"
-mp2_decoder_select="mpegaudiodsp"
-mp2float_decoder_select="mpegaudiodsp"
-mp3_decoder_select="mpegaudiodsp"
-mp3adu_decoder_select="mpegaudiodsp"
-mp3adufloat_decoder_select="mpegaudiodsp"
-mp3float_decoder_select="mpegaudiodsp"
-mp3on4_decoder_select="mpegaudiodsp"
-mp3on4float_decoder_select="mpegaudiodsp"
+mp1_decoder_select="mpegaudio"
+mp1float_decoder_select="mpegaudio"
+mp2_decoder_select="mpegaudio"
+mp2float_decoder_select="mpegaudio"
+mp3_decoder_select="mpegaudio"
+mp3adu_decoder_select="mpegaudio"
+mp3adufloat_decoder_select="mpegaudio"
+mp3float_decoder_select="mpegaudio"
+mp3on4_decoder_select="mpegaudio"
+mp3on4float_decoder_select="mpegaudio"
 mpc7_decoder_select="mpegaudiodsp"
 mpc8_decoder_select="mpegaudiodsp"
 mpeg_vdpau_decoder_select="vdpau mpegvideo_decoder"
@@ -1583,6 +1587,7 @@ libopencore_amrwb_decoder_deps="libopencore_amrwb"
 libopenjpeg_decoder_deps="libopenjpeg"
 libopenjpeg_encoder_deps="libopenjpeg"
 libopus_decoder_deps="libopus"
+libopus_encoder_deps="libopus"
 libschroedinger_decoder_deps="libschroedinger"
 libschroedinger_encoder_deps="libschroedinger"
 libspeex_decoder_deps="libspeex"
@@ -2136,6 +2141,8 @@ msvc_flags(){
             -fno-common)          ;;
             -fno-signed-zeros)    ;;
             -lz)                  echo zlib.lib ;;
+            -lavifil32)           echo vfw32.lib ;;
+            -lavicap32)           echo vfw32.lib user32.lib ;;
             -l*)                  echo ${flag#-l}.lib ;;
             *)                    echo $flag ;;
         esac
@@ -2145,6 +2152,7 @@ msvc_flags(){
 pgi_flags(){
     for flag; do
         case $flag in
+            -flto)                echo -Mipa=fast,libopt,libinline,vestigial ;;
             -fomit-frame-pointer) echo -Mnoframe ;;
             -g)                   echo -gopt ;;
             *)                    echo $flag ;;
@@ -2323,7 +2331,7 @@ probe_cc(){
     elif $_cc -V 2>&1 | grep -q Portland; then
         _type=pgi
         _ident="PGI $($_cc -V 2>&1 | awk '/^pgcc/ { print $2; exit }')"
-        opt_common='-alias=ansi -Mlre -Mpre'
+        opt_common='-alias=ansi -Mdse -Mlre -Mpre'
         _cflags_speed="-O3 -Mautoinline -Munroll=c:4 $opt_common"
         _cflags_size="-O2 -Munroll=c:1 $opt_common"
         _cflags_noopt="-O1"
@@ -2789,7 +2797,6 @@ case $target_os in
         dlltool="${cross_prefix}dlltool"
         ranlib=:
         enable dos_paths
-        check_cflags -fno-common
         add_cppflags -U__STRICT_ANSI__
         ;;
     cygwin*)
@@ -2805,7 +2812,6 @@ case $target_os in
         SHFLAGS='-shared -Wl,--out-implib,$(SUBDIR)lib$(FULLNAME).dll.a'
         objformat="win32"
         enable dos_paths
-        check_cflags -fno-common
         add_cppflags -U__STRICT_ANSI__
         ;;
     *-dos|freedos|opendos)
@@ -3061,10 +3067,7 @@ elif enabled sparc; then
 
 elif enabled x86; then
 
-    check_code ld immintrin.h "return __xgetbv(0)" && enable xgetbv
-    check_code ld intrin.h "int info[4]; __cpuid(info, 0)" && enable cpuid
     check_code ld intrin.h "__rdtsc()" && enable rdtsc
-    check_code ld intrin.h "unsigned int x = __readeflags()" && enable rweflags
 
     check_code ld mmintrin.h "_mm_empty()" && enable mm_empty
 
@@ -3200,6 +3203,7 @@ check_func  sysctl
 check_func  usleep
 check_func_headers io.h setmode
 check_lib2 "windows.h shellapi.h" CommandLineToArgvW -lshell32
+check_lib2 "windows.h wincrypt.h" CryptGenRandom -ladvapi32
 check_lib2 "windows.h psapi.h" GetProcessMemoryInfo -lpsapi
 check_func_headers windows.h GetProcessAffinityMask
 check_func_headers windows.h GetProcessTimes
@@ -3438,17 +3442,31 @@ void ff_foo(void) {}
 EOF
 fi
 
-if [ -n "$optflags" ]; then
-    add_cflags $optflags
-elif enabled small; then
-    add_cflags $cflags_size
-elif enabled optimizations; then
-    add_cflags $cflags_speed
-else
-    add_cflags $cflags_noopt
+if [ -z "$optflags" ]; then
+    if enabled small; then
+        optflags=$cflags_size
+    elif enabled optimizations; then
+        optflags=$cflags_speed
+    else
+        optflags=$cflags_noopt
+    fi
 fi
-check_cflags -fno-math-errno
-check_cflags -fno-signed-zeros
+
+check_optflags(){
+    check_cflags "$@"
+    enabled lto && check_ldflags "$@"
+}
+
+
+if enabled lto; then
+    test "$cc_type" != "$ld_type" && die "LTO requires same compiler and linker"
+    check_cflags  -flto
+    check_ldflags -flto $cpuflags
+fi
+
+check_optflags $optflags
+check_optflags -fno-math-errno
+check_optflags -fno-signed-zeros
 
 if enabled icc; then
     # Just warnings, no remarks
@@ -3483,10 +3501,11 @@ elif enabled ccc; then
     add_cflags -msg_disable ptrmismatch1
     add_cflags -msg_disable unreachcode
 elif enabled gcc; then
-    check_cflags -fno-tree-vectorize
+    check_optflags -fno-tree-vectorize
     check_cflags -Werror=implicit-function-declaration
     check_cflags -Werror=missing-prototypes
     check_cflags -Werror=declaration-after-statement
+    check_cflags -Werror=vla
 elif enabled llvm_gcc; then
     check_cflags -mllvm -stack-alignment=16
 elif enabled clang; then

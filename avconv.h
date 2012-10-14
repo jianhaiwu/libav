@@ -278,7 +278,6 @@ typedef struct OutputStream {
     int top_field_first;
 
     float frame_aspect_ratio;
-    float last_quality;
 
     /* forced key frames */
     int64_t *forced_kf_pts;
@@ -299,7 +298,7 @@ typedef struct OutputStream {
     const char *attachment_filename;
     int copy_initial_nonkeyframes;
 
-    enum PixelFormat pix_fmts[2];
+    enum AVPixelFormat pix_fmts[2];
 } OutputStream;
 
 typedef struct OutputFile {
@@ -343,7 +342,6 @@ extern int copy_tb;
 extern int exit_on_error;
 extern int print_stats;
 extern int qp_hist;
-extern int same_quant;
 
 extern const AVIOInterruptCB int_cb;
 

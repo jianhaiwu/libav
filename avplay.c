@@ -106,7 +106,7 @@ typedef struct VideoPicture {
     int width, height; /* source height & width */
     int allocated;
     int reallocate;
-    enum PixelFormat pix_fmt;
+    enum AVPixelFormat pix_fmt;
 
 #if CONFIG_AVFILTER
     AVFilterBufferRef *picref;
@@ -281,11 +281,6 @@ static AVPacket flush_pkt;
 #define FF_QUIT_EVENT    (SDL_USEREVENT + 2)
 
 static SDL_Surface *screen;
-
-void exit_program(int ret)
-{
-    exit(ret);
-}
 
 static int packet_queue_put(PacketQueue *q, AVPacket *pkt);
 
@@ -1321,7 +1316,7 @@ static int queue_picture(VideoState *is, AVFrame *src_frame, double pts, int64_t
 #if CONFIG_AVFILTER
     AVPicture pict_src;
 #else
-    int dst_pix_fmt = PIX_FMT_YUV420P;
+    int dst_pix_fmt = AV_PIX_FMT_YUV420P;
 #endif
     /* wait until we have space to put a new picture */
     SDL_LockMutex(is->pictq_mutex);
@@ -1966,9 +1961,9 @@ static int audio_decode_frame(VideoState *is, double *pts_ptr)
                 is->audio_buf1 = tmp_out;
 
                 out_samples = avresample_convert(is->avr,
-                                                 (void **)&is->audio_buf1,
+                                                 &is->audio_buf1,
                                                  out_linesize, nb_samples,
-                                                 (void **)is->frame->data,
+                                                 is->frame->data,
                                                  is->frame->linesize[0],
                                                  is->frame->nb_samples);
                 if (out_samples < 0) {
