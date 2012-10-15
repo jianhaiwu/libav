@@ -96,7 +96,6 @@ Breaks:
  ffmpeg-dbg (<< 6:0.8.3-5),
  libav-extra-dbg (<< 6:0.8.3-5)
 Depends:
- ffmpeg (= ${binary:Version}),
  libav-tools (= ${binary:Version}),
  libavcodec54 (= ${binary:Version}),
  libavdevice53 (= ${binary:Version}),
