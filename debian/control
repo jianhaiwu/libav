@@ -36,7 +36,7 @@ Build-Depends:
  libopencore-amrwb-dev,
  libopencv-dev,
  libopenjpeg-dev,
- libopus-dev,
+# libopus-dev, temporarily disabled until #690563 is fixed
  libpulse-dev,
  libraw1394-dev [linux-any],
  librtmp-dev (>= 2.2e-4),
