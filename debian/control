@@ -479,7 +479,7 @@ Architecture: all
 Depends:
  libavformat54,
  ${misc:Depends},
-Description: Libav video postprocessing library (transitional package)
+Description: Libav file format library (transitional package)
  Libav is a complete, cross-platform solution to decode, encode, record,
  convert and stream audio and video.
  .
