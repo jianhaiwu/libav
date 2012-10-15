@@ -138,7 +138,6 @@ confflags += $(call cond_enable,/usr/include/zlib.h,zlib)
 
 # Configuration flags causing the libs to be GPL tainted
 gpl_confflags += --enable-gpl
-gpl_confflags += --enable-postproc
 gpl_confflags += --enable-swscale
 gpl_confflags += $(call cond_enable,/usr/include/cdio/paranoia.h,libcdio)
 gpl_confflags += $(call cond_enable,/usr/include/X11/extensions/XShm.h,x11grab)
