@@ -97,7 +97,7 @@ Breaks:
  libav-extra-dbg (<< 6:0.8.3-5)
 Depends:
  libav-tools (= ${binary:Version}),
- libavcodec54 (= ${binary:Version}),
+ libavcodec54 (= ${binary:Version}) | libavcodec-extra-54 (= ${binary:Version}),
  libavdevice53 (= ${binary:Version}),
  libavformat54 (= ${binary:Version}),
  libavutil51 (= ${binary:Version}),
