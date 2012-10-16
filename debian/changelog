@@ -1,4 +1,4 @@
-libav (6:9~beta1-1) UNRELEASED; urgency=low
+libav (6:9~beta1-1) experimental; urgency=low
 
   [ Fabian Greffrath ]
   * Imported Upstream version 6:0.8.99-3213-gd16860a
@@ -55,8 +55,12 @@ libav (6:9~beta1-1) UNRELEASED; urgency=low
   * New Upstream version: 9 beta1
   * remove compatibility links for ff* tools.
   * New release fixes all known CVE entries so far (Closes: #688847)
+  * libav-dbg: avoid dependency on 'ffmpeg' package
+  * remove package libav-extra-dbg
+  * allow co-installation of libav-dbg with libavcodec-extra-54
+  * temporarily disable libopus support until #690563 is fixed
 
- -- Reinhard Tartler <siretart@tauware.de>  Sun, 14 Oct 2012 16:08:36 -0400
+ -- Reinhard Tartler <siretart@tauware.de>  Tue, 16 Oct 2012 18:38:46 +0200
 
 libav (6:0.8.99-1537-gacb2c79-2) experimental; urgency=low
 
