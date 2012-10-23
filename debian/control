@@ -100,7 +100,7 @@ Depends:
  libavcodec54 (= ${binary:Version}) | libavcodec-extra-54 (= ${binary:Version}),
  libavdevice53 (= ${binary:Version}),
  libavformat54 (= ${binary:Version}),
- libavutil51 (= ${binary:Version}),
+ libavutil52 (= ${binary:Version}),
  libswscale2 (= ${binary:Version}),
  ${misc:Depends}
 Description: Debug symbols for Libav related packages
@@ -129,7 +129,7 @@ Description: Documentation of the Libav API
  .
  Only application developers will find this package useful.
 
-Package: libavutil51
+Package: libavutil52
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
@@ -240,7 +240,7 @@ Package: libavutil-dev
 Section: libdevel
 Architecture: any
 Depends:
- libavutil51 (= ${binary:Version}),
+ libavutil52 (= ${binary:Version}),
  ${misc:Depends}
 Description: Development files for libavutil
  Libav is a complete, cross-platform solution to decode, encode, record,
@@ -376,12 +376,12 @@ Description: Libav audo resampling library
  .
  This is the audio software resampling library from Libav.
 
-Package: libavutil-extra-51
+Package: libavutil-extra-52
 Section: oldlibs
 Priority: extra
 Architecture: all
 Depends:
- libavutil51,
+ libavutil52,
  ${misc:Depends},
 Description: Libav utility library (transitional package)
  Libav is a complete, cross-platform solution to decode, encode, record,
