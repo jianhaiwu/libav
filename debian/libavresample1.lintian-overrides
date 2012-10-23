@@ -1,2 +1,2 @@
 # Overriding these fpic lintian errors. Please see bug #528080.
-libavresample0: shlib-with-non-pic-code
+libavresample1: shlib-with-non-pic-code
