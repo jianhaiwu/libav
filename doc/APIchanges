@@ -6,12 +6,24 @@ libavcodec:    2012-01-27
 libavdevice:   2011-04-18
 libavfilter:   2012-06-22
 libavformat:   2012-01-27
-libavresample: 2012-04-24
+libavresample: 2012-10-05
 libswscale:    2011-06-20
-libavutil:     2011-04-18
+libavutil:     2012-10-22
 
 
 API changes, most recent first:
+
+2012-10-18 - xxxxxxx - lavu 51.45.0 - error.h
+  Add AVERROR_EXPERIMENTAL
+
+2012-10-12 - xxxxxxx - lavu 51.44.0 - pixdesc.h
+  Add functions for accessing pixel format descriptors.
+  Accessing the av_pix_fmt_descriptors array directly is now
+  deprecated.
+
+2012-10-xx - xxxxxxx - lavu 51.43.0 - aes.h, md5.h, sha.h, tree.h
+  Add functions for allocating the opaque contexts for the algorithms,
+  deprecate the context size variables.
 
 2012-10-xx - xxxxxxx - lavf 54.18.0 - avio.h
   Add avio_closep to complement avio_close.

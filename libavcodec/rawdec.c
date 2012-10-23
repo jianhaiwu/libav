@@ -86,7 +86,7 @@ static av_cold int raw_init_decoder(AVCodecContext *avctx)
     else if (avctx->pix_fmt == AV_PIX_FMT_NONE && avctx->bits_per_coded_sample)
         avctx->pix_fmt = find_pix_fmt(pix_fmt_bps_avi, avctx->bits_per_coded_sample);
 
-    ff_set_systematic_pal2(context->palette, avctx->pix_fmt);
+    avpriv_set_systematic_pal2(context->palette, avctx->pix_fmt);
     context->length = avpicture_get_size(avctx->pix_fmt, avctx->width, avctx->height);
     if((avctx->bits_per_coded_sample == 4 || avctx->bits_per_coded_sample == 2) &&
        avctx->pix_fmt==AV_PIX_FMT_PAL8 &&
@@ -119,6 +119,7 @@ static int raw_decode(AVCodecContext *avctx,
     const uint8_t *buf = avpkt->data;
     int buf_size = avpkt->size;
     RawVideoContext *context = avctx->priv_data;
+    const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(avctx->pix_fmt);
     int res;
 
     AVFrame   *frame   = data;
@@ -161,7 +162,7 @@ static int raw_decode(AVCodecContext *avctx,
                               avctx->width, avctx->height)) < 0)
         return res;
     if((avctx->pix_fmt==AV_PIX_FMT_PAL8 && buf_size < context->length) ||
-       (av_pix_fmt_descriptors[avctx->pix_fmt].flags & PIX_FMT_PSEUDOPAL)) {
+       (desc->flags & PIX_FMT_PSEUDOPAL)) {
         frame->data[1]= context->palette;
     }
     if (avctx->pix_fmt == AV_PIX_FMT_PAL8) {

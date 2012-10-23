@@ -53,6 +53,7 @@
 # include "libavfilter/buffersink.h"
 
 #if HAVE_SYS_RESOURCE_H
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/resource.h>
 #elif HAVE_GETPROCESSTIMES
@@ -229,24 +230,21 @@ void assert_avoptions(AVDictionary *m)
     }
 }
 
-static void assert_codec_experimental(AVCodecContext *c, int encoder)
+static void abort_codec_experimental(AVCodec *c, int encoder)
 {
     const char *codec_string = encoder ? "encoder" : "decoder";
     AVCodec *codec;
-    if (c->codec->capabilities & CODEC_CAP_EXPERIMENTAL &&
-        c->strict_std_compliance > FF_COMPLIANCE_EXPERIMENTAL) {
-        av_log(NULL, AV_LOG_FATAL, "%s '%s' is experimental and might produce bad "
-                "results.\nAdd '-strict experimental' if you want to use it.\n",
-                codec_string, c->codec->name);
-        codec = encoder ? avcodec_find_encoder(c->codec->id) : avcodec_find_decoder(c->codec->id);
-        if (!(codec->capabilities & CODEC_CAP_EXPERIMENTAL))
-            av_log(NULL, AV_LOG_FATAL, "Or use the non experimental %s '%s'.\n",
-                   codec_string, codec->name);
-        exit(1);
-    }
+    av_log(NULL, AV_LOG_FATAL, "%s '%s' is experimental and might produce bad "
+            "results.\nAdd '-strict experimental' if you want to use it.\n",
+            codec_string, c->name);
+    codec = encoder ? avcodec_find_encoder(c->id) : avcodec_find_decoder(c->id);
+    if (!(codec->capabilities & CODEC_CAP_EXPERIMENTAL))
+        av_log(NULL, AV_LOG_FATAL, "Or use the non experimental %s '%s'.\n",
+               codec_string, codec->name);
+    exit(1);
 }
 
-/**
+/*
  * Update the requested input sample format based on the output sample format.
  * This is currently only used to request float output from decoders which
  * support multiple sample formats, one of which is AV_SAMPLE_FMT_FLT.
@@ -660,7 +658,7 @@ static void do_video_stats(AVFormatContext *os, OutputStream *ost,
     }
 }
 
-/**
+/*
  * Read one frame for lavfi output for ost and encode it.
  */
 static int poll_filter(OutputStream *ost)
@@ -723,7 +721,7 @@ static int poll_filter(OutputStream *ost)
     return 0;
 }
 
-/**
+/*
  * Read as many frames from possible from lavfi and encode them.
  *
  * Always read from the active stream with the lowest timestamp. If no frames
@@ -1442,7 +1440,7 @@ static void print_sdp(void)
 
 static int init_input_stream(int ist_index, char *error, int error_len)
 {
-    int i;
+    int i, ret;
     InputStream *ist = input_streams[ist_index];
     if (ist->decoding_needed) {
         AVCodec *codec = ist->dec;
@@ -1470,12 +1468,13 @@ static int init_input_stream(int ist_index, char *error, int error_len)
 
         if (!av_dict_get(ist->opts, "threads", NULL, 0))
             av_dict_set(&ist->opts, "threads", "auto", 0);
-        if (avcodec_open2(ist->st->codec, codec, &ist->opts) < 0) {
+        if ((ret = avcodec_open2(ist->st->codec, codec, &ist->opts)) < 0) {
+            if (ret == AVERROR_EXPERIMENTAL)
+                abort_codec_experimental(codec, 0);
             snprintf(error, error_len, "Error while opening decoder for input stream #%d:%d",
                     ist->file_index, ist->st->index);
-            return AVERROR(EINVAL);
+            return ret;
         }
-        assert_codec_experimental(ist->st->codec, 0);
         assert_avoptions(ist->opts);
     }
 
@@ -1808,13 +1807,13 @@ static int transcode_init(void)
             }
             if (!av_dict_get(ost->opts, "threads", NULL, 0))
                 av_dict_set(&ost->opts, "threads", "auto", 0);
-            if (avcodec_open2(ost->st->codec, codec, &ost->opts) < 0) {
+            if ((ret = avcodec_open2(ost->st->codec, codec, &ost->opts)) < 0) {
+                if (ret == AVERROR_EXPERIMENTAL)
+                    abort_codec_experimental(codec, 1);
                 snprintf(error, sizeof(error), "Error while opening encoder for output stream #%d:%d - maybe incorrect parameters such as bit_rate, rate, width or height",
                         ost->file_index, ost->index);
-                ret = AVERROR(EINVAL);
                 goto dump_format;
             }
-            assert_codec_experimental(ost->st->codec, 1);
             assert_avoptions(ost->opts);
             if (ost->st->codec->bit_rate && ost->st->codec->bit_rate < 1000)
                 av_log(NULL, AV_LOG_WARNING, "The bitrate parameter is set too low."
@@ -1941,10 +1940,7 @@ static int transcode_init(void)
     return 0;
 }
 
-/**
- * @return 1 if there are still streams where more output is wanted,
- *         0 otherwise
- */
+/* Return 1 if there remain streams where more output is wanted, 0 otherwise. */
 static int need_output(void)
 {
     int i;
@@ -2128,13 +2124,13 @@ static void reset_eagain(void)
         input_files[i]->eagain = 0;
 }
 
-/**
+/*
  * Read one packet from an input file and send it for
  * - decoding -> lavfi (audio/video)
  * - decoding -> encoding -> muxing (subtitles)
  * - muxing (streamcopy)
  *
- * @return
+ * Return
  * - 0 -- one packet was read and processed
  * - AVERROR(EAGAIN) -- no packets were available for selected file,
  *   this function should be called again

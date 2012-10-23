@@ -22,6 +22,7 @@ OBJS = allcodecs.o                                                      \
        fmtconvert.o                                                     \
        imgconvert.o                                                     \
        jrevdct.o                                                        \
+       log2_tab.o                                                       \
        mathtables.o                                                     \
        options.o                                                        \
        parser.o                                                         \
@@ -160,8 +161,8 @@ OBJS-$(CONFIG_EIGHTBPS_DECODER)        += 8bps.o
 OBJS-$(CONFIG_EIGHTSVX_EXP_DECODER)    += 8svx.o
 OBJS-$(CONFIG_EIGHTSVX_FIB_DECODER)    += 8svx.o
 OBJS-$(CONFIG_ESCAPE124_DECODER)       += escape124.o
-OBJS-$(CONFIG_FFV1_DECODER)            += ffv1.o
-OBJS-$(CONFIG_FFV1_ENCODER)            += ffv1.o
+OBJS-$(CONFIG_FFV1_DECODER)            += ffv1dec.o ffv1.o
+OBJS-$(CONFIG_FFV1_ENCODER)            += ffv1enc.o ffv1.o
 OBJS-$(CONFIG_FFVHUFF_DECODER)         += huffyuv.o
 OBJS-$(CONFIG_FFVHUFF_ENCODER)         += huffyuv.o
 OBJS-$(CONFIG_FLAC_DECODER)            += flacdec.o flacdata.o flac.o flacdsp.o
@@ -432,7 +433,6 @@ OBJS-$(CONFIG_PCM_ALAW_DECODER)           += pcm.o
 OBJS-$(CONFIG_PCM_ALAW_ENCODER)           += pcm.o
 OBJS-$(CONFIG_PCM_BLURAY_DECODER)         += pcm-mpeg.o
 OBJS-$(CONFIG_PCM_DVD_DECODER)            += pcm.o
-OBJS-$(CONFIG_PCM_DVD_ENCODER)            += pcm.o
 OBJS-$(CONFIG_PCM_F32BE_DECODER)          += pcm.o
 OBJS-$(CONFIG_PCM_F32BE_ENCODER)          += pcm.o
 OBJS-$(CONFIG_PCM_F32LE_DECODER)          += pcm.o

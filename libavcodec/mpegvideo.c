@@ -189,8 +189,6 @@ av_cold int ff_dct_common_init(MpegEncContext *s)
     ff_MPV_common_init_x86(s);
 #elif ARCH_ALPHA
     ff_MPV_common_init_axp(s);
-#elif HAVE_MMI
-    ff_MPV_common_init_mmi(s);
 #elif ARCH_ARM
     ff_MPV_common_init_arm(s);
 #elif HAVE_ALTIVEC
@@ -828,7 +826,7 @@ fail:
  */
 av_cold int ff_MPV_common_init(MpegEncContext *s)
 {
-    int i, err;
+    int i;
     int nb_slices = (HAVE_THREADS &&
                      s->avctx->active_thread_type & FF_THREAD_SLICE) ?
                     s->avctx->thread_count : 1;
@@ -915,7 +913,7 @@ av_cold int ff_MPV_common_init(MpegEncContext *s)
     }
 
     if (s->width && s->height) {
-        if ((err = init_context_frame(s)))
+        if (init_context_frame(s))
             goto fail;
 
         s->parse_context.state = -1;
@@ -1527,20 +1525,21 @@ void ff_MPV_frame_end(MpegEncContext *s)
               s->current_picture.f.reference &&
               !s->intra_only &&
               !(s->flags & CODEC_FLAG_EMU_EDGE)) {
-        int hshift = av_pix_fmt_descriptors[s->avctx->pix_fmt].log2_chroma_w;
-        int vshift = av_pix_fmt_descriptors[s->avctx->pix_fmt].log2_chroma_h;
-        s->dsp.draw_edges(s->current_picture.f.data[0], s->linesize,
-                          s->h_edge_pos, s->v_edge_pos,
-                          EDGE_WIDTH, EDGE_WIDTH,
-                          EDGE_TOP | EDGE_BOTTOM);
-        s->dsp.draw_edges(s->current_picture.f.data[1], s->uvlinesize,
-                          s->h_edge_pos >> hshift, s->v_edge_pos >> vshift,
-                          EDGE_WIDTH >> hshift, EDGE_WIDTH >> vshift,
-                          EDGE_TOP | EDGE_BOTTOM);
-        s->dsp.draw_edges(s->current_picture.f.data[2], s->uvlinesize,
-                          s->h_edge_pos >> hshift, s->v_edge_pos >> vshift,
-                          EDGE_WIDTH >> hshift, EDGE_WIDTH >> vshift,
-                          EDGE_TOP | EDGE_BOTTOM);
+       const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(s->avctx->pix_fmt);
+       int hshift = desc->log2_chroma_w;
+       int vshift = desc->log2_chroma_h;
+       s->dsp.draw_edges(s->current_picture.f.data[0], s->linesize,
+                         s->h_edge_pos, s->v_edge_pos,
+                         EDGE_WIDTH, EDGE_WIDTH,
+                         EDGE_TOP | EDGE_BOTTOM);
+       s->dsp.draw_edges(s->current_picture.f.data[1], s->uvlinesize,
+                         s->h_edge_pos >> hshift, s->v_edge_pos >> vshift,
+                         EDGE_WIDTH >> hshift, EDGE_WIDTH >> vshift,
+                         EDGE_TOP | EDGE_BOTTOM);
+       s->dsp.draw_edges(s->current_picture.f.data[2], s->uvlinesize,
+                         s->h_edge_pos >> hshift, s->v_edge_pos >> vshift,
+                         EDGE_WIDTH >> hshift, EDGE_WIDTH >> vshift,
+                         EDGE_TOP | EDGE_BOTTOM);
     }
 
     emms_c();
@@ -1986,7 +1985,8 @@ int ff_MPV_lowest_referenced_row(MpegEncContext *s, int dir)
     int my_max = INT_MIN, my_min = INT_MAX, qpel_shift = !s->quarter_sample;
     int my, off, i, mvs;
 
-    if (s->picture_structure != PICT_FRAME) goto unhandled;
+    if (s->picture_structure != PICT_FRAME || s->mcsel)
+        goto unhandled;
 
     switch (s->mv_type) {
         case MV_TYPE_16X16:
@@ -2342,9 +2342,10 @@ void ff_draw_horiz_band(MpegEncContext *s, int y, int h){
        && s->current_picture.f.reference
        && !s->intra_only
        && !(s->flags&CODEC_FLAG_EMU_EDGE)) {
+        const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(s->avctx->pix_fmt);
         int sides = 0, edge_h;
-        int hshift = av_pix_fmt_descriptors[s->avctx->pix_fmt].log2_chroma_w;
-        int vshift = av_pix_fmt_descriptors[s->avctx->pix_fmt].log2_chroma_h;
+        int hshift = desc->log2_chroma_w;
+        int vshift = desc->log2_chroma_h;
         if (y==0) sides |= EDGE_TOP;
         if (y + h >= s->v_edge_pos) sides |= EDGE_BOTTOM;
 

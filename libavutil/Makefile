@@ -69,6 +69,8 @@ OBJS = adler32.o                                                        \
        lfg.o                                                            \
        lls.o                                                            \
        log.o                                                            \
+       log2.o                                                           \
+       log2_tab.o                                                       \
        lzo.o                                                            \
        mathematics.o                                                    \
        md5.o                                                            \
@@ -87,8 +89,7 @@ OBJS = adler32.o                                                        \
        utils.o                                                          \
        xtea.o                                                           \
 
-OBJS-$(HAVE_MSVCRT) += ../compat/msvcrt/snprintf.o                      \
-                       ../compat/strtod.o
+OBJS += $(COMPAT_OBJS:%=../compat/%)
 
 SKIPHEADERS          = old_pix_fmts.h
 
