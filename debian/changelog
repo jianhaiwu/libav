@@ -1,3 +1,13 @@
+libav (6:9~beta2-1) experimental; urgency=low
+
+  * new upstream release: libav 9 beta2
+  * Imported Upstream version 9~beta2
+  * SONAME bump: libavutil51->libavutil52, (Closes: #691088)
+  * bump shlibs file
+  * fix package names to follow correct soname of libavresample1
+
+ -- Reinhard Tartler <siretart@tauware.de>  Tue, 23 Oct 2012 18:49:26 +0200
+
 libav (6:9~beta1-1) experimental; urgency=low
 
   [ Fabian Greffrath ]
