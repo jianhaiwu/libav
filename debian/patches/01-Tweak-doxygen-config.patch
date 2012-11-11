@@ -7,8 +7,8 @@ exclude some directories we use for packaging from doxygen documentation
  Doxyfile |    2 +-
  1 files changed, 1 insertions(+), 1 deletions(-)
 
---- a/Doxyfile
-+++ b/Doxyfile
+--- a/doc/Doxyfile
++++ b/doc/Doxyfile
 @@ -616,7 +616,7 @@ RECURSIVE              = YES
  # excluded from the INPUT source files. This way you can easily exclude a
  # subdirectory from a directory tree whose root is specified with the INPUT tag.

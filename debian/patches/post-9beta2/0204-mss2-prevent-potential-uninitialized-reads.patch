@@ -12,11 +12,9 @@ Signed-off-by: Kostya Shishkov <kostya.shishkov@gmail.com>
  libavcodec/mss2.c |    4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/libavcodec/mss2.c b/libavcodec/mss2.c
-index 5f99b7a..bec3f45 100644
 --- a/libavcodec/mss2.c
 +++ b/libavcodec/mss2.c
-@@ -839,8 +839,8 @@ static av_cold int mss2_decode_init(AVCodecContext *avctx)
+@@ -839,8 +839,8 @@ static av_cold int mss2_decode_init(AVCo
      if (ret = ff_mss12_decode_init(c, 1, &ctx->sc[0], &ctx->sc[1]))
          return ret;
      c->pal_stride   = c->mask_stride;
@@ -27,6 +25,14 @@ index 5f99b7a..bec3f45 100644
      if (!c->pal_pic || !c->last_pal_pic) {
          mss2_decode_end(avctx);
          return AVERROR(ENOMEM);
--- 
-1.7.9.5
-
+--- a/doc/Doxyfile
++++ b/doc/Doxyfile
+@@ -616,7 +616,7 @@ RECURSIVE              = YES
+ # excluded from the INPUT source files. This way you can easily exclude a
+ # subdirectory from a directory tree whose root is specified with the INPUT tag.
+ 
+-EXCLUDE                =
++EXCLUDE                = debian debian-shared debian-static debian-cmov .pc .git
+ 
+ # The EXCLUDE_SYMLINKS tag can be used select whether or not files or
+ # directories that are symbolic links (a Unix filesystem feature) are excluded

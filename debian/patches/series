@@ -1,4 +1,3 @@
-01-Tweak-doxygen-config.patch
 03-disable-configuration-warnings.patch
 
 # post-9beta2 patches to sync ot current master
