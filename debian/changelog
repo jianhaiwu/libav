@@ -1,6 +1,9 @@
 libav (6:9~beta2-2) experimental; urgency=low
 
-  * Start new upload
+  * add post 9 beta2 patches
+  * import bits from ubuntu to minimize the diff
+  * Remove stale Conflicts/Replaces on libavutil51, fixes instability
+    issues with libavutil51.
 
  -- Reinhard Tartler <siretart@tauware.de>  Sun, 11 Nov 2012 17:21:15 +0100
 
