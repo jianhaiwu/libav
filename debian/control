@@ -136,10 +136,6 @@ Pre-Depends: ${misc:Pre-Depends}
 Depends:
  ${misc:Depends},
  ${shlibs:Depends}
-Conflicts:
- libavutil-extra-51
-Replaces:
- libavutil-extra-51
 Description: Libav utility library
  Libav is a complete, cross-platform solution to decode, encode, record,
  convert and stream audio and video.
