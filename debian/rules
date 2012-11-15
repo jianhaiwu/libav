@@ -174,7 +174,7 @@ endif
 	dh_installdirs -ptmp usr/share/doc/libav-doc/html
 	$(foreach flavor,$(FLAVORS),$(call install_flavor,$(flavor)))
 	# don't fail on binary-indep only builds.
-	[ ! -d doxy ] || cp -af doxy/html debian/tmp/usr/share/doc/libav-doc
+	[ ! -d doc/doxy ] || cp -avf doc/doxy/html debian/tmp/usr/share/doc/libav-doc
 	install -m 644 -D debian-shared/doc/*.html debian/tmp/usr/share/doc/libav/html/
 	install -m 644 -D doc/avserver.conf debian/tmp/etc/
 	install -m 644 -D debian-shared/tools/qt-faststart debian/tmp/usr/bin/qt-faststart
