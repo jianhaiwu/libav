@@ -363,6 +363,8 @@ Package: libavresample1
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
+Replaces:
+ libavresample0
 Depends:
  ${misc:Depends},
  ${shlibs:Depends}
