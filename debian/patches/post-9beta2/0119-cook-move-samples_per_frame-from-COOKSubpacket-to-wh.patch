@@ -1,7 +1,7 @@
 From 8f173ef019d7e8921ab2cb094718f14e8c016a59 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Sun, 21 Oct 2012 14:43:02 -0400
-Subject: [PATCH 119/204] cook: move samples_per_frame from COOKSubpacket to
+Subject: [PATCH 119/278] cook: move samples_per_frame from COOKSubpacket to
  where it is used
 
 ---

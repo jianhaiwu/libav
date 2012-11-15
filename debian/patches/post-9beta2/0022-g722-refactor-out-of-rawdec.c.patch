@@ -1,7 +1,7 @@
 From 5f0e161dd61552ad70760bad35b869eaec7368ff Mon Sep 17 00:00:00 2001
 From: Luca Barbato <lu_zero@gentoo.org>
 Date: Wed, 24 Oct 2012 18:18:18 +0200
-Subject: [PATCH 022/204] g722: refactor out of rawdec.c
+Subject: [PATCH 022/278] g722: refactor out of rawdec.c
 
 ---
  libavformat/Makefile |    2 +-

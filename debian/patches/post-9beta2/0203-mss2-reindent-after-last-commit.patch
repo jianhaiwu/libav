@@ -1,7 +1,7 @@
 From 6d93308c0ca3783b3278aef8e6e64d8f0558f319 Mon Sep 17 00:00:00 2001
 From: Kostya Shishkov <kostya.shishkov@gmail.com>
 Date: Sun, 11 Nov 2012 15:00:38 +0100
-Subject: [PATCH 203/204] mss2: reindent after last commit
+Subject: [PATCH 203/278] mss2: reindent after last commit
 
 ---
  libavcodec/mss2.c |   68 ++++++++++++++++++++++++++---------------------------

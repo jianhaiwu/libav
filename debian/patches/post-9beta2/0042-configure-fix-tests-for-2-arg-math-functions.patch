@@ -1,7 +1,7 @@
 From 1aa07aa21c4ee39f0ed5fcd33d8259eed74bd3ab Mon Sep 17 00:00:00 2001
 From: Mans Rullgard <mans@mansr.com>
 Date: Fri, 26 Oct 2012 14:42:47 +0100
-Subject: [PATCH 042/204] configure: fix tests for 2-arg math functions
+Subject: [PATCH 042/278] configure: fix tests for 2-arg math functions
 
 Signed-off-by: Mans Rullgard <mans@mansr.com>
 ---

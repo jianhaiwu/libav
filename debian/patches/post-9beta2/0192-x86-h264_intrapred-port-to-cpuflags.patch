@@ -1,7 +1,7 @@
 From 6ca60d4ddd9b34b98b8570d440d79736d060f02a Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Tue, 10 Jul 2012 00:04:18 +0200
-Subject: [PATCH 192/204] x86: h264_intrapred: port to cpuflags
+Subject: [PATCH 192/278] x86: h264_intrapred: port to cpuflags
 
 ---
  libavcodec/x86/h264_intrapred.asm |  230 +++++++++++++++++++------------------

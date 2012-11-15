@@ -1,7 +1,7 @@
 From 2ef4d586d6352a69c0669d53ce1035eb7d8db0e8 Mon Sep 17 00:00:00 2001
 From: Luca Barbato <lu_zero@gentoo.org>
 Date: Wed, 24 Oct 2012 19:15:50 +0200
-Subject: [PATCH 023/204] pcmdec: remove dependency from rawdec
+Subject: [PATCH 023/278] pcmdec: remove dependency from rawdec
 
 The code shared is not actually shared with anything else.
 ---

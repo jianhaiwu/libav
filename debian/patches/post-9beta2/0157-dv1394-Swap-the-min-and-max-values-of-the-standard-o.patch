@@ -1,7 +1,7 @@
 From e1c804d883f3cca1b492147a2ac5d0aea7460076 Mon Sep 17 00:00:00 2001
 From: Michael Niedermayer <michaelni@gmx.at>
 Date: Fri, 2 Nov 2012 02:07:15 +0100
-Subject: [PATCH 157/204] dv1394: Swap the min and max values of the
+Subject: [PATCH 157/278] dv1394: Swap the min and max values of the
  'standard' option
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8

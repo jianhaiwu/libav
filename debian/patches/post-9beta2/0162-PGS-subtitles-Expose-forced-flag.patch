@@ -1,7 +1,7 @@
 From 85f67c4865d8014ded2aaa64b3cba6e2970342d7 Mon Sep 17 00:00:00 2001
 From: John Stebbins <jstebbins.hb@gmail.com>
 Date: Sat, 20 Oct 2012 09:56:11 -0700
-Subject: [PATCH 162/204] PGS subtitles: Expose forced flag
+Subject: [PATCH 162/278] PGS subtitles: Expose forced flag
 
 Useful for detection of subtitles displayed during foreign language
 scenes.

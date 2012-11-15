@@ -1,7 +1,7 @@
 From 95c89da36ebeeb96b7146c0d70f46c582397da7f Mon Sep 17 00:00:00 2001
 From: "Ronald S. Bultje" <rsbultje@gmail.com>
 Date: Sun, 28 Oct 2012 20:44:54 -0700
-Subject: [PATCH 079/204] Use ptrdiff_t instead of int for intra pred "stride"
+Subject: [PATCH 079/278] Use ptrdiff_t instead of int for intra pred "stride"
  function parameter.
 
 This way, SIMD-optimized functions don't have to sign-extend their

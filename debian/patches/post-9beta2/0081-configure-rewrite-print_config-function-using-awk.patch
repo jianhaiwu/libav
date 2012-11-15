@@ -1,7 +1,7 @@
 From f454e879238ce317c6d905d187e7608c461a7087 Mon Sep 17 00:00:00 2001
 From: Mans Rullgard <mans@mansr.com>
 Date: Sat, 27 Oct 2012 16:43:12 +0100
-Subject: [PATCH 081/204] configure: rewrite print_config() function using awk
+Subject: [PATCH 081/278] configure: rewrite print_config() function using awk
 
 This is much faster with slow shells and noticeably faster even
 with bash on a fast Linux system.

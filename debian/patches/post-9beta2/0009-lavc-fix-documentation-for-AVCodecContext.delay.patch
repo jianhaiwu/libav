@@ -1,7 +1,7 @@
 From c68317ebbe4915035df0b08c23eea7a0b80ab881 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Tue, 2 Oct 2012 11:38:34 -0400
-Subject: [PATCH 009/204] lavc: fix documentation for AVCodecContext.delay
+Subject: [PATCH 009/278] lavc: fix documentation for AVCodecContext.delay
 
 ---
  libavcodec/avcodec.h |    2 +-

@@ -1,7 +1,7 @@
 From 87cdd7c6949e0166a22b558e0657ac277c95d452 Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Wed, 24 Oct 2012 11:54:03 +0200
-Subject: [PATCH 040/204] ivi_common: Drop unused function parameter from
+Subject: [PATCH 040/278] ivi_common: Drop unused function parameter from
  decode_band()
 
 ---

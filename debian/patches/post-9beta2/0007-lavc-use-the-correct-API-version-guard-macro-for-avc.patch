@@ -1,7 +1,7 @@
 From a5ef830b1226273c35d4baa1c2e4e7e1c9de7c7d Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Tue, 23 Oct 2012 13:25:53 -0400
-Subject: [PATCH 007/204] lavc: use the correct API version guard macro for
+Subject: [PATCH 007/278] lavc: use the correct API version guard macro for
  avcodec_encode_audio()
 
 ---

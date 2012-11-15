@@ -1,7 +1,7 @@
 From be2ab8b75a634a686a5ced1544c0c9a4ebeab0dc Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Mon, 22 Oct 2012 18:53:19 -0400
-Subject: [PATCH 135/204] qdm2: make sure channels is not <= 0 and set channel
+Subject: [PATCH 135/278] qdm2: make sure channels is not <= 0 and set channel
  layout
 
 ---

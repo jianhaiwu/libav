@@ -1,7 +1,7 @@
 From 352e18b766650d298a3ba54f757259220746b03b Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Tue, 6 Nov 2012 12:07:35 +0100
-Subject: [PATCH 187/204] x86: avresample: Add missing colons to assembly
+Subject: [PATCH 187/278] x86: avresample: Add missing colons to assembly
  labels
 
 YASM accepts labels without colons, but NASM issues warnings.

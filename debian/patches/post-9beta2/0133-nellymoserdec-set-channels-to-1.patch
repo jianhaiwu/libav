@@ -1,7 +1,7 @@
 From d26701ce2f3504e2ee341251448db3af6328a69b Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Mon, 22 Oct 2012 17:58:24 -0400
-Subject: [PATCH 133/204] nellymoserdec: set channels to 1
+Subject: [PATCH 133/278] nellymoserdec: set channels to 1
 
 ---
  libavcodec/nellymoserdec.c |    1 +

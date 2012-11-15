@@ -1,7 +1,7 @@
 From a153e45b953dee5b065939300d3a591772f43b19 Mon Sep 17 00:00:00 2001
 From: Mans Rullgard <mans@mansr.com>
 Date: Tue, 23 Oct 2012 18:17:46 +0100
-Subject: [PATCH 004/204] dfa: use av_memcpy_backptr() where previously
+Subject: [PATCH 004/278] dfa: use av_memcpy_backptr() where previously
  impossible
 
 Since the requirement for output padding has been lifted, we can

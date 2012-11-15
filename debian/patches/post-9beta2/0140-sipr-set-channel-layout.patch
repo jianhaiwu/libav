@@ -1,7 +1,7 @@
 From 523734eb6a904c43cf73d801f1c885829380f0de Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Tue, 23 Oct 2012 00:51:26 -0400
-Subject: [PATCH 140/204] sipr: set channel layout
+Subject: [PATCH 140/278] sipr: set channel layout
 
 ---
  libavcodec/sipr.c |    5 ++++-

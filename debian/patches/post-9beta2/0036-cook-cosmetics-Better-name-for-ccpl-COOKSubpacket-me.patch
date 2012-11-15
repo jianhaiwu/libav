@@ -1,7 +1,7 @@
 From 20015379a46a3b261f57b0daf0c7237b62c1fd82 Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Wed, 24 Oct 2012 01:05:04 +0200
-Subject: [PATCH 036/204] cook: cosmetics: Better name for ccpl COOKSubpacket
+Subject: [PATCH 036/278] cook: cosmetics: Better name for ccpl COOKSubpacket
  member
 
 ---

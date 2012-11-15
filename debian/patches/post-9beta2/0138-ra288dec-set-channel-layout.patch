@@ -1,7 +1,7 @@
 From 4e13e50432bd1c1a89f626f8196b55a0302c8f19 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Tue, 23 Oct 2012 00:35:50 -0400
-Subject: [PATCH 138/204] ra288dec: set channel layout
+Subject: [PATCH 138/278] ra288dec: set channel layout
 
 ---
  libavcodec/ra288.c |    7 ++++++-

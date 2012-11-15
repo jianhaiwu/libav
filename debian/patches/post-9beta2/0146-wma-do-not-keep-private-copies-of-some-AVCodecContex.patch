@@ -1,7 +1,7 @@
 From 2ed40608e9499de7ed6bd4bd61cc50645ec6d8a4 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Tue, 23 Oct 2012 16:30:59 -0400
-Subject: [PATCH 146/204] wma: do not keep private copies of some
+Subject: [PATCH 146/278] wma: do not keep private copies of some
  AVCodecContext fields
 
 channels, sample_rate, bit_rate, and block_align can be used directly from

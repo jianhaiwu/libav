@@ -1,7 +1,7 @@
 From fa8fcab1e0d31074c0644c4ac5194474c6c26415 Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Fri, 27 Jul 2012 13:43:33 +0200
-Subject: [PATCH 101/204] x86: h264_chromamc_10bit: drop pointless PAVG
+Subject: [PATCH 101/278] x86: h264_chromamc_10bit: drop pointless PAVG
  %define
 
 It is only used in one place so there is no need for the abstraction.

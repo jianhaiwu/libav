@@ -1,7 +1,7 @@
 From 717a4509930854081deea54a3bfcdb547161fecf Mon Sep 17 00:00:00 2001
 From: Anton Khirnov <anton@khirnov.net>
 Date: Wed, 31 Oct 2012 19:59:53 +0100
-Subject: [PATCH 168/204] lavf: clarify the lifetime of demuxed packets.
+Subject: [PATCH 168/278] lavf: clarify the lifetime of demuxed packets.
 
 ---
  libavformat/avformat.h |   26 ++++++++++++++++----------

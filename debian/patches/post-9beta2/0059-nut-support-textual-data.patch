@@ -1,7 +1,7 @@
 From d4bff9f1ab59f4ae58841bd7b056f2ff1b8854d7 Mon Sep 17 00:00:00 2001
 From: Luca Barbato <lu_zero@gentoo.org>
 Date: Thu, 25 Oct 2012 14:05:40 +0200
-Subject: [PATCH 059/204] nut: support textual data
+Subject: [PATCH 059/278] nut: support textual data
 
 Plain text (utf8 encoded) data can be muxed and demuxed in nut.
 ---

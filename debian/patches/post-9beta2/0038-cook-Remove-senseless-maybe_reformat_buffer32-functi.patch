@@ -1,7 +1,7 @@
 From 8a61ba0e8194beffdfd9f843bdcf29dbbc974ca5 Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Wed, 24 Oct 2012 16:03:31 +0200
-Subject: [PATCH 038/204] cook: Remove senseless maybe_reformat_buffer32()
+Subject: [PATCH 038/278] cook: Remove senseless maybe_reformat_buffer32()
  function
 
 ---

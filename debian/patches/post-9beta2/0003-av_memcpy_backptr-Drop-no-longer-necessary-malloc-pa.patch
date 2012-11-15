@@ -1,7 +1,7 @@
 From e831b3b852a23cd24f2941e68bd65299ce306880 Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Tue, 23 Oct 2012 19:22:52 +0200
-Subject: [PATCH 003/204] av_memcpy_backptr: Drop no longer necessary malloc
+Subject: [PATCH 003/278] av_memcpy_backptr: Drop no longer necessary malloc
  padding
 
 Signed-off-by: Mans Rullgard <mans@mansr.com>

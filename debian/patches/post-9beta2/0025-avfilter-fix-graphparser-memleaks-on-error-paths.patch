@@ -1,7 +1,7 @@
 From 285b706b551b94e18f875ed01163926c8b98e68b Mon Sep 17 00:00:00 2001
 From: Janne Grunau <janne-libav@jannau.net>
 Date: Tue, 9 Oct 2012 21:28:32 +0200
-Subject: [PATCH 025/204] avfilter: fix graphparser memleaks on error paths
+Subject: [PATCH 025/278] avfilter: fix graphparser memleaks on error paths
 
 Fixes CID700635, CID700636 and CID732274.
 ---

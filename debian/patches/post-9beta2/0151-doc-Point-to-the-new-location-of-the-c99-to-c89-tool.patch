@@ -1,7 +1,7 @@
 From c19e9d00a70616b86ae73111a7579a984c5fa585 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Martin=20Storsj=C3=B6?= <martin@martin.st>
 Date: Thu, 1 Nov 2012 15:27:18 +0200
-Subject: [PATCH 151/204] doc: Point to the new location of the c99-to-c89
+Subject: [PATCH 151/278] doc: Point to the new location of the c99-to-c89
  tool
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8

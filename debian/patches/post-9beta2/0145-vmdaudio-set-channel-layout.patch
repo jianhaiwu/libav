@@ -1,7 +1,7 @@
 From 50a65e7a540ce6747f81d6dbf6a602ad35be77ff Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Tue, 23 Oct 2012 15:27:44 -0400
-Subject: [PATCH 145/204] vmdaudio: set channel layout
+Subject: [PATCH 145/278] vmdaudio: set channel layout
 
 ---
  libavcodec/vmdav.c |    4 ++++

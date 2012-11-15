@@ -1,7 +1,7 @@
 From 13bbefd57e8dcabae650f4a02e667d5c003c289f Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Mon, 22 Oct 2012 16:16:07 +0200
-Subject: [PATCH 035/204] doxygen: Add av_alloc_size to list of predefined
+Subject: [PATCH 035/278] doxygen: Add av_alloc_size to list of predefined
  macros
 
 This avoids Doxygen believing the attribute is the function name.

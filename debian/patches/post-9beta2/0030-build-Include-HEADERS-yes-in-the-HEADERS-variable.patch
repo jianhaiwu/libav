@@ -1,7 +1,7 @@
 From 121604b024cfd04644a9aa6012bd0e9a48efbd9f Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Martin=20Storsj=C3=B6?= <martin@martin.st>
 Date: Thu, 25 Oct 2012 17:13:06 +0300
-Subject: [PATCH 030/204] build: Include HEADERS-yes in the HEADERS variable
+Subject: [PATCH 030/278] build: Include HEADERS-yes in the HEADERS variable
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit

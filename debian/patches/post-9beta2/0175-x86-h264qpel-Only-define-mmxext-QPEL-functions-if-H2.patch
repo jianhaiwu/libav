@@ -1,7 +1,7 @@
 From 930e26a3ea9d223e04bac4cdde13697cec770031 Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Fri, 2 Nov 2012 18:25:08 +0100
-Subject: [PATCH 175/204] x86: h264qpel: Only define mmxext QPEL functions if
+Subject: [PATCH 175/278] x86: h264qpel: Only define mmxext QPEL functions if
  H264QPEL is enabled
 
 This fixes compilation with --disable-everything and components enabled.

@@ -1,7 +1,7 @@
 From b3fab1f2cd22bfaee95831af57a65f803f03083c Mon Sep 17 00:00:00 2001
 From: Janne Grunau <janne-libav@jannau.net>
 Date: Mon, 29 Oct 2012 16:26:59 +0100
-Subject: [PATCH 171/204] doc: add apidoc target for doxygen API documentation
+Subject: [PATCH 171/278] doc: add apidoc target for doxygen API documentation
 
 Documentation includes only the externally visible API of the installed
 headers.

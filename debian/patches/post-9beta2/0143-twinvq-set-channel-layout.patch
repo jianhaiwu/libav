@@ -1,7 +1,7 @@
 From 335826cf5f7169199ed0a8d3a61f697ec0438d30 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Tue, 23 Oct 2012 13:17:17 -0400
-Subject: [PATCH 143/204] twinvq: set channel layout
+Subject: [PATCH 143/278] twinvq: set channel layout
 
 ---
  libavcodec/twinvq.c |    4 ++++

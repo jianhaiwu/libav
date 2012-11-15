@@ -1,7 +1,7 @@
 From e6c4c0f7cfaf0378a70f6f7f0611d4c21433067a Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Sat, 20 Oct 2012 01:09:33 +0200
-Subject: [PATCH 189/204] fate: atrac: Place atrac1 and atrac3 tests in
+Subject: [PATCH 189/278] fate: atrac: Place atrac1 and atrac3 tests in
  different groups
 
 ---

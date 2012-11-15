@@ -1,7 +1,7 @@
 From 179a5c37e070f619f14289bdc0fa66a08219eed9 Mon Sep 17 00:00:00 2001
 From: Anton Khirnov <anton@khirnov.net>
 Date: Thu, 1 Nov 2012 14:03:04 +0100
-Subject: [PATCH 153/204] rtpdec: factorize identical code used in several
+Subject: [PATCH 153/278] rtpdec: factorize identical code used in several
  handlers
 
 ---

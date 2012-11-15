@@ -1,7 +1,7 @@
 From a346aaf148dc2ce53da30e2f67223834495c0fd6 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Mon, 22 Oct 2012 13:26:46 -0400
-Subject: [PATCH 126/204] g726dec: do not validate sample rate
+Subject: [PATCH 126/278] g726dec: do not validate sample rate
 
 For decoding it does not really matter what the sample rate is.
 ---

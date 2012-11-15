@@ -1,7 +1,7 @@
 From ee0e9678e761e8a41cfffcb163de42967e5a1758 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Sun, 7 Oct 2012 21:19:28 -0400
-Subject: [PATCH 109/204] amrwbdec: set channels, channel_layout, and
+Subject: [PATCH 109/278] amrwbdec: set channels, channel_layout, and
  sample_rate
 
 Only mono 16kHz is supported.

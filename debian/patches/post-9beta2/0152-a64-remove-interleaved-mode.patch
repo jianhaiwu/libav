@@ -1,7 +1,7 @@
 From f70381ab9d53132be2d009d6db9649b3cad8288b Mon Sep 17 00:00:00 2001
 From: Anton Khirnov <anton@khirnov.net>
 Date: Wed, 31 Oct 2012 22:32:36 +0100
-Subject: [PATCH 152/204] a64: remove interleaved mode.
+Subject: [PATCH 152/278] a64: remove interleaved mode.
 
 It has been disabled since it was added two years ago.
 ---

@@ -1,7 +1,7 @@
 From b5f628e227743fc1725a28b5b21f538a40efca82 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Tue, 23 Oct 2012 13:17:50 -0400
-Subject: [PATCH 144/204] twinvq: validate sample rate code
+Subject: [PATCH 144/278] twinvq: validate sample rate code
 
 A large invalid value could cause undefined behavior when left-shifted
 by 8 later in the function.

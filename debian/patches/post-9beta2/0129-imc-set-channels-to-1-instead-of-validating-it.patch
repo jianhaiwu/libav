@@ -1,7 +1,7 @@
 From 1c7a0161538a9e8417086759a5d6d3295337c433 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Mon, 22 Oct 2012 15:54:29 -0400
-Subject: [PATCH 129/204] imc: set channels to 1 instead of validating it
+Subject: [PATCH 129/278] imc: set channels to 1 instead of validating it
 
 ---
  libavcodec/imc.c |    6 ++++--

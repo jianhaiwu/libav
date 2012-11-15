@@ -1,7 +1,7 @@
 From 3a2731cbd31d0c5681ddbc7c78edd5c53c4d0032 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Wed, 7 Nov 2012 14:48:28 -0500
-Subject: [PATCH 196/204] flacenc: ensure the order is within the min/max
+Subject: [PATCH 196/278] flacenc: ensure the order is within the min/max
  range in LPC order search
 
 This fixes use of uninitialized values when the FLAC encoder uses the

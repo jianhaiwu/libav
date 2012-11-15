@@ -1,7 +1,7 @@
 From 154ff81870ce9838eaa87b19d0f5ecceb9dd514e Mon Sep 17 00:00:00 2001
 From: Janne Grunau <janne-libav@jannau.net>
 Date: Wed, 10 Oct 2012 14:25:44 +0200
-Subject: [PATCH 033/204] h263: avoid memcpys over array bound in motion
+Subject: [PATCH 033/278] h263: avoid memcpys over array bound in motion
  vector caching for obmc
 
 Fixes CID602232.

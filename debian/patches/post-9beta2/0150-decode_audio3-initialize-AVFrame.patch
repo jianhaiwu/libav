@@ -1,7 +1,7 @@
 From 6d1270a0f9ededd37ed14bde52b8ee69b99e8a7f Mon Sep 17 00:00:00 2001
 From: Ilkka Ollakka <ileoo@videolan.org>
 Date: Wed, 31 Oct 2012 11:24:36 +0200
-Subject: [PATCH 150/204] decode_audio3: initialize AVFrame
+Subject: [PATCH 150/278] decode_audio3: initialize AVFrame
 
 Same fix and issue as in a25d912dca9cd553440167e0476c47581359c0fc
 

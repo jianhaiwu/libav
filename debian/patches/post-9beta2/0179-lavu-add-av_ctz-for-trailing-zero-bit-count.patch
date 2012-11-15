@@ -1,7 +1,7 @@
 From dfde8a34e5419ac99265e3ecc2e82f378674128a Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Fri, 26 Oct 2012 14:48:40 -0400
-Subject: [PATCH 179/204] lavu: add av_ctz() for trailing zero bit count
+Subject: [PATCH 179/278] lavu: add av_ctz() for trailing zero bit count
 
 ---
  doc/APIchanges      |    3 +++

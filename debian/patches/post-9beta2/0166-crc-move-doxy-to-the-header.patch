@@ -1,7 +1,7 @@
 From b4dc6dccbaea08fc0d41e99b020ee1e0e9ff301b Mon Sep 17 00:00:00 2001
 From: Anton Khirnov <anton@khirnov.net>
 Date: Fri, 2 Nov 2012 10:58:36 +0100
-Subject: [PATCH 166/204] crc: move doxy to the header
+Subject: [PATCH 166/278] crc: move doxy to the header
 
 ---
  libavutil/crc.c |   28 ----------------------------

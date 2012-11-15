@@ -1,7 +1,7 @@
 From 424b1e764263b1493de4c34365ef367ddae856db Mon Sep 17 00:00:00 2001
 From: Luca Barbato <lu_zero@gentoo.org>
 Date: Fri, 26 Oct 2012 22:55:04 +0200
-Subject: [PATCH 055/204] yuv4mpeg: reject unsupported codecs
+Subject: [PATCH 055/278] yuv4mpeg: reject unsupported codecs
 
 The muxer already rejects unsupported pixel formats, reject also
 unsupported codecs to prevent dangerous misuses.

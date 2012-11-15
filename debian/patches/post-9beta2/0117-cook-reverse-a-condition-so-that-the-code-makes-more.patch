@@ -1,7 +1,7 @@
 From d21b2e4726822ec1c604e2b9010a1a2cc0d88aec Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Sun, 21 Oct 2012 14:33:11 -0400
-Subject: [PATCH 117/204] cook: reverse a condition so that the code makes
+Subject: [PATCH 117/278] cook: reverse a condition so that the code makes
  more sense
 
 ---

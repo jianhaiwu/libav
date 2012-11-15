@@ -1,7 +1,7 @@
 From ca7f59119b8a53d60418c4adccb0c46922795f79 Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Thu, 25 Oct 2012 18:25:25 +0200
-Subject: [PATCH 041/204] doc: git-howto: Clarify comment about pushing series
+Subject: [PATCH 041/278] doc: git-howto: Clarify comment about pushing series
  of commits
 
 ---

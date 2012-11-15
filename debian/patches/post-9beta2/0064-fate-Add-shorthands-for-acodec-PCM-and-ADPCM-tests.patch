@@ -1,7 +1,7 @@
 From e519990ced06467ea3be249d0267205758a375eb Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Wed, 17 Oct 2012 19:47:03 +0200
-Subject: [PATCH 064/204] fate: Add shorthands for acodec PCM and ADPCM tests
+Subject: [PATCH 064/278] fate: Add shorthands for acodec PCM and ADPCM tests
 
 ---
  tests/fate/acodec.mak |    8 ++++++--

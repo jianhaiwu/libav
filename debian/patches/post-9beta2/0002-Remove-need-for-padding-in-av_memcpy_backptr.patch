@@ -1,7 +1,7 @@
 From d82f188504410fdfa446c5682c128c31bb5851a4 Mon Sep 17 00:00:00 2001
 From: Mans Rullgard <mans@mansr.com>
 Date: Tue, 23 Oct 2012 18:05:45 +0100
-Subject: [PATCH 002/204] Remove need for padding in av_memcpy_backptr()
+Subject: [PATCH 002/278] Remove need for padding in av_memcpy_backptr()
 
 Signed-off-by: Mans Rullgard <mans@mansr.com>
 ---

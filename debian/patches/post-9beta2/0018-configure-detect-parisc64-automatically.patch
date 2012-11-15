@@ -1,7 +1,7 @@
 From a6e9d6497739b7b60e3284f03b27883514bbc94a Mon Sep 17 00:00:00 2001
 From: Mans Rullgard <mans@mansr.com>
 Date: Wed, 24 Oct 2012 00:21:15 +0100
-Subject: [PATCH 018/204] configure: detect parisc64 automatically
+Subject: [PATCH 018/278] configure: detect parisc64 automatically
 
 Signed-off-by: Mans Rullgard <mans@mansr.com>
 ---

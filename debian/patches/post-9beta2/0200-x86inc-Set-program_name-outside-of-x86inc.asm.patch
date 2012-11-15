@@ -1,7 +1,7 @@
 From f0d124f005ff02dba56b09fdd5fe2a9ba961f650 Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Tue, 30 Oct 2012 03:21:48 +0100
-Subject: [PATCH 200/204] x86inc: Set program_name outside of x86inc.asm
+Subject: [PATCH 200/278] x86inc: Set program_name outside of x86inc.asm
 
 This reduces the local difference to the x264 upstream version.
 ---

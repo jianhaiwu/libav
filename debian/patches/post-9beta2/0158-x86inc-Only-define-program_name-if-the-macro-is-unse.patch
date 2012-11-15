@@ -1,7 +1,7 @@
 From 012f73e271638430e035ca68f5803dc2356d6a3e Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Tue, 30 Oct 2012 02:54:25 +0100
-Subject: [PATCH 158/204] x86inc: Only define program_name if the macro is
+Subject: [PATCH 158/278] x86inc: Only define program_name if the macro is
  unset
 
 This allows overriding the value from outside of the file.

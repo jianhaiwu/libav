@@ -1,7 +1,7 @@
 From c5b8acad731c06389b98df8248b6a536e1b7e58d Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Mon, 22 Oct 2012 15:43:59 -0400
-Subject: [PATCH 127/204] libgsmdec: always set channel layout and sample rate
+Subject: [PATCH 127/278] libgsmdec: always set channel layout and sample rate
  at initialization
 
 Only mono 8kHz is supported.

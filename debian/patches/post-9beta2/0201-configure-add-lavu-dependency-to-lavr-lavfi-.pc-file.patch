@@ -1,7 +1,7 @@
 From e5e1a06e443f4994cdeff39e99f67ce2c518ed2a Mon Sep 17 00:00:00 2001
 From: Anton Khirnov <anton@khirnov.net>
 Date: Sat, 3 Nov 2012 08:14:11 +0100
-Subject: [PATCH 201/204] configure: add lavu dependency to lavr/lavfi .pc
+Subject: [PATCH 201/278] configure: add lavu dependency to lavr/lavfi .pc
  files
 
 ---

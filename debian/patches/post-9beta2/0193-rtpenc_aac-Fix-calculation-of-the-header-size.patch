@@ -1,7 +1,7 @@
 From e004d175fe2463af8242e390b15350f4745be7b4 Mon Sep 17 00:00:00 2001
 From: Luca Abeni <lucabe72@email.it>
 Date: Thu, 8 Nov 2012 01:38:50 +0100
-Subject: [PATCH 193/204] rtpenc_aac: Fix calculation of the header size
+Subject: [PATCH 193/278] rtpenc_aac: Fix calculation of the header size
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit

@@ -1,7 +1,7 @@
 From 6c104826bd6e46ff5a02a3f1dcbd6e0b6bf8743a Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Sun, 15 Jul 2012 18:49:44 +0200
-Subject: [PATCH 173/204] x86: vc1dsp: port to cpuflags
+Subject: [PATCH 173/278] x86: vc1dsp: port to cpuflags
 
 ---
  libavcodec/x86/vc1dsp.asm    |   83 +++++++++++++++++++++---------------------

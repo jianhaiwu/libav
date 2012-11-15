@@ -1,7 +1,7 @@
 From 9b500b8f6c9806f3979f9d1fb874b7f4a802c656 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Martin=20Storsj=C3=B6?= <martin@martin.st>
 Date: Tue, 23 Oct 2012 00:02:41 +0300
-Subject: [PATCH 072/204] avcodec: Add a RFC 3389 comfort noise codec
+Subject: [PATCH 072/278] avcodec: Add a RFC 3389 comfort noise codec
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit

@@ -1,7 +1,7 @@
 From 22f7942fe7d7349e3562ac68fa101d9efec522df Mon Sep 17 00:00:00 2001
 From: Luca Barbato <lu_zero@gentoo.org>
 Date: Thu, 25 Oct 2012 15:42:08 +0200
-Subject: [PATCH 028/204] ffv1: set the range coder state in
+Subject: [PATCH 028/278] ffv1: set the range coder state in
  decode_slice_header
 
 ---

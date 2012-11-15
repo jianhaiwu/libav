@@ -1,7 +1,7 @@
 From c4cccc8d3f6605c5fdd73723a865486c5b7fb117 Mon Sep 17 00:00:00 2001
 From: Mans Rullgard <mans@mansr.com>
 Date: Fri, 26 Oct 2012 21:18:33 +0100
-Subject: [PATCH 050/204] h264: fix invalid pointer arithmetic
+Subject: [PATCH 050/278] h264: fix invalid pointer arithmetic
 
 Subtracting a (positive) value from the address of an array violates
 C99 section 6.5.6:

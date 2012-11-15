@@ -1,7 +1,7 @@
 From 292a08cbab3392a693b1c3b03a9cac6a1b65d304 Mon Sep 17 00:00:00 2001
 From: Anton Khirnov <anton@khirnov.net>
 Date: Sat, 20 Oct 2012 17:15:57 +0200
-Subject: [PATCH 013/204] asfdec: cosmetics, reformat ff_asf_parse_packet()
+Subject: [PATCH 013/278] asfdec: cosmetics, reformat ff_asf_parse_packet()
 
 ---
  libavformat/asfdec.c |  138 ++++++++++++++++++++++++++------------------------

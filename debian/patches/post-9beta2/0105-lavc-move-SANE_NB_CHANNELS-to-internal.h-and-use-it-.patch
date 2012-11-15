@@ -1,7 +1,7 @@
 From bb6941af2afd057c3897afb78d034de2c355b8a0 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Mon, 22 Oct 2012 13:40:10 -0400
-Subject: [PATCH 105/204] lavc: move SANE_NB_CHANNELS to internal.h and use it
+Subject: [PATCH 105/278] lavc: move SANE_NB_CHANNELS to internal.h and use it
  in the PCM decoders
 
 ---

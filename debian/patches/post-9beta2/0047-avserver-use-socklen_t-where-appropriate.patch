@@ -1,7 +1,7 @@
 From cc64ec570c92fe39db3f1db8c877a8cc70e3b668 Mon Sep 17 00:00:00 2001
 From: Mans Rullgard <mans@mansr.com>
 Date: Fri, 26 Oct 2012 21:53:31 +0100
-Subject: [PATCH 047/204] avserver: use socklen_t where appropriate
+Subject: [PATCH 047/278] avserver: use socklen_t where appropriate
 
 Various socket functions expect a pointer to socklen_t which is not
 necessarily int.

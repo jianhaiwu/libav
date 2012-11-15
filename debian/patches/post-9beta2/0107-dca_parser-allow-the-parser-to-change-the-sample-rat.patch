@@ -1,7 +1,7 @@
 From a4202003b21ee88c82eec909a0ad086b4c328903 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Sun, 7 Oct 2012 20:52:35 -0400
-Subject: [PATCH 107/204] dca_parser: allow the parser to change the sample
+Subject: [PATCH 107/278] dca_parser: allow the parser to change the sample
  rate
 
 ---

@@ -1,7 +1,7 @@
 From 90fcac0e95b7d266c148a86506f301a2072d9de3 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Sun, 21 Oct 2012 17:02:28 -0400
-Subject: [PATCH 123/204] flacdec: allow mid-stream channel layout change
+Subject: [PATCH 123/278] flacdec: allow mid-stream channel layout change
 
 Although the libFLAC decoder cannot handle such a change, it is allowed by the
 spec and could potentially occur with live streams.

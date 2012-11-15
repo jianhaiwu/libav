@@ -1,7 +1,7 @@
 From 5459848b146f34defe894129ba1fc0d0572754f5 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Tue, 23 Oct 2012 17:22:53 -0400
-Subject: [PATCH 149/204] ws-snd1: set channel layout
+Subject: [PATCH 149/278] ws-snd1: set channel layout
 
 ---
  libavcodec/ws-snd1.c |   11 +++++------

@@ -1,7 +1,7 @@
 From ad961726dc0bec7435aae7fbab10471b9063018b Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Martin=20Storsj=C3=B6?= <martin@martin.st>
 Date: Tue, 6 Nov 2012 12:18:57 +0200
-Subject: [PATCH 190/204] libopencore-amr: Check the return value of
+Subject: [PATCH 190/278] libopencore-amr: Check the return value of
  amr_decode_fix_avctx
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8

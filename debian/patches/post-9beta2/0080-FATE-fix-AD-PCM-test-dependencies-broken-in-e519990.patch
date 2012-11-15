@@ -1,7 +1,7 @@
 From 02e636425970fc9b9aebb31dcc7abbd36e54af2a Mon Sep 17 00:00:00 2001
 From: Anton Khirnov <anton@khirnov.net>
 Date: Mon, 29 Oct 2012 21:26:46 +0100
-Subject: [PATCH 080/204] FATE: fix (AD)PCM test dependencies broken in
+Subject: [PATCH 080/278] FATE: fix (AD)PCM test dependencies broken in
  e519990
 
 Signed-off-by: Diego Biurrun <diego@biurrun.de>

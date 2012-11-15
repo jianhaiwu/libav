@@ -1,7 +1,7 @@
 From 8ac0f6767bf63d3e6b308ee6648ff02598b81e03 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Sun, 21 Oct 2012 15:12:36 -0400
-Subject: [PATCH 121/204] dcadec: allow the decoder to change the channel
+Subject: [PATCH 121/278] dcadec: allow the decoder to change the channel
  layout mid-stream
 
 ---

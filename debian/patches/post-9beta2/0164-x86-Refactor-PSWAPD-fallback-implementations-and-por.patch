@@ -1,7 +1,7 @@
 From 0a7a94f2e53bcdb8ac5857eb8c67c16f6f1d0f2f Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Thu, 2 Aug 2012 00:55:34 +0200
-Subject: [PATCH 164/204] x86: Refactor PSWAPD fallback implementations and
+Subject: [PATCH 164/278] x86: Refactor PSWAPD fallback implementations and
  port to cpuflags
 
 ---

@@ -1,7 +1,7 @@
 From 381dc1a5ec0925b281c573457c413ae643567086 Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Sat, 20 Oct 2012 00:14:26 +0200
-Subject: [PATCH 065/204] fate: ac3: Place E-AC-3 tests and AC-3 tests in
+Subject: [PATCH 065/278] fate: ac3: Place E-AC-3 tests and AC-3 tests in
  different groups
 
 ---

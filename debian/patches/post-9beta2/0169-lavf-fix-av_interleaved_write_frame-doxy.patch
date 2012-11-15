@@ -1,7 +1,7 @@
 From 9221efef7968463f3e3d9ce79ea72eaca082e73f Mon Sep 17 00:00:00 2001
 From: Anton Khirnov <anton@khirnov.net>
 Date: Wed, 31 Oct 2012 16:54:16 +0100
-Subject: [PATCH 169/204] lavf: fix av_interleaved_write_frame() doxy.
+Subject: [PATCH 169/278] lavf: fix av_interleaved_write_frame() doxy.
 
 A sentence was mistakenly inserted in the middle of another sentence.
 ---

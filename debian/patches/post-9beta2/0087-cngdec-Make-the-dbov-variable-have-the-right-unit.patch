@@ -1,7 +1,7 @@
 From 036e6c37d31e471447f71decaea55996bde3d9a2 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Martin=20Storsj=C3=B6?= <martin@martin.st>
 Date: Tue, 30 Oct 2012 11:56:54 +0200
-Subject: [PATCH 087/204] cngdec: Make the dbov variable have the right unit
+Subject: [PATCH 087/278] cngdec: Make the dbov variable have the right unit
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit

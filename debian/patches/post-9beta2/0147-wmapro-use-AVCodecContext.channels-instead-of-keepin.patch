@@ -1,7 +1,7 @@
 From 002097a00bb93718c171c0c0abcc122475dac838 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Tue, 23 Oct 2012 17:10:37 -0400
-Subject: [PATCH 147/204] wmapro: use AVCodecContext.channels instead of
+Subject: [PATCH 147/278] wmapro: use AVCodecContext.channels instead of
  keeping a private copy
 
 ---

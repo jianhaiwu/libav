@@ -1,7 +1,7 @@
 From 8aa5b8c5c825a86449774f6023400b4775c25027 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Sun, 21 Oct 2012 14:25:18 -0400
-Subject: [PATCH 115/204] cook: remove unneeded COOKContext variable, bit_rate
+Subject: [PATCH 115/278] cook: remove unneeded COOKContext variable, bit_rate
 
 ---
  libavcodec/cook.c |    4 +---

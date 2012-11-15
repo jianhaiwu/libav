@@ -1,7 +1,7 @@
 From 2e76f34387762405b79d2f7f26659826089c7275 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Sat, 27 Oct 2012 00:46:43 -0400
-Subject: [PATCH 184/204] flacenc: use RICE2 entropy coding mode for 24-bit
+Subject: [PATCH 184/278] flacenc: use RICE2 entropy coding mode for 24-bit
 
 ---
  libavcodec/flacenc.c |   55 +++++++++++++++++++++++++++++++++++---------------

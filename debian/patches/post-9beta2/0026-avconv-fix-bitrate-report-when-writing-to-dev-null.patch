@@ -1,7 +1,7 @@
 From 1b891d17c531e8a63c2974aab4bf997ce70746f3 Mon Sep 17 00:00:00 2001
 From: Janne Grunau <janne-libav@jannau.net>
 Date: Tue, 9 Oct 2012 23:22:49 +0200
-Subject: [PATCH 026/204] avconv: fix bitrate report when writing to /dev/null
+Subject: [PATCH 026/278] avconv: fix bitrate report when writing to /dev/null
 
 avio_size() reports the filesize which returns 0 for /dev/null.
 avio_tell() reports the current position.

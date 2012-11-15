@@ -1,7 +1,7 @@
 From f7b8506573f28204d39cedc47d03bc5cda3be027 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Tue, 23 Oct 2012 17:19:25 -0400
-Subject: [PATCH 148/204] wmavoice: set channel layout
+Subject: [PATCH 148/278] wmavoice: set channel layout
 
 ---
  libavcodec/wmavoice.c |    3 +++

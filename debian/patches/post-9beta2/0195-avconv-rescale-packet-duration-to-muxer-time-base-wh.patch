@@ -1,7 +1,7 @@
 From 3ba416408aef99b4d7d92719c0a03dc2c9647025 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Tue, 6 Nov 2012 14:24:31 -0500
-Subject: [PATCH 195/204] avconv: rescale packet duration to muxer time base
+Subject: [PATCH 195/278] avconv: rescale packet duration to muxer time base
  when flushing encoders
 
 Fixes Bug 385

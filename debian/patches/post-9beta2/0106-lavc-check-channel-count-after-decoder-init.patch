@@ -1,7 +1,7 @@
 From 0366664ef9af85ee052925f9a1a853d14d2f47a7 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Tue, 23 Oct 2012 00:56:00 -0400
-Subject: [PATCH 106/204] lavc: check channel count after decoder init
+Subject: [PATCH 106/278] lavc: check channel count after decoder init
 
 Ensures the decoder did not set channel count to an insanely high value
 during initialization, which could cause large memory usage when it tries to

@@ -1,7 +1,7 @@
 From a38eadf7ed08293667c9f81780f7c081f278f19a Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Wed, 17 Oct 2012 11:45:49 -0400
-Subject: [PATCH 112/204] atrac1: do not keep a copy of channel count in the
+Subject: [PATCH 112/278] atrac1: do not keep a copy of channel count in the
  private context
 
 ---

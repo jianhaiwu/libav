@@ -1,7 +1,7 @@
 From d8eda3708023db388d80027a79d5df7ee25a5a3f Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Sun, 8 Jul 2012 19:56:10 +0200
-Subject: [PATCH 100/204] x86: mmx2 ---> mmxext in function names
+Subject: [PATCH 100/278] x86: mmx2 ---> mmxext in function names
 
 ---
  libavcodec/dct-test.c           |    4 +-

@@ -1,7 +1,7 @@
 From 42c26a4864f1cefa4175c6c171aa0e4bd88dd42d Mon Sep 17 00:00:00 2001
 From: Luca Barbato <lu_zero@gentoo.org>
 Date: Wed, 24 Oct 2012 14:18:49 +0200
-Subject: [PATCH 021/204] rawvideo: use a specific read_header
+Subject: [PATCH 021/278] rawvideo: use a specific read_header
 
 ff_raw_read_header is used only for this demuxer for video.
 ---

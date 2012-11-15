@@ -1,7 +1,7 @@
 From ab799664755c8bc2c439c428ff5b538c105a5c38 Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Mon, 29 Oct 2012 18:00:14 +0100
-Subject: [PATCH 062/204] cmdutils: Conditionally compile libswscale-related
+Subject: [PATCH 062/278] cmdutils: Conditionally compile libswscale-related
  bits
 
 This fixes compilation with libswscale disabled.

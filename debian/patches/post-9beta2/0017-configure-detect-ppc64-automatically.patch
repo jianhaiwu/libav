@@ -1,7 +1,7 @@
 From 56203596aea365387917c40964c03b5156b15e22 Mon Sep 17 00:00:00 2001
 From: Mans Rullgard <mans@mansr.com>
 Date: Tue, 23 Oct 2012 23:39:40 +0100
-Subject: [PATCH 017/204] configure: detect ppc64 automatically
+Subject: [PATCH 017/278] configure: detect ppc64 automatically
 
 Signed-off-by: Mans Rullgard <mans@mansr.com>
 ---

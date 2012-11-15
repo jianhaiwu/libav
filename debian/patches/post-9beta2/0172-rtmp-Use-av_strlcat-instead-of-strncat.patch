@@ -1,7 +1,7 @@
 From d578f94746dd85dd066abb8bc6bd3c5825a4f759 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Martin=20Storsj=C3=B6?= <martin@martin.st>
 Date: Mon, 5 Nov 2012 11:01:24 +0200
-Subject: [PATCH 172/204] rtmp: Use av_strlcat instead of strncat
+Subject: [PATCH 172/278] rtmp: Use av_strlcat instead of strncat
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit

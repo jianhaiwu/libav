@@ -1,7 +1,7 @@
 From 02e4275180866acc0f42281d1c5ef5a46552da84 Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Wed, 24 Oct 2012 19:20:13 +0200
-Subject: [PATCH 103/204] avconv_opt, cmdutils: Add missing function parameter
+Subject: [PATCH 103/278] avconv_opt, cmdutils: Add missing function parameter
  Doxygen
 
 ---

@@ -1,7 +1,7 @@
 From 5e28e974339e90c2cee866bedbd913fe42917b15 Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Mon, 22 Oct 2012 16:03:39 +0200
-Subject: [PATCH 006/204] Move Doxyfile into the doc/ subdirectory
+Subject: [PATCH 006/278] Move Doxyfile into the doc/ subdirectory
 
 ---
  Doxyfile     | 1647 ----------------------------------------------------------

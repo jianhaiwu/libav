@@ -1,7 +1,7 @@
 From 2a91ada8282f18d2807abee5188225bba1b19bda Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Thu, 18 Oct 2012 19:48:27 +0200
-Subject: [PATCH 020/204] avutil: Make LZO decoder code configure-time
+Subject: [PATCH 020/278] avutil: Make LZO decoder code configure-time
  selectable
 
 ---

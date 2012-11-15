@@ -1,7 +1,7 @@
 From c44cef978bd5c2692606a7a4ef4a7da393147ab0 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Martin=20Storsj=C3=B6?= <martin@martin.st>
 Date: Wed, 24 Oct 2012 01:05:12 +0300
-Subject: [PATCH 014/204] smoothstreamingenc: Don't assume streams start from
+Subject: [PATCH 014/278] smoothstreamingenc: Don't assume streams start from
  timestamp 0
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8

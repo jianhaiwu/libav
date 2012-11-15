@@ -1,7 +1,7 @@
 From 99d868635725e3b85a5c549e6bb0e97e10cf5248 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Sun, 21 Oct 2012 17:04:58 -0400
-Subject: [PATCH 124/204] flacdec: do not warn on sample rate change
+Subject: [PATCH 124/278] flacdec: do not warn on sample rate change
 
 ---
  libavcodec/flacdec.c |    6 +-----

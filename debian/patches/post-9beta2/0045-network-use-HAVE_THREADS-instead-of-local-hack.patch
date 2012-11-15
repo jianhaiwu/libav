@@ -1,7 +1,7 @@
 From 9efbfe57e082b0f42bf0c830a4fdc6b80d2b13ca Mon Sep 17 00:00:00 2001
 From: Mans Rullgard <mans@mansr.com>
 Date: Fri, 26 Oct 2012 19:33:59 +0100
-Subject: [PATCH 045/204] network: use HAVE_THREADS instead of local hack
+Subject: [PATCH 045/278] network: use HAVE_THREADS instead of local hack
 
 HAVE_THREADS is set in config.h if pthreads or w32threads is
 available, which presumably the proper condition here.

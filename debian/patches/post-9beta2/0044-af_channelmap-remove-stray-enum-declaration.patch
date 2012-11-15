@@ -1,7 +1,7 @@
 From 67a68dcec2271336c859d1fbd8f40c268f54ec8a Mon Sep 17 00:00:00 2001
 From: Mans Rullgard <mans@mansr.com>
 Date: Fri, 26 Oct 2012 22:25:37 +0100
-Subject: [PATCH 044/204] af_channelmap: remove stray enum declaration
+Subject: [PATCH 044/278] af_channelmap: remove stray enum declaration
 
 Signed-off-by: Mans Rullgard <mans@mansr.com>
 ---

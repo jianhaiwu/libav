@@ -1,7 +1,7 @@
 From 6b07830a77729fe25c30026feabd53e8c4c5eb9e Mon Sep 17 00:00:00 2001
 From: Janne Grunau <janne-libav@jannau.net>
 Date: Wed, 31 Oct 2012 19:56:02 +0100
-Subject: [PATCH 104/204] fate: add ac3/eac3 tests to FATE_SAMPLES_AVCONV
+Subject: [PATCH 104/278] fate: add ac3/eac3 tests to FATE_SAMPLES_AVCONV
 
 Fixes typo in 2cbdd7c92958cb8226491d8eb23ed2d57d4b841e.
 ---

@@ -1,7 +1,7 @@
 From 6860b4081d046558c44b1b42f22022ea341a2a73 Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Sun, 8 Jul 2012 01:20:48 +0200
-Subject: [PATCH 090/204] x86: include x86inc.asm in x86util.asm
+Subject: [PATCH 090/278] x86: include x86inc.asm in x86util.asm
 
 This is necessary to allow refactoring some x86util macros with cpuflags.
 ---

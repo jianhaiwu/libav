@@ -1,7 +1,7 @@
 From fce4450dec2f1287124a5c129281100f729f5771 Mon Sep 17 00:00:00 2001
 From: Luca Barbato <lu_zero@gentoo.org>
 Date: Sat, 27 Oct 2012 00:41:02 +0200
-Subject: [PATCH 054/204] nutenc: K&R formatting cosmetics
+Subject: [PATCH 054/278] nutenc: K&R formatting cosmetics
 
 ---
  libavformat/nutenc.c |  753 +++++++++++++++++++++++++++-----------------------

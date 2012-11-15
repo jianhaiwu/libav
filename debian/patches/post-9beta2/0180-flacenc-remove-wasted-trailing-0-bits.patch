@@ -1,7 +1,7 @@
 From e78331632208a23b285a70b3cdd487dd54617c46 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Thu, 25 Oct 2012 15:07:59 -0400
-Subject: [PATCH 180/204] flacenc: remove wasted trailing 0 bits
+Subject: [PATCH 180/278] flacenc: remove wasted trailing 0 bits
 
 ---
  libavcodec/flacenc.c |   39 +++++++++++++++++++++++++++++++++++++--

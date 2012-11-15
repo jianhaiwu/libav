@@ -1,7 +1,7 @@
 From 0876c28080750e0978ba77c3f72cdd2b0d069a6f Mon Sep 17 00:00:00 2001
 From: Anton Khirnov <anton@khirnov.net>
 Date: Wed, 31 Oct 2012 17:27:24 +0100
-Subject: [PATCH 155/204] lavc: add some AVPacket doxy.
+Subject: [PATCH 155/278] lavc: add some AVPacket doxy.
 
 ---
  libavcodec/avcodec.h |   22 ++++++++++++++++++++++

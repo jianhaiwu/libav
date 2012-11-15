@@ -1,7 +1,7 @@
 From 07585ffa62eebebcd35326935fec7cd948021daf Mon Sep 17 00:00:00 2001
 From: Luca Barbato <lu_zero@gentoo.org>
 Date: Sat, 27 Oct 2012 16:56:37 +0200
-Subject: [PATCH 058/204] nutenc: verbosely report unsupported negative pts
+Subject: [PATCH 058/278] nutenc: verbosely report unsupported negative pts
 
 Additionally use the correct error number.
 ---

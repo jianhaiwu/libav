@@ -1,7 +1,7 @@
 From 4c53f4aed3edfa58360c7a2a468782eae31d3176 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Tue, 23 Oct 2012 00:40:51 -0400
-Subject: [PATCH 139/204] shorten: validate that the channel count in the
+Subject: [PATCH 139/278] shorten: validate that the channel count in the
  header is not <= 0
 
 ---

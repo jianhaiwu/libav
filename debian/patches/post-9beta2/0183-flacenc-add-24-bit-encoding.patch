@@ -1,7 +1,7 @@
 From 13e1ee6c84f095b052026b18611ce68c76666474 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Sat, 27 Oct 2012 00:26:02 -0400
-Subject: [PATCH 183/204] flacenc: add 24-bit encoding
+Subject: [PATCH 183/278] flacenc: add 24-bit encoding
 
 ---
  libavcodec/flacenc.c |   88 ++++++++++++++++++++++++++++++++++++--------------

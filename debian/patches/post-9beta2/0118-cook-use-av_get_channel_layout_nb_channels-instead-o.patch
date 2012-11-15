@@ -1,7 +1,7 @@
 From 7efbba2e3665285207bf769b8f0d712cedf1bfd9 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Sun, 21 Oct 2012 14:36:38 -0400
-Subject: [PATCH 118/204] cook: use av_get_channel_layout_nb_channels()
+Subject: [PATCH 118/278] cook: use av_get_channel_layout_nb_channels()
  instead of cook_count_channels()
 
 ---

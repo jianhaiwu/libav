@@ -1,7 +1,7 @@
 From dcdfb8ede3580cde6acc1c6ca889ad3b610d75dc Mon Sep 17 00:00:00 2001
 From: Janne Grunau <janne-libav@jannau.net>
 Date: Thu, 25 Oct 2012 15:10:22 +0200
-Subject: [PATCH 027/204] pcmdec: change default of channels parameter to 1
+Subject: [PATCH 027/278] pcmdec: change default of channels parameter to 1
 
 This was previously implicitly done in ff_raw_read_header().
 Fixes fate tests with pcm input.

@@ -1,7 +1,7 @@
 From 926e9d28f1a85898545706a26b27c24672c9c716 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Sun, 21 Oct 2012 14:26:29 -0400
-Subject: [PATCH 116/204] cook: remove unneeded COOKContext variable,
+Subject: [PATCH 116/278] cook: remove unneeded COOKContext variable,
  sample_rate
 
 ---

@@ -1,7 +1,7 @@
 From 6a744d261930f8101132bc6d207b6eac41d9cf18 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Thu, 25 Oct 2012 15:00:10 -0400
-Subject: [PATCH 178/204] flacenc: use a separate buffer for byte-swapping for
+Subject: [PATCH 178/278] flacenc: use a separate buffer for byte-swapping for
  MD5 checksum on big-endian
 
 This is much faster than calculating the MD5 one sample at a time.

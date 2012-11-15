@@ -1,7 +1,7 @@
 From 588fafe7f3bdce1b7265b74320e9bdfad3e25960 Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Sun, 8 Jul 2012 19:28:57 +0200
-Subject: [PATCH 094/204] x86: MMX2 ---> MMXEXT in macro names
+Subject: [PATCH 094/278] x86: MMX2 ---> MMXEXT in macro names
 
 ---
  libavcodec/x86/ac3dsp.asm         |    2 +-

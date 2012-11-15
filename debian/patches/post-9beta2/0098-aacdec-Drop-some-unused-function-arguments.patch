@@ -1,7 +1,7 @@
 From 5707af8d0b9c5a7e8a742a11798e406f99d78cea Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Wed, 24 Oct 2012 19:15:54 +0200
-Subject: [PATCH 098/204] aacdec: Drop some unused function arguments
+Subject: [PATCH 098/278] aacdec: Drop some unused function arguments
 
 ---
  libavcodec/aacdec.c |   44 ++++++++++++++++++++------------------------

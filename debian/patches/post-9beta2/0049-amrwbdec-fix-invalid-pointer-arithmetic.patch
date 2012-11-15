@@ -1,7 +1,7 @@
 From 50be207759aa7a69a27de585f7d870ec41eba036 Mon Sep 17 00:00:00 2001
 From: Mans Rullgard <mans@mansr.com>
 Date: Fri, 26 Oct 2012 22:44:38 +0100
-Subject: [PATCH 049/204] amrwbdec: fix invalid pointer arithmetic
+Subject: [PATCH 049/278] amrwbdec: fix invalid pointer arithmetic
 
 Subtracting a (positive) value from the address of an array violates
 C99 section 6.5.6:

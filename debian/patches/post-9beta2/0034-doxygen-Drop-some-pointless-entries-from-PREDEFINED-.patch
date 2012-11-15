@@ -1,7 +1,7 @@
 From 74e742d6ad09becc2d43e5382c141e0356ad6071 Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Tue, 23 Oct 2012 21:12:48 +0200
-Subject: [PATCH 034/204] doxygen: Drop some pointless entries from PREDEFINED
+Subject: [PATCH 034/278] doxygen: Drop some pointless entries from PREDEFINED
  macros list
 
 ---

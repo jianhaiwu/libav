@@ -1,7 +1,7 @@
 From 92fec47d69d2c3187bea2f246984e03ec6ca3c3c Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Fri, 2 Nov 2012 22:49:04 +0100
-Subject: [PATCH 176/204] build: The A64 muxer depends on rawenc.o for
+Subject: [PATCH 176/278] build: The A64 muxer depends on rawenc.o for
  ff_raw_write_packet()
 
 ---

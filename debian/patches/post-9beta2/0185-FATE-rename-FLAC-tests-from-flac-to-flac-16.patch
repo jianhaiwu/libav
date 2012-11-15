@@ -1,7 +1,7 @@
 From 31c3b9c95e2b14189f2bc9f2bd886834114da81d Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Sat, 27 Oct 2012 01:22:07 -0400
-Subject: [PATCH 185/204] FATE: rename FLAC tests from flac-* to flac-16-*
+Subject: [PATCH 185/278] FATE: rename FLAC tests from flac-* to flac-16-*
 
 This will distinguish FLAC 16-bit tests from FLAC tests with other bit
 depths.

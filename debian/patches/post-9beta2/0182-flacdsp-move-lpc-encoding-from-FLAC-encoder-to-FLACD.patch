@@ -1,7 +1,7 @@
 From 799e2324901c2a06e9a60ee281cd283475f1c4fa Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Sat, 27 Oct 2012 00:25:04 -0400
-Subject: [PATCH 182/204] flacdsp: move lpc encoding from FLAC encoder to
+Subject: [PATCH 182/278] flacdsp: move lpc encoding from FLAC encoder to
  FLACDSPContext
 
 Also, templatize the functions for 16-bit and 32-bit sample range. This will

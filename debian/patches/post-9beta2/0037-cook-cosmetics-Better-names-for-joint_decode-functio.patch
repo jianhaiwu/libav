@@ -1,7 +1,7 @@
 From f23b4a068230fb4ebed2449cd5f303f3b16d333d Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Wed, 24 Oct 2012 01:08:19 +0200
-Subject: [PATCH 037/204] cook: cosmetics: Better names for joint_decode()
+Subject: [PATCH 037/278] cook: cosmetics: Better names for joint_decode()
  function parameters
 
 ---

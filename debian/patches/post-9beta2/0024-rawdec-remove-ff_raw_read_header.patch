@@ -1,7 +1,7 @@
 From 587874ef1c94a9b863d2f2db0e5d341e086ee232 Mon Sep 17 00:00:00 2001
 From: Luca Barbato <lu_zero@gentoo.org>
 Date: Wed, 24 Oct 2012 19:53:32 +0200
-Subject: [PATCH 024/204] rawdec: remove ff_raw_read_header
+Subject: [PATCH 024/278] rawdec: remove ff_raw_read_header
 
 It is not used anymore and is a kludge.
 ---

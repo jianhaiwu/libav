@@ -1,7 +1,7 @@
 From 06c7b33831451761c6f8c2e3ca8f2d7340d603a0 Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Sat, 20 Oct 2012 12:19:54 +0200
-Subject: [PATCH 188/204] fate: aac: cosmetics: Group AAC LATM tests together
+Subject: [PATCH 188/278] fate: aac: cosmetics: Group AAC LATM tests together
 
 ---
  tests/fate/aac.mak |   16 ++++++++--------

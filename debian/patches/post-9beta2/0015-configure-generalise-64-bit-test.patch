@@ -1,7 +1,7 @@
 From d4c99513f41272b9753e59642724717b834710a0 Mon Sep 17 00:00:00 2001
 From: Mans Rullgard <mans@mansr.com>
 Date: Tue, 23 Oct 2012 23:33:44 +0100
-Subject: [PATCH 015/204] configure: generalise 64-bit test
+Subject: [PATCH 015/278] configure: generalise 64-bit test
 
 Signed-off-by: Mans Rullgard <mans@mansr.com>
 ---

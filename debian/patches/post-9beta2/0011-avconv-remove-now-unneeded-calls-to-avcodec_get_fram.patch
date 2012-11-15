@@ -1,7 +1,7 @@
 From 8e84f2055c4170e502d36db3539b5e243a5b6cca Mon Sep 17 00:00:00 2001
 From: Anton Khirnov <anton@khirnov.net>
 Date: Tue, 23 Oct 2012 08:32:56 +0200
-Subject: [PATCH 011/204] avconv: remove now unneeded calls to
+Subject: [PATCH 011/278] avconv: remove now unneeded calls to
  avcodec_get_frame_defaults().
 
 ---

@@ -1,7 +1,7 @@
 From 4d1f69f2440041b58d5a31bcfcff83ee3c88ac7e Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Mon, 30 Jul 2012 17:04:26 +0200
-Subject: [PATCH 197/204] x86: h264_qpel_10bit: port to cpuflags
+Subject: [PATCH 197/278] x86: h264_qpel_10bit: port to cpuflags
 
 ---
  libavcodec/x86/h264_qpel_10bit.asm |  314 ++++++++++++++++++------------------

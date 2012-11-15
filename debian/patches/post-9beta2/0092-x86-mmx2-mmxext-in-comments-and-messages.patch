@@ -1,7 +1,7 @@
 From 652f5185945c8405fc57aed353286858df8d066f Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Sun, 8 Jul 2012 19:16:20 +0200
-Subject: [PATCH 092/204] x86: mmx2 ---> mmxext in comments and messages
+Subject: [PATCH 092/278] x86: mmx2 ---> mmxext in comments and messages
 
 ---
  doc/optimization.txt                  |    2 +-

@@ -1,7 +1,7 @@
 From 4521645b1aee9e9ad8f5cea7b2392cd5f6ffcd26 Mon Sep 17 00:00:00 2001
 From: Mans Rullgard <mans@mansr.com>
 Date: Fri, 26 Oct 2012 18:42:29 +0100
-Subject: [PATCH 048/204] avio: fix pointer type mismatches in
+Subject: [PATCH 048/278] avio: fix pointer type mismatches in
  avio_enum_protocols()
 
 Signed-off-by: Mans Rullgard <mans@mansr.com>

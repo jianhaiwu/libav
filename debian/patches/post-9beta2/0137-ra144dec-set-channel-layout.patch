@@ -1,7 +1,7 @@
 From 6159f6436495ed8859fe9d32c4c2c1a2eb4c1e91 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Mon, 22 Oct 2012 18:57:39 -0400
-Subject: [PATCH 137/204] ra144dec: set channel layout
+Subject: [PATCH 137/278] ra144dec: set channel layout
 
 ---
  libavcodec/ra144dec.c |    5 ++++-

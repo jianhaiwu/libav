@@ -1,7 +1,7 @@
 From ab9545a290d1f48eb4c361ecd0b5df0a966a9a79 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Martin=20Storsj=C3=B6?= <martin@martin.st>
 Date: Tue, 30 Oct 2012 12:09:57 +0200
-Subject: [PATCH 089/204] cng: Reindent some incorrectly indented lines
+Subject: [PATCH 089/278] cng: Reindent some incorrectly indented lines
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit

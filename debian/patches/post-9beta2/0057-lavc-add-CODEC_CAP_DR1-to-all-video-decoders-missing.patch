@@ -1,7 +1,7 @@
 From f174fbac3cb127273b8f3df8e05d7156ec1d7658 Mon Sep 17 00:00:00 2001
 From: Anton Khirnov <anton@khirnov.net>
 Date: Wed, 17 Oct 2012 21:39:04 +0200
-Subject: [PATCH 057/204] lavc: add CODEC_CAP_DR1 to all video decoders
+Subject: [PATCH 057/278] lavc: add CODEC_CAP_DR1 to all video decoders
  missing them
 
 ---

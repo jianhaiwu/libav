@@ -1,7 +1,7 @@
 From 2acda282eb8efac556cb351e91c557e580406294 Mon Sep 17 00:00:00 2001
 From: Mans Rullgard <mans@mansr.com>
 Date: Tue, 23 Oct 2012 23:34:35 +0100
-Subject: [PATCH 016/204] configure: detect mips64 automatically
+Subject: [PATCH 016/278] configure: detect mips64 automatically
 
 Signed-off-by: Mans Rullgard <mans@mansr.com>
 ---

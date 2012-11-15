@@ -1,7 +1,7 @@
 From 4cbae57cef65df8705b77cf882372f835a42d842 Mon Sep 17 00:00:00 2001
 From: Mans Rullgard <mans@mansr.com>
 Date: Fri, 26 Oct 2012 17:59:50 +0100
-Subject: [PATCH 053/204] assdec: fix qsort() callback signature
+Subject: [PATCH 053/278] assdec: fix qsort() callback signature
 
 This changes the event_cmp() function to the correct signature,
 avoiding an ugly cast.

@@ -1,7 +1,7 @@
 From 04581c8c77ce779e4e70684ac45302972766be0f Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Sun, 15 Jul 2012 11:48:21 +0200
-Subject: [PATCH 091/204] x86: yasm: Use complete source path for macro helper
+Subject: [PATCH 091/278] x86: yasm: Use complete source path for macro helper
  %includes
 
 This is more consistent with the way we handle C #includes and

@@ -1,7 +1,7 @@
 From 0fd1ddf15545a7bac1e8d2622d070fdf4bad95d8 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Mon, 22 Oct 2012 16:03:20 -0400
-Subject: [PATCH 130/204] dpcm: use AVCodecContext.channels instead of keeping
+Subject: [PATCH 130/278] dpcm: use AVCodecContext.channels instead of keeping
  a private copy
 
 ---

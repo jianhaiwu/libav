@@ -1,7 +1,7 @@
 From 48f01398ba30d8d921b27558df0029033e2d4402 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Martin=20Storsj=C3=B6?= <martin@martin.st>
 Date: Mon, 22 Oct 2012 15:54:25 +0300
-Subject: [PATCH 056/204] rtpdec: Cosmetic cleanup
+Subject: [PATCH 056/278] rtpdec: Cosmetic cleanup
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit

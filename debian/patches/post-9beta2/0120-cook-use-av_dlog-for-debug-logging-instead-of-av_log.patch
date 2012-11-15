@@ -1,7 +1,7 @@
 From 93e27f86f161ca5ed811be3570289a4f972862dc Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Sun, 21 Oct 2012 14:47:10 -0400
-Subject: [PATCH 120/204] cook: use av_dlog() for debug logging instead of
+Subject: [PATCH 120/278] cook: use av_dlog() for debug logging instead of
  av_log() with AV_LOG_ERROR
 
 ---

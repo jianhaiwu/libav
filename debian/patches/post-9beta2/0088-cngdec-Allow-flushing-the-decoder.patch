@@ -1,7 +1,7 @@
 From 6b68223d315aa4daf2e9006f6f37418ca5766698 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Martin=20Storsj=C3=B6?= <martin@martin.st>
 Date: Tue, 30 Oct 2012 12:03:25 +0200
-Subject: [PATCH 088/204] cngdec: Allow flushing the decoder
+Subject: [PATCH 088/278] cngdec: Allow flushing the decoder
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit

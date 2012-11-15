@@ -1,7 +1,7 @@
 From be2c456e962ab0a748164e0e43d0d74cc0d704fa Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Sun, 15 Jul 2012 19:55:21 +0200
-Subject: [PATCH 096/204] x86: fmtconvert: Refactor cvtps2pi emulation through
+Subject: [PATCH 096/278] x86: fmtconvert: Refactor cvtps2pi emulation through
  cpuflags
 
 ---

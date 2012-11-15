@@ -1,7 +1,7 @@
 From ede4cedf47f4f0ad26d61d28aa0ae2917c0c833e Mon Sep 17 00:00:00 2001
 From: Anton Khirnov <anton@khirnov.net>
 Date: Wed, 24 Oct 2012 09:12:42 +0200
-Subject: [PATCH 075/204] dv: fix indentation
+Subject: [PATCH 075/278] dv: fix indentation
 
 ---
  libavformat/dv.c |   60 +++++++++++++++++++++++++++---------------------------

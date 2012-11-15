@@ -1,7 +1,7 @@
 From 12776d5d2a46363c52603ae2be888a3094fce1c6 Mon Sep 17 00:00:00 2001
 From: James Zern <jzern@google.com>
 Date: Mon, 11 Apr 2011 17:00:35 -0700
-Subject: [PATCH 191/204] libvpxenc: Allow enabling constrained quality (CQ)
+Subject: [PATCH 191/278] libvpxenc: Allow enabling constrained quality (CQ)
  mode
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8

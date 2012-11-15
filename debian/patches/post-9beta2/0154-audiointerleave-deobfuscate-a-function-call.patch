@@ -1,7 +1,7 @@
 From fdc867288697d8b052145e80911d2d338d7d02b7 Mon Sep 17 00:00:00 2001
 From: Anton Khirnov <anton@khirnov.net>
 Date: Wed, 31 Oct 2012 22:10:41 +0100
-Subject: [PATCH 154/204] audiointerleave: deobfuscate a function call.
+Subject: [PATCH 154/278] audiointerleave: deobfuscate a function call.
 
 right above there is if (pkt) {<do stuff>; pkt = NULL}, so pkt is just a
 fancy name for NULL at this point.

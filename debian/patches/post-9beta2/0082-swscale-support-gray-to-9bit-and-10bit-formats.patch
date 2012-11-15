@@ -1,7 +1,7 @@
 From 26b5ad2543305f0b148e5b91e9773b6a9a185922 Mon Sep 17 00:00:00 2001
 From: Luca Barbato <lu_zero@gentoo.org>
 Date: Mon, 29 Oct 2012 19:07:01 +0100
-Subject: [PATCH 082/204] swscale: support gray to 9bit and 10bit formats
+Subject: [PATCH 082/278] swscale: support gray to 9bit and 10bit formats
 
 With the input of Kostya and Ronald.
 ---

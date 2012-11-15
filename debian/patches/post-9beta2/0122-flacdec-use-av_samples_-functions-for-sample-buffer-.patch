@@ -1,7 +1,7 @@
 From 268f8ba112570956f1d7be8f4f2f0bea86c61461 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Sun, 21 Oct 2012 16:15:34 -0400
-Subject: [PATCH 122/204] flacdec: use av_samples_* functions for sample
+Subject: [PATCH 122/278] flacdec: use av_samples_* functions for sample
  buffer allocation
 
 Also, return an error on allocation failure.

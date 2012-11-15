@@ -1,7 +1,7 @@
 From d7a39b33407927005f65755b8a3a608394aaeccd Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Mon, 22 Oct 2012 16:01:18 +0200
-Subject: [PATCH 005/204] doxygen: Build Doxygen documentation in the doc/
+Subject: [PATCH 005/278] doxygen: Build Doxygen documentation in the doc/
  subdirectory
 
 ---

@@ -1,7 +1,7 @@
 From 6aa93689abe8c095cec9fa828c2dee3131008995 Mon Sep 17 00:00:00 2001
 From: Mans Rullgard <mans@mansr.com>
 Date: Thu, 25 Oct 2012 15:56:16 +0100
-Subject: [PATCH 032/204] configure: sanitise sparc vis check
+Subject: [PATCH 032/278] configure: sanitise sparc vis check
 
 It is wrong to force -mcpu=ultrasparc when checking for vis.
 

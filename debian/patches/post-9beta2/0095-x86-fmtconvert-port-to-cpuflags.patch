@@ -1,7 +1,7 @@
 From be923ed659016350592acb9b3346f706f8170ac5 Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Sun, 15 Jul 2012 15:42:17 +0200
-Subject: [PATCH 095/204] x86: fmtconvert: port to cpuflags
+Subject: [PATCH 095/278] x86: fmtconvert: port to cpuflags
 
 ---
  libavcodec/x86/fmtconvert.asm |  141 +++++++++++++++++++++--------------------

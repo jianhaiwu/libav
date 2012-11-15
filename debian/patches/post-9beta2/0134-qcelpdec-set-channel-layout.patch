@@ -1,7 +1,7 @@
 From e3d6ab57042ef7b35f24bf154fba39369034a665 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Mon, 22 Oct 2012 18:25:46 -0400
-Subject: [PATCH 134/204] qcelpdec: set channel layout
+Subject: [PATCH 134/278] qcelpdec: set channel layout
 
 ---
  libavcodec/qcelpdec.c |    5 ++++-

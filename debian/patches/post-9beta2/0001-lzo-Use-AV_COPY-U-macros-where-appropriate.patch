@@ -1,7 +1,7 @@
 From ceb754d041f5f6327fd9195a5f43575af9516daa Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Mon, 22 Oct 2012 19:02:20 +0200
-Subject: [PATCH 001/204] lzo: Use AV_COPY*U macros where appropriate
+Subject: [PATCH 001/278] lzo: Use AV_COPY*U macros where appropriate
 
 ---
  libavutil/lzo.c |   28 ++++++++--------------------

@@ -1,7 +1,7 @@
 From 6b776c61da26428ca67abec919c8a186a276ca66 Mon Sep 17 00:00:00 2001
 From: Mans Rullgard <mans@mansr.com>
 Date: Fri, 26 Oct 2012 17:58:19 +0100
-Subject: [PATCH 043/204] buffersink: remove stray semicolon after function
+Subject: [PATCH 043/278] buffersink: remove stray semicolon after function
  definition
 
 Signed-off-by: Mans Rullgard <mans@mansr.com>

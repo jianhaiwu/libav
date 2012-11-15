@@ -1,7 +1,7 @@
 From 4471a2420717d8dc10b573cca50292d0d598d925 Mon Sep 17 00:00:00 2001
 From: Mans Rullgard <mans@mansr.com>
 Date: Fri, 26 Oct 2012 21:43:55 +0100
-Subject: [PATCH 051/204] vp8: fix memset() crossing array boundary
+Subject: [PATCH 051/278] vp8: fix memset() crossing array boundary
 
 Indexing across array boundaries is not allowed by C99.
 

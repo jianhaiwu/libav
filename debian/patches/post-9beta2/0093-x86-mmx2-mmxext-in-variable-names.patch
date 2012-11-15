@@ -1,7 +1,7 @@
 From a65bdceb060628881578afb29df4eb222421381f Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Sun, 8 Jul 2012 19:55:31 +0200
-Subject: [PATCH 093/204] x86: mmx2 ---> mmxext in variable names
+Subject: [PATCH 093/278] x86: mmx2 ---> mmxext in variable names
 
 ---
  libswscale/swscale_internal.h     |   10 ++---

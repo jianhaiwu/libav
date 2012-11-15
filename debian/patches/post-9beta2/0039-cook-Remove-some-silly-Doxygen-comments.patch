@@ -1,7 +1,7 @@
 From 707f58f515eeb282563af3c443cac10c2d3e81b4 Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Wed, 24 Oct 2012 19:00:33 +0200
-Subject: [PATCH 039/204] cook: Remove some silly Doxygen comments
+Subject: [PATCH 039/278] cook: Remove some silly Doxygen comments
 
 ---
  libavcodec/cook.c |   19 ++-----------------

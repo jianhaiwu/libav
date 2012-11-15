@@ -1,7 +1,7 @@
 From b077eb07805dc5d139b2f118ddb122cc9df8b87a Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Alberto=20Delm=C3=A1s?= <adelmas@gmail.com>
 Date: Sun, 11 Nov 2012 09:23:06 +0100
-Subject: [PATCH 202/204] mss2: fix handling of unmasked implicit WMV9
+Subject: [PATCH 202/278] mss2: fix handling of unmasked implicit WMV9
  rectangles
 
 Signed-off-by: Kostya Shishkov <kostya.shishkov@gmail.com>

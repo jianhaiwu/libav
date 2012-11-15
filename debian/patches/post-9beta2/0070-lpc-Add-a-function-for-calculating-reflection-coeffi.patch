@@ -1,7 +1,7 @@
 From 39ef66f5300c2a42acc29937f5417bc2efe09752 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Sat, 27 Oct 2012 22:29:56 +0300
-Subject: [PATCH 070/204] lpc: Add a function for calculating reflection
+Subject: [PATCH 070/278] lpc: Add a function for calculating reflection
  coefficients from autocorrelation coefficients
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8

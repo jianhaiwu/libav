@@ -1,7 +1,7 @@
 From c37322e68c528717930575ed55fc0e819a8ee215 Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Fri, 27 Jul 2012 14:09:52 +0200
-Subject: [PATCH 102/204] x86: Move optimization suffix to end of function
+Subject: [PATCH 102/278] x86: Move optimization suffix to end of function
  names
 
 This simplifies cpuflags porting.

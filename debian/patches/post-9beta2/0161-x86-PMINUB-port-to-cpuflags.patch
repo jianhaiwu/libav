@@ -1,7 +1,7 @@
 From 26f01bd106f62ffe501a9baf609c476051d919da Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Sun, 15 Jul 2012 17:43:50 +0200
-Subject: [PATCH 161/204] x86: PMINUB: port to cpuflags
+Subject: [PATCH 161/278] x86: PMINUB: port to cpuflags
 
 ---
  libavcodec/x86/ac3dsp.asm |    3 ---

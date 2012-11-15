@@ -1,7 +1,7 @@
 From 30f8da29bf609d741bbebd33b2a5003c426ab919 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Mon, 22 Oct 2012 17:41:47 -0400
-Subject: [PATCH 131/204] libilbc: set channel layout
+Subject: [PATCH 131/278] libilbc: set channel layout
 
 ---
  libavcodec/libilbc.c |    8 +++++---

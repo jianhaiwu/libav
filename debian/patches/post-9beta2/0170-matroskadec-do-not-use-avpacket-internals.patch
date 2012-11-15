@@ -1,7 +1,7 @@
 From 34871beb5eb6bc59f5e58326a214efd88a4c2ccd Mon Sep 17 00:00:00 2001
 From: Anton Khirnov <anton@khirnov.net>
 Date: Thu, 1 Nov 2012 06:34:41 +0100
-Subject: [PATCH 170/204] matroskadec: do not use avpacket internals
+Subject: [PATCH 170/278] matroskadec: do not use avpacket internals
 
 ---
  libavformat/matroskadec.c |   15 ++++++++-------

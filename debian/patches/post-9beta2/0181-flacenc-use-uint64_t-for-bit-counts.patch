@@ -1,7 +1,7 @@
 From 5ff998a233d759d0de83ea6f95c383d03d25d88e Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Fri, 26 Oct 2012 23:22:38 -0400
-Subject: [PATCH 181/204] flacenc: use uint64_t for bit counts
+Subject: [PATCH 181/278] flacenc: use uint64_t for bit counts
 
 Needed to avoid integer overflows for 24-bit encoding.
 ---

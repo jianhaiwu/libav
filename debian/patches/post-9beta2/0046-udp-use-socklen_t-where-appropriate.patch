@@ -1,7 +1,7 @@
 From be2efe0c7b6a8188988d7de5da236d794312b5bb Mon Sep 17 00:00:00 2001
 From: Mans Rullgard <mans@mansr.com>
 Date: Fri, 26 Oct 2012 19:46:37 +0100
-Subject: [PATCH 046/204] udp: use socklen_t where appropriate
+Subject: [PATCH 046/278] udp: use socklen_t where appropriate
 
 getsockname() takes a pointer to socklen_t which is not necessarily
 int.

@@ -1,7 +1,7 @@
 From 5bac2d0c3020587a03cb14e8b6a664a0b92f26c2 Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Thu, 18 Oct 2012 19:27:51 +0200
-Subject: [PATCH 019/204] avutil: Move memcpy_backptr() to mem.c
+Subject: [PATCH 019/278] avutil: Move memcpy_backptr() to mem.c
 
 The function is used elsewhere and does not belong with the LZO code.
 ---

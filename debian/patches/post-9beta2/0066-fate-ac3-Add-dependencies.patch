@@ -1,7 +1,7 @@
 From 2cbdd7c92958cb8226491d8eb23ed2d57d4b841e Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Sat, 20 Oct 2012 01:13:39 +0200
-Subject: [PATCH 066/204] fate: ac3: Add dependencies
+Subject: [PATCH 066/278] fate: ac3: Add dependencies
 
 ---
  tests/fate/ac3.mak |   15 ++++++++-------

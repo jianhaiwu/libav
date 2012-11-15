@@ -1,7 +1,7 @@
 From 9a07c1332cfe092b57b5758f22b686ca58806c60 Mon Sep 17 00:00:00 2001
 From: Diego Biurrun <diego@biurrun.de>
 Date: Fri, 2 Nov 2012 12:04:16 +0100
-Subject: [PATCH 163/204] parser: Move Doxygen documentation to the header
+Subject: [PATCH 163/278] parser: Move Doxygen documentation to the header
  files
 
 ---

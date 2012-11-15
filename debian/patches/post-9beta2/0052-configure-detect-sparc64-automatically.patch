@@ -1,7 +1,7 @@
 From 4cd217c065e948a9cec38fef9c544d3c26ff8f37 Mon Sep 17 00:00:00 2001
 From: Mans Rullgard <mans@mansr.com>
 Date: Wed, 24 Oct 2012 18:34:21 +0100
-Subject: [PATCH 052/204] configure: detect sparc64 automatically
+Subject: [PATCH 052/278] configure: detect sparc64 automatically
 
 Signed-off-by: Mans Rullgard <mans@mansr.com>
 ---

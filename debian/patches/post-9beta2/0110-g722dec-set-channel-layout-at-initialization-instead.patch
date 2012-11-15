@@ -1,7 +1,7 @@
 From ec2694d25905c217e5815947cda896aa25398388 Mon Sep 17 00:00:00 2001
 From: Justin Ruggles <justin.ruggles@gmail.com>
 Date: Mon, 15 Oct 2012 16:40:44 -0400
-Subject: [PATCH 110/204] g722dec: set channel layout at initialization
+Subject: [PATCH 110/278] g722dec: set channel layout at initialization
  instead of validating it
 
 ---
