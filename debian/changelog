@@ -1,3 +1,14 @@
+libav (6:9~beta2-3) experimental; urgency=low
+
+  * Include all post 9beta2 patches
+    - Fixes linking with libavfilter/libavutil, Closes: #693040
+  * libavresample1: Unbreak partial updates by adding Replaces
+    relationship with libavresample0, Closes: #693327
+  * Fix installation of doxygen HTML pages.
+  * add lintian override for libavcodec-extra-54
+
+ -- Reinhard Tartler <siretart@tauware.de>  Thu, 15 Nov 2012 21:29:50 +0100
+
 libav (6:9~beta2-2) experimental; urgency=low
 
   * add post 9 beta2 patches
