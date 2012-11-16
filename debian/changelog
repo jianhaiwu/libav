@@ -1,3 +1,9 @@
+libav (6:9~beta2-4) experimental; urgency=low
+
+  * Fix compilation on the buildds
+
+ -- Reinhard Tartler <siretart@tauware.de>  Fri, 16 Nov 2012 07:56:59 +0100
+
 libav (6:9~beta2-3) experimental; urgency=low
 
   * Include all post 9beta2 patches
