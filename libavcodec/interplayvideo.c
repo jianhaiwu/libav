@@ -43,6 +43,7 @@
 #include "dsputil.h"
 #define BITSTREAM_READER_LE
 #include "get_bits.h"
+#include "internal.h"
 
 #define PALETTE_COUNT 256
 
@@ -952,7 +953,7 @@ static av_cold int ipvideo_decode_init(AVCodecContext *avctx)
 }
 
 static int ipvideo_decode_frame(AVCodecContext *avctx,
-                                void *data, int *data_size,
+                                void *data, int *got_frame,
                                 AVPacket *avpkt)
 {
     const uint8_t *buf = avpkt->data;
@@ -972,7 +973,7 @@ static int ipvideo_decode_frame(AVCodecContext *avctx,
                      buf_size - s->decoding_map_size);
 
     s->current_frame.reference = 3;
-    if (avctx->get_buffer(avctx, &s->current_frame)) {
+    if (ff_get_buffer(avctx, &s->current_frame)) {
         av_log(avctx, AV_LOG_ERROR, "  Interplay Video: get_buffer() failed\n");
         return -1;
     }
@@ -987,7 +988,7 @@ static int ipvideo_decode_frame(AVCodecContext *avctx,
 
     ipvideo_decode_opcodes(s);
 
-    *data_size = sizeof(AVFrame);
+    *got_frame = 1;
     *(AVFrame*)data = s->current_frame;
 
     /* shuffle frames */

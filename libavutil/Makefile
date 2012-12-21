@@ -11,6 +11,7 @@ HEADERS = adler32.h                                                     \
           base64.h                                                      \
           blowfish.h                                                    \
           bswap.h                                                       \
+          channel_layout.h                                              \
           common.h                                                      \
           cpu.h                                                         \
           crc.h                                                         \
@@ -24,7 +25,6 @@ HEADERS = adler32.h                                                     \
           intreadwrite.h                                                \
           lfg.h                                                         \
           log.h                                                         \
-          lzo.h                                                         \
           mathematics.h                                                 \
           md5.h                                                         \
           mem.h                                                         \
@@ -42,6 +42,8 @@ HEADERS = adler32.h                                                     \
           version.h                                                     \
           xtea.h                                                        \
 
+HEADERS-$(CONFIG_LZO)                   += lzo.h
+
 ARCH_HEADERS = bswap.h                                                  \
                intmath.h                                                \
                intreadwrite.h                                           \
@@ -52,10 +54,10 @@ BUILT_HEADERS = avconfig.h
 OBJS = adler32.o                                                        \
        aes.o                                                            \
        audio_fifo.o                                                     \
-       audioconvert.o                                                   \
        avstring.o                                                       \
        base64.o                                                         \
        blowfish.o                                                       \
+       channel_layout.o                                                 \
        cpu.o                                                            \
        crc.o                                                            \
        des.o                                                            \
@@ -66,12 +68,11 @@ OBJS = adler32.o                                                        \
        float_dsp.o                                                      \
        imgutils.o                                                       \
        intfloat_readwrite.o                                             \
+       intmath.o                                                        \
        lfg.o                                                            \
        lls.o                                                            \
        log.o                                                            \
-       log2.o                                                           \
        log2_tab.o                                                       \
-       lzo.o                                                            \
        mathematics.o                                                    \
        md5.o                                                            \
        mem.o                                                            \
@@ -88,6 +89,8 @@ OBJS = adler32.o                                                        \
        tree.o                                                           \
        utils.o                                                          \
        xtea.o                                                           \
+
+OBJS-$(CONFIG_LZO)                      += lzo.o
 
 OBJS += $(COMPAT_OBJS:%=../compat/%)
 

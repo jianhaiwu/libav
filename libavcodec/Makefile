@@ -14,6 +14,7 @@ HEADERS = avcodec.h                                                     \
 OBJS = allcodecs.o                                                      \
        audioconvert.o                                                   \
        avpacket.o                                                       \
+       avpicture.o                                                      \
        bitstream.o                                                      \
        bitstream_filter.o                                               \
        codec_desc.o                                                     \
@@ -66,6 +67,7 @@ OBJS-$(CONFIG_RDFT)                    += rdft.o $(RDFT-OBJS-yes)
 OBJS-$(CONFIG_SINEWIN)                 += sinewin.o
 OBJS-$(CONFIG_VAAPI)                   += vaapi.o
 OBJS-$(CONFIG_VDPAU)                   += vdpau.o
+OBJS-$(CONFIG_VIDEODSP)                += videodsp.o
 OBJS-$(CONFIG_VP3DSP)                  += vp3dsp.o
 
 # decoders/encoders/hardware accelerators
@@ -84,8 +86,8 @@ OBJS-$(CONFIG_AC3_DECODER)             += ac3dec.o ac3dec_data.o ac3.o kbdwin.o
 OBJS-$(CONFIG_AC3_ENCODER)             += ac3enc_float.o ac3enc.o ac3tab.o \
                                           ac3.o kbdwin.o
 OBJS-$(CONFIG_AC3_FIXED_ENCODER)       += ac3enc_fixed.o ac3enc.o ac3tab.o ac3.o
-OBJS-$(CONFIG_ALAC_DECODER)            += alac.o
-OBJS-$(CONFIG_ALAC_ENCODER)            += alacenc.o
+OBJS-$(CONFIG_ALAC_DECODER)            += alac.o alac_data.o
+OBJS-$(CONFIG_ALAC_ENCODER)            += alacenc.o alac_data.o
 OBJS-$(CONFIG_ALS_DECODER)             += alsdec.o bgmc.o mpeg4audio.o
 OBJS-$(CONFIG_AMRNB_DECODER)           += amrnbdec.o celp_filters.o   \
                                           celp_math.o acelp_filters.o \
@@ -129,6 +131,8 @@ OBJS-$(CONFIG_CLJR_DECODER)            += cljr.o
 OBJS-$(CONFIG_CLJR_ENCODER)            += cljr.o
 OBJS-$(CONFIG_CLLC_DECODER)            += cllc.o
 OBJS-$(CONFIG_COOK_DECODER)            += cook.o
+OBJS-$(CONFIG_COMFORTNOISE_DECODER)    += cngdec.o celp_filters.o
+OBJS-$(CONFIG_COMFORTNOISE_ENCODER)    += cngenc.o
 OBJS-$(CONFIG_CSCD_DECODER)            += cscd.o
 OBJS-$(CONFIG_CYUV_DECODER)            += cyuv.o
 OBJS-$(CONFIG_DCA_DECODER)             += dcadec.o dca.o dcadsp.o      \
@@ -166,7 +170,7 @@ OBJS-$(CONFIG_FFV1_ENCODER)            += ffv1enc.o ffv1.o
 OBJS-$(CONFIG_FFVHUFF_DECODER)         += huffyuv.o
 OBJS-$(CONFIG_FFVHUFF_ENCODER)         += huffyuv.o
 OBJS-$(CONFIG_FLAC_DECODER)            += flacdec.o flacdata.o flac.o flacdsp.o
-OBJS-$(CONFIG_FLAC_ENCODER)            += flacenc.o flacdata.o flac.o
+OBJS-$(CONFIG_FLAC_ENCODER)            += flacenc.o flacdata.o flac.o flacdsp.o
 OBJS-$(CONFIG_FLASHSV_DECODER)         += flashsv.o
 OBJS-$(CONFIG_FLASHSV_ENCODER)         += flashsvenc.o
 OBJS-$(CONFIG_FLASHSV2_DECODER)        += flashsv.o
@@ -346,6 +350,7 @@ OBJS-$(CONFIG_SVQ3_DECODER)            += svq3.o svq13.o h263.o h264.o        \
                                           h264_loopfilter.o h264_direct.o     \
                                           h264_sei.o h264_ps.o h264_refs.o    \
                                           h264_cavlc.o h264_cabac.o cabac.o
+OBJS-$(CONFIG_TAK_DECODER)             += takdec.o tak.o
 OBJS-$(CONFIG_TARGA_DECODER)           += targa.o
 OBJS-$(CONFIG_TARGA_ENCODER)           += targaenc.o rle.o
 OBJS-$(CONFIG_THEORA_DECODER)          += xiph.o
@@ -552,6 +557,7 @@ OBJS-$(CONFIG_RTP_MUXER)               += mpeg4audio.o xiph.o
 OBJS-$(CONFIG_RTPDEC)                  += mjpeg.o
 OBJS-$(CONFIG_SPDIF_DEMUXER)           += aacadtsdec.o mpeg4audio.o
 OBJS-$(CONFIG_SPDIF_MUXER)             += dca.o
+OBJS-$(CONFIG_TAK_DEMUXER)             += tak.o
 OBJS-$(CONFIG_WEBM_MUXER)              += mpeg4audio.o mpegaudiodata.o  \
                                           xiph.o flac.o flacdata.o
 OBJS-$(CONFIG_WTV_DEMUXER)             += mpeg4audio.o mpegaudiodata.o
@@ -628,6 +634,7 @@ OBJS-$(CONFIG_MPEGVIDEO_PARSER)        += mpegvideo_parser.o    \
 OBJS-$(CONFIG_PNM_PARSER)              += pnm_parser.o pnm.o
 OBJS-$(CONFIG_RV30_PARSER)             += rv34_parser.o
 OBJS-$(CONFIG_RV40_PARSER)             += rv34_parser.o
+OBJS-$(CONFIG_TAK_PARSER)              += tak_parser.o tak.o
 OBJS-$(CONFIG_VC1_PARSER)              += vc1_parser.o vc1.o vc1data.o \
                                           msmpeg4.o msmpeg4data.o mpeg4video.o \
                                           h263.o
@@ -674,8 +681,7 @@ SKIPHEADERS-$(HAVE_W32THREADS)         += w32pthreads.h
 
 EXAMPLES = api
 
-TESTPROGS = cabac                                                       \
-            dct                                                         \
+TESTPROGS = dct                                                         \
             fft                                                         \
             fft-fixed                                                   \
             golomb                                                      \

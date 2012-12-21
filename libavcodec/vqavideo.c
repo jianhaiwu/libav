@@ -71,6 +71,7 @@
 #include "libavutil/imgutils.h"
 #include "avcodec.h"
 #include "bytestream.h"
+#include "internal.h"
 
 #define PALETTE_COUNT 256
 #define VQA_HEADER_SIZE 0x2A
@@ -579,7 +580,7 @@ static int vqa_decode_chunk(VqaContext *s)
 }
 
 static int vqa_decode_frame(AVCodecContext *avctx,
-                            void *data, int *data_size,
+                            void *data, int *got_frame,
                             AVPacket *avpkt)
 {
     VqaContext *s = avctx->priv_data;
@@ -588,7 +589,7 @@ static int vqa_decode_frame(AVCodecContext *avctx,
     if (s->frame.data[0])
         avctx->release_buffer(avctx, &s->frame);
 
-    if (avctx->get_buffer(avctx, &s->frame)) {
+    if (ff_get_buffer(avctx, &s->frame)) {
         av_log(s->avctx, AV_LOG_ERROR, "  VQA Video: get_buffer() failed\n");
         return -1;
     }
@@ -601,7 +602,7 @@ static int vqa_decode_frame(AVCodecContext *avctx,
     memcpy(s->frame.data[1], s->palette, PALETTE_COUNT * 4);
     s->frame.palette_has_changed = 1;
 
-    *data_size = sizeof(AVFrame);
+    *got_frame      = 1;
     *(AVFrame*)data = s->frame;
 
     /* report that the buffer was completely consumed */

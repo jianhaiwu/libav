@@ -39,12 +39,14 @@ void avfilter_register_all(void)
     REGISTER_FILTER (AFORMAT,     aformat,     af);
     REGISTER_FILTER (AMIX,        amix,        af);
     REGISTER_FILTER (ANULL,       anull,       af);
+    REGISTER_FILTER (ASHOWINFO,   ashowinfo,   af);
     REGISTER_FILTER (ASPLIT,      asplit,      af);
     REGISTER_FILTER (ASYNCTS,     asyncts,     af);
     REGISTER_FILTER (CHANNELMAP,  channelmap,  af);
     REGISTER_FILTER (CHANNELSPLIT,channelsplit,af);
     REGISTER_FILTER (JOIN,        join,        af);
     REGISTER_FILTER (RESAMPLE,    resample,    af);
+    REGISTER_FILTER (VOLUME,      volume,      af);
 
     REGISTER_FILTER (ANULLSRC,    anullsrc,    asrc);
 
@@ -84,7 +86,6 @@ void avfilter_register_all(void)
     REGISTER_FILTER (SETSAR,      setsar,      vf);
     REGISTER_FILTER (SETTB,       settb,       vf);
     REGISTER_FILTER (SHOWINFO,    showinfo,    vf);
-    REGISTER_FILTER (SLICIFY,     slicify,     vf);
     REGISTER_FILTER (SPLIT,       split,       vf);
     REGISTER_FILTER (TRANSPOSE,   transpose,   vf);
     REGISTER_FILTER (UNSHARP,     unsharp,     vf);

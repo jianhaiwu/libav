@@ -36,6 +36,7 @@
 #include "parser.h"
 #include "mpeg12data.h"
 #include "rl.h"
+#include "videodsp.h"
 
 #include "libavutil/opt.h"
 
@@ -78,6 +79,12 @@ enum OutputFormat {
 #define SLICE_MAX_START_CODE    0x000001af
 #define EXT_START_CODE          0x000001b5
 #define USER_START_CODE         0x000001b2
+
+/**
+ * Value of Picture.reference when Picture is not a reference picture, but
+ * is held for delayed output.
+ */
+#define DELAYED_PIC_REF 4
 
 struct MpegEncContext;
 
@@ -342,7 +349,7 @@ typedef struct MpegEncContext {
     int pict_type;              ///< AV_PICTURE_TYPE_I, AV_PICTURE_TYPE_P, AV_PICTURE_TYPE_B, ...
     int last_pict_type; //FIXME removes
     int last_non_b_pict_type;   ///< used for mpeg4 gmc b-frames & ratecontrol
-    int dropable;
+    int droppable;
     int frame_rate_index;
     int last_lambda_for[5];     ///< last lambda for a specific pict type
     int skipdct;                ///< skip dct and code zero residual
@@ -352,6 +359,7 @@ typedef struct MpegEncContext {
     int h263_long_vectors;      ///< use horrible h263v1 long vector mode
 
     DSPContext dsp;             ///< pointers for accelerated dsp functions
+    VideoDSPContext vdsp;
     int f_code;                 ///< forward MV resolution
     int b_code;                 ///< backward MV resolution for B Frames (mpeg4)
     int16_t (*p_mv_table_base)[2];
@@ -753,6 +761,7 @@ void ff_MPV_common_defaults(MpegEncContext *s);
 
 void ff_MPV_decode_defaults(MpegEncContext *s);
 int ff_MPV_common_init(MpegEncContext *s);
+int ff_mpv_frame_size_alloc(MpegEncContext *s, int linesize);
 int ff_MPV_common_frame_size_change(MpegEncContext *s);
 void ff_MPV_common_end(MpegEncContext *s);
 void ff_MPV_decode_mb(MpegEncContext *s, DCTELEM block[12][64]);
@@ -776,7 +785,7 @@ void ff_write_quant_matrix(PutBitContext *pb, uint16_t *matrix);
 void ff_release_unused_pictures(MpegEncContext *s, int remove_current);
 int ff_find_unused_picture(MpegEncContext *s, int shared);
 void ff_denoise_dct(MpegEncContext *s, DCTELEM *block);
-void ff_update_duplicate_context(MpegEncContext *dst, MpegEncContext *src);
+int ff_update_duplicate_context(MpegEncContext *dst, MpegEncContext *src);
 int ff_MPV_lowest_referenced_row(MpegEncContext *s, int dir);
 void ff_MPV_report_decode_progress(MpegEncContext *s);
 int ff_mpeg_update_thread_context(AVCodecContext *dst, const AVCodecContext *src);

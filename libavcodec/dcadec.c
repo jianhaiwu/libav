@@ -26,12 +26,12 @@
 #include <stddef.h>
 #include <stdio.h>
 
+#include "libavutil/channel_layout.h"
 #include "libavutil/common.h"
 #include "libavutil/float_dsp.h"
 #include "libavutil/intmath.h"
 #include "libavutil/intreadwrite.h"
 #include "libavutil/mathematics.h"
-#include "libavutil/audioconvert.h"
 #include "libavutil/samplefmt.h"
 #include "avcodec.h"
 #include "dsputil.h"
@@ -45,6 +45,7 @@
 #include "synth_filter.h"
 #include "dcadsp.h"
 #include "fmtconvert.h"
+#include "internal.h"
 
 #if ARCH_ARM
 #   include "arm/dca.h"
@@ -317,7 +318,6 @@ typedef struct {
 
     /* Primary audio coding header */
     int subframes;              ///< number of subframes
-    int is_channels_set;        ///< check for if the channel number is already set
     int total_channels;         ///< number of channels including extensions
     int prim_channels;          ///< number of primary audio channels
     int subband_activity[DCA_PRIM_CHANNELS_MAX];    ///< subband activity count
@@ -1280,9 +1280,10 @@ static int dca_filter_channels(DCAContext *s, int block_index)
     for (k = 0; k < s->prim_channels; k++) {
 /*        static float pcm_to_double[8] = { 32768.0, 32768.0, 524288.0, 524288.0,
                                             0, 8388608.0, 8388608.0 };*/
-        qmf_32_subbands(s, k, subband_samples[k],
-                        s->samples_chanptr[s->channel_order_tab[k]],
-                        M_SQRT1_2 / 32768.0 /* pcm_to_double[s->source_pcm_res] */);
+        if (s->channel_order_tab[k] >= 0)
+            qmf_32_subbands(s, k, subband_samples[k],
+                            s->samples_chanptr[s->channel_order_tab[k]],
+                            M_SQRT1_2 / 32768.0 /* pcm_to_double[s->source_pcm_res] */);
     }
 
     /* Down mixing */
@@ -1831,26 +1832,11 @@ static int dca_decode_frame(AVCodecContext *avctx, void *data,
         av_log(avctx, AV_LOG_ERROR, "Non standard configuration %d !\n", s->amode);
         return AVERROR_INVALIDDATA;
     }
-
-
-    /* There is nothing that prevents a dts frame to change channel configuration
-       but Libav doesn't support that so only set the channels if it is previously
-       unset. Ideally during the first probe for channels the crc should be checked
-       and only set avctx->channels when the crc is ok. Right now the decoder could
-       set the channels based on a broken first frame.*/
-    if (s->is_channels_set == 0) {
-        s->is_channels_set = 1;
-        avctx->channels = channels;
-    }
-    if (avctx->channels != channels) {
-        av_log(avctx, AV_LOG_ERROR, "DCA decoder does not support number of "
-               "channels changing in stream. Skipping frame.\n");
-        return AVERROR_PATCHWELCOME;
-    }
+    avctx->channels = channels;
 
     /* get output buffer */
     s->frame.nb_samples = 256 * (s->sample_blocks / 8);
-    if ((ret = avctx->get_buffer(avctx, &s->frame)) < 0) {
+    if ((ret = ff_get_buffer(avctx, &s->frame)) < 0) {
         av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
         return ret;
     }

@@ -96,6 +96,9 @@ typedef struct AVPixFmtDescriptor{
  */
 #define PIX_FMT_PSEUDOPAL 64
 
+#define PIX_FMT_ALPHA   128 ///< The pixel format has an alpha channel
+
+
 #if FF_API_PIX_FMT_DESC
 /**
  * The array of all the pixel format descriptors.
@@ -202,5 +205,19 @@ const AVPixFmtDescriptor *av_pix_fmt_desc_next(const AVPixFmtDescriptor *prev);
  * is not a valid pointer to a pixel format descriptor.
  */
 enum AVPixelFormat av_pix_fmt_desc_get_id(const AVPixFmtDescriptor *desc);
+
+/**
+ * Utility function to access log2_chroma_w log2_chroma_h from
+ * the pixel format AVPixFmtDescriptor.
+ *
+ * @param[in]  pix_fmt the pixel format
+ * @param[out] h_shift store log2_chroma_h
+ * @param[out] v_shift store log2_chroma_w
+ *
+ * @return 0 on success, AVERROR(ENOSYS) on invalid or unknown pixel format
+ */
+int av_pix_fmt_get_chroma_sub_sample(enum AVPixelFormat pix_fmt,
+                                     int *h_shift, int *v_shift);
+
 
 #endif /* AVUTIL_PIXDESC_H */

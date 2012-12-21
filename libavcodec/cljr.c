@@ -44,7 +44,7 @@ static av_cold int common_init(AVCodecContext *avctx)
 
 #if CONFIG_CLJR_DECODER
 static int decode_frame(AVCodecContext *avctx,
-                        void *data, int *data_size,
+                        void *data, int *got_frame,
                         AVPacket *avpkt)
 {
     const uint8_t *buf = avpkt->data;
@@ -70,7 +70,7 @@ static int decode_frame(AVCodecContext *avctx,
     }
 
     p->reference = 0;
-    if (avctx->get_buffer(avctx, p) < 0) {
+    if (ff_get_buffer(avctx, p) < 0) {
         av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
         return -1;
     }
@@ -95,7 +95,7 @@ static int decode_frame(AVCodecContext *avctx,
     }
 
     *picture   = a->picture;
-    *data_size = sizeof(AVPicture);
+    *got_frame = 1;
 
     return buf_size;
 }

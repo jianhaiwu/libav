@@ -29,6 +29,7 @@
 
 #include "libavutil/intmath.h"
 #include "libavutil/mathematics.h"
+#include "libavutil/pixdesc.h"
 #include "libavutil/opt.h"
 #include "avcodec.h"
 #include "dsputil.h"
@@ -601,8 +602,8 @@ av_cold int ff_MPV_encode_init(AVCodecContext *avctx)
     if (avctx->inter_quant_bias != FF_DEFAULT_QUANT_BIAS)
         s->inter_quant_bias = avctx->inter_quant_bias;
 
-    avcodec_get_chroma_sub_sample(avctx->pix_fmt, &chroma_h_shift,
-                                  &chroma_v_shift);
+    av_pix_fmt_get_chroma_sub_sample(avctx->pix_fmt, &chroma_h_shift,
+                                     &chroma_v_shift);
 
     if (avctx->codec_id == AV_CODEC_ID_MPEG4 &&
         s->avctx->time_base.den > (1 << 16) - 1) {
@@ -994,8 +995,9 @@ static int load_input_picture(MpegEncContext *s, AVFrame *pic_arg)
             // empty
         } else {
             int h_chroma_shift, v_chroma_shift;
-            avcodec_get_chroma_sub_sample(s->avctx->pix_fmt, &h_chroma_shift,
-                                          &v_chroma_shift);
+            av_pix_fmt_get_chroma_sub_sample(s->avctx->pix_fmt,
+                                             &h_chroma_shift,
+                                             &v_chroma_shift);
 
             for (i = 0; i < 3; i++) {
                 int src_stride = pic_arg->linesize[i];
@@ -1780,16 +1782,16 @@ static av_always_inline void encode_mb_internal(MpegEncContext *s,
 
     if (mb_x * 16 + 16 > s->width || mb_y * 16 + 16 > s->height) {
         uint8_t *ebuf = s->edge_emu_buffer + 32;
-        s->dsp.emulated_edge_mc(ebuf, ptr_y, wrap_y, 16, 16, mb_x * 16,
-                                mb_y * 16, s->width, s->height);
+        s->vdsp.emulated_edge_mc(ebuf, ptr_y, wrap_y, 16, 16, mb_x * 16,
+                                 mb_y * 16, s->width, s->height);
         ptr_y = ebuf;
-        s->dsp.emulated_edge_mc(ebuf + 18 * wrap_y, ptr_cb, wrap_c, 8,
-                                mb_block_height, mb_x * 8, mb_y * 8,
-                                s->width >> 1, s->height >> 1);
+        s->vdsp.emulated_edge_mc(ebuf + 18 * wrap_y, ptr_cb, wrap_c, 8,
+                                 mb_block_height, mb_x * 8, mb_y * 8,
+                                 s->width >> 1, s->height >> 1);
         ptr_cb = ebuf + 18 * wrap_y;
-        s->dsp.emulated_edge_mc(ebuf + 18 * wrap_y + 8, ptr_cr, wrap_c, 8,
-                                mb_block_height, mb_x * 8, mb_y * 8,
-                                s->width >> 1, s->height >> 1);
+        s->vdsp.emulated_edge_mc(ebuf + 18 * wrap_y + 8, ptr_cr, wrap_c, 8,
+                                 mb_block_height, mb_x * 8, mb_y * 8,
+                                 s->width >> 1, s->height >> 1);
         ptr_cr = ebuf + 18 * wrap_y + 8;
     }
 
@@ -3105,7 +3107,7 @@ static void set_frame_distances(MpegEncContext * s){
 
 static int encode_picture(MpegEncContext *s, int picture_number)
 {
-    int i;
+    int i, ret;
     int bits;
     int context_count = s->slice_context_count;
 
@@ -3148,7 +3150,9 @@ static int encode_picture(MpegEncContext *s, int picture_number)
 
     s->mb_intra=0; //for the rate distortion & bit compare functions
     for(i=1; i<context_count; i++){
-        ff_update_duplicate_context(s->thread_context[i], s);
+        ret = ff_update_duplicate_context(s->thread_context[i], s);
+        if (ret < 0)
+            return ret;
     }
 
     if(ff_init_me(s)<0)

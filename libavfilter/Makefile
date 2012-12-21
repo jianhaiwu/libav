@@ -21,19 +21,20 @@ OBJS = allfilters.o                                                     \
        drawutils.o                                                      \
        formats.o                                                        \
        graphparser.o                                                    \
-       vf_scale.o                                                       \
        video.o                                                          \
 
 OBJS-$(CONFIG_AFIFO_FILTER)                  += fifo.o
 OBJS-$(CONFIG_AFORMAT_FILTER)                += af_aformat.o
 OBJS-$(CONFIG_AMIX_FILTER)                   += af_amix.o
 OBJS-$(CONFIG_ANULL_FILTER)                  += af_anull.o
+OBJS-$(CONFIG_ASHOWINFO_FILTER)              += af_ashowinfo.o
 OBJS-$(CONFIG_ASPLIT_FILTER)                 += split.o
 OBJS-$(CONFIG_ASYNCTS_FILTER)                += af_asyncts.o
 OBJS-$(CONFIG_CHANNELMAP_FILTER)             += af_channelmap.o
 OBJS-$(CONFIG_CHANNELSPLIT_FILTER)           += af_channelsplit.o
 OBJS-$(CONFIG_JOIN_FILTER)                   += af_join.o
 OBJS-$(CONFIG_RESAMPLE_FILTER)               += af_resample.o
+OBJS-$(CONFIG_VOLUME_FILTER)                 += af_volume.o
 
 OBJS-$(CONFIG_ANULLSRC_FILTER)               += asrc_anullsrc.o
 
@@ -73,7 +74,6 @@ OBJS-$(CONFIG_SETPTS_FILTER)                 += vf_setpts.o
 OBJS-$(CONFIG_SETSAR_FILTER)                 += vf_aspect.o
 OBJS-$(CONFIG_SETTB_FILTER)                  += vf_settb.o
 OBJS-$(CONFIG_SHOWINFO_FILTER)               += vf_showinfo.o
-OBJS-$(CONFIG_SLICIFY_FILTER)                += vf_slicify.o
 OBJS-$(CONFIG_SPLIT_FILTER)                  += split.o
 OBJS-$(CONFIG_TRANSPOSE_FILTER)              += vf_transpose.o
 OBJS-$(CONFIG_UNSHARP_FILTER)                += vf_unsharp.o

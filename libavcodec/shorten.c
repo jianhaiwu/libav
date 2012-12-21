@@ -31,6 +31,7 @@
 #include "bytestream.h"
 #include "get_bits.h"
 #include "golomb.h"
+#include "internal.h"
 
 #define MAX_CHANNELS 8
 #define MAX_BLOCKSIZE 65535
@@ -342,7 +343,7 @@ static int read_header(ShortenContext *s)
     s->internal_ftype = get_uint(s, TYPESIZE);
 
     s->channels = get_uint(s, CHANSIZE);
-    if (s->channels > MAX_CHANNELS) {
+    if (s->channels <= 0 || s->channels > MAX_CHANNELS) {
         av_log(s->avctx, AV_LOG_ERROR, "too many channels: %d\n", s->channels);
         return -1;
     }
@@ -527,7 +528,8 @@ static int shorten_decode_frame(AVCodecContext *avctx, void *data,
             /* get Rice code for residual decoding */
             if (cmd != FN_ZERO) {
                 residual_size = get_ur_golomb_shorten(&s->gb, ENERGYSIZE);
-                /* this is a hack as version 0 differed in defintion of get_sr_golomb_shorten */
+                /* This is a hack as version 0 differed in the definition
+                 * of get_sr_golomb_shorten(). */
                 if (s->version == 0)
                     residual_size--;
             }
@@ -581,7 +583,7 @@ static int shorten_decode_frame(AVCodecContext *avctx, void *data,
             if (s->cur_chan == s->channels) {
                 /* get output buffer */
                 s->frame.nb_samples = s->blocksize;
-                if ((ret = avctx->get_buffer(avctx, &s->frame)) < 0) {
+                if ((ret = ff_get_buffer(avctx, &s->frame)) < 0) {
                     av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
                     return ret;
                 }

@@ -343,12 +343,6 @@ const AVCodecTag ff_codec_wav_tags[] = {
     { AV_CODEC_ID_FLAC,            0xF1AC },
     { AV_CODEC_ID_ADPCM_SWF,       ('S'<<8)+'F' },
     { AV_CODEC_ID_VORBIS,          ('V'<<8)+'o' }, //HACK/FIXME, does vorbis in WAV/AVI have an (in)official id?
-
-    /* FIXME: All of the IDs below are not 16 bit and thus illegal. */
-    // for NuppelVideo (nuv.c)
-    { AV_CODEC_ID_PCM_S16LE, MKTAG('R', 'A', 'W', 'A') },
-    { AV_CODEC_ID_MP3,       MKTAG('L', 'A', 'M', 'E') },
-    { AV_CODEC_ID_MP3,       MKTAG('M', 'P', '3', ' ') },
     { AV_CODEC_ID_NONE,      0 },
 };
 
@@ -365,13 +359,6 @@ const AVMetadataConv ff_riff_info_conv[] = {
     { "ISFT", "encoder"   },
     { "ITCH", "encoded_by"},
     { 0 },
-};
-
-const char ff_riff_tags[][5] = {
-    "IARL", "IART", "ICMS", "ICMT", "ICOP", "ICRD", "ICRP", "IDIM", "IDPI",
-    "IENG", "IGNR", "IKEY", "ILGT", "ILNG", "IMED", "INAM", "IPLT", "IPRD",
-    "IPRT", "ISBJ", "ISFT", "ISHP", "ISRC", "ISRF", "ITCH",
-    {0}
 };
 
 #if CONFIG_MUXERS
@@ -575,12 +562,19 @@ void ff_riff_write_info_tag(AVIOContext *pb, const char *tag, const char *str)
     }
 }
 
+static const char riff_tags[][5] = {
+    "IARL", "IART", "ICMS", "ICMT", "ICOP", "ICRD", "ICRP", "IDIM", "IDPI",
+    "IENG", "IGNR", "IKEY", "ILGT", "ILNG", "IMED", "INAM", "IPLT", "IPRD",
+    "IPRT", "ISBJ", "ISFT", "ISHP", "ISRC", "ISRF", "ITCH",
+    {0}
+};
+
 static int riff_has_valid_tags(AVFormatContext *s)
 {
     int i;
 
-    for (i = 0; *ff_riff_tags[i]; i++) {
-        if (av_dict_get(s->metadata, ff_riff_tags[i], NULL, AV_DICT_MATCH_CASE))
+    for (i = 0; *riff_tags[i]; i++) {
+        if (av_dict_get(s->metadata, riff_tags[i], NULL, AV_DICT_MATCH_CASE))
             return 1;
     }
 
@@ -602,8 +596,8 @@ void ff_riff_write_info(AVFormatContext *s)
 
     list_pos = ff_start_tag(pb, "LIST");
     ffio_wfourcc(pb, "INFO");
-    for (i = 0; *ff_riff_tags[i]; i++) {
-        if ((t = av_dict_get(s->metadata, ff_riff_tags[i], NULL, AV_DICT_MATCH_CASE)))
+    for (i = 0; *riff_tags[i]; i++) {
+        if ((t = av_dict_get(s->metadata, riff_tags[i], NULL, AV_DICT_MATCH_CASE)))
             ff_riff_write_info_tag(s->pb, t->key, t->value);
     }
     ff_end_tag(pb, list_pos);
@@ -679,15 +673,12 @@ enum AVCodecID ff_wav_codec_get_id(unsigned int tag, int bps)
     id = ff_codec_get_id(ff_codec_wav_tags, tag);
     if (id <= 0)
         return id;
-    /* handle specific u8 codec */
-    if (id == AV_CODEC_ID_PCM_S16LE && bps == 8)
-        id = AV_CODEC_ID_PCM_U8;
-    if (id == AV_CODEC_ID_PCM_S16LE && bps == 24)
-        id = AV_CODEC_ID_PCM_S24LE;
-    if (id == AV_CODEC_ID_PCM_S16LE && bps == 32)
-        id = AV_CODEC_ID_PCM_S32LE;
-    if (id == AV_CODEC_ID_PCM_F32LE && bps == 64)
-        id = AV_CODEC_ID_PCM_F64LE;
+
+    if (id == AV_CODEC_ID_PCM_S16LE)
+        id = ff_get_pcm_codec_id(bps, 0, 0, ~1);
+    else if (id == AV_CODEC_ID_PCM_F32LE)
+        id = ff_get_pcm_codec_id(bps, 1, 0, 0);
+
     if (id == AV_CODEC_ID_ADPCM_IMA_WAV && bps == 8)
         id = AV_CODEC_ID_PCM_ZORK;
     return id;
@@ -726,12 +717,19 @@ int ff_read_riff_info(AVFormatContext *s, int64_t size)
 
         chunk_code = avio_rl32(pb);
         chunk_size = avio_rl32(pb);
+
         if (chunk_size > end || end - chunk_size < cur || chunk_size == UINT_MAX) {
-            av_log(s, AV_LOG_ERROR, "too big INFO subchunk\n");
-            return AVERROR_INVALIDDATA;
+            av_log(s, AV_LOG_WARNING, "too big INFO subchunk\n");
+            break;
         }
 
         chunk_size += (chunk_size & 1);
+
+        if (!chunk_code) {
+            if (chunk_size)
+                avio_skip(pb, chunk_size);
+            continue;
+        }
 
         value = av_malloc(chunk_size + 1);
         if (!value) {
@@ -743,8 +741,8 @@ int ff_read_riff_info(AVFormatContext *s, int64_t size)
 
         if (avio_read(pb, value, chunk_size) != chunk_size) {
             av_free(value);
-            av_log(s, AV_LOG_ERROR, "premature end of file while reading INFO tag\n");
-            return AVERROR_INVALIDDATA;
+            av_log(s, AV_LOG_WARNING, "premature end of file while reading INFO tag\n");
+            break;
         }
 
         value[chunk_size] = 0;

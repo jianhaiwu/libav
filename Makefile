@@ -27,7 +27,7 @@ CPPFLAGS   := $(IFLAGS) $(CPPFLAGS)
 CFLAGS     += $(ECFLAGS)
 CCFLAGS     = $(CPPFLAGS) $(CFLAGS)
 ASFLAGS    := $(CPPFLAGS) $(ASFLAGS)
-YASMFLAGS  += $(IFLAGS:%=%/) -I$(SRC_PATH)/libavutil/x86/ -Pconfig.asm
+YASMFLAGS  += $(IFLAGS:%=%/) -Pconfig.asm
 HOSTCCFLAGS = $(IFLAGS) $(HOSTCFLAGS)
 LDFLAGS    := $(ALLFFLIBS:%=$(LD_PATH)lib%) $(LDFLAGS)
 
@@ -44,6 +44,9 @@ COMPILE_S = $(call COMPILE,AS)
 
 %.o: %.S
 	$(COMPILE_S)
+
+%.i: %.c
+	$(CC) $(CCFLAGS) $(CC_E) $<
 
 %.h.c:
 	$(Q)echo '#include "$*.h"' >$@
@@ -102,8 +105,8 @@ config.h: .config
 	@-tput sgr0 2>/dev/null
 
 SUBDIR_VARS := CLEANFILES EXAMPLES FFLIBS HOSTPROGS TESTPROGS TOOLS      \
-               ARCH_HEADERS BUILT_HEADERS SKIPHEADERS                    \
-               ARMV5TE-OBJS ARMV6-OBJS ARMVFP-OBJS NEON-OBJS             \
+               HEADERS ARCH_HEADERS BUILT_HEADERS SKIPHEADERS            \
+               ARMV5TE-OBJS ARMV6-OBJS VFP-OBJS NEON-OBJS                \
                ALTIVEC-OBJS VIS-OBJS                                     \
                MMX-OBJS YASM-OBJS                                        \
                OBJS HOSTOBJS TESTOBJS
@@ -184,7 +187,6 @@ uninstall-data:
 clean::
 	$(RM) $(ALLPROGS)
 	$(RM) $(CLEANSUFFIXES)
-	$(RM) $(TOOLS)
 	$(RM) $(CLEANSUFFIXES:%=tools/%)
 
 distclean::

@@ -30,6 +30,8 @@
 #include "libavutil/pixfmt.h"
 #include "avcodec.h"
 
+#define FF_SANE_NB_CHANNELS 128U
+
 typedef struct InternalBuffer {
     uint8_t *base[AV_NUM_DATA_POINTERS];
     uint8_t *data[AV_NUM_DATA_POINTERS];
@@ -37,9 +39,6 @@ typedef struct InternalBuffer {
     int width;
     int height;
     enum AVPixelFormat pix_fmt;
-    uint8_t **extended_data;
-    int audio_data_size;
-    int nb_channels;
 } InternalBuffer;
 
 typedef struct AVCodecInternal {
@@ -76,17 +75,18 @@ typedef struct AVCodecInternal {
      * padded with silence. Reject all subsequent frames.
      */
     int last_audio_frame;
+
+    /**
+     * The data for the last allocated audio frame.
+     * Stored here so we can free it.
+     */
+    uint8_t *audio_data;
 } AVCodecInternal;
 
 struct AVCodecDefault {
     const uint8_t *key;
     const uint8_t *value;
 };
-
-/**
- * Determine whether pix_fmt is a hardware accelerated format.
- */
-int ff_is_hwaccel_pix_fmt(enum AVPixelFormat pix_fmt);
 
 /**
  * Return the hardware accelerated codec for codec codec_id and
@@ -143,5 +143,12 @@ static av_always_inline int64_t ff_samples_to_time_base(AVCodecContext *avctx,
     return av_rescale_q(samples, (AVRational){ 1, avctx->sample_rate },
                         avctx->time_base);
 }
+
+/**
+ * Get a buffer for a frame. This is a wrapper around
+ * AVCodecContext.get_buffer() and should be used instead calling get_buffer()
+ * directly.
+ */
+int ff_get_buffer(AVCodecContext *avctx, AVFrame *frame);
 
 #endif /* AVCODEC_INTERNAL_H */

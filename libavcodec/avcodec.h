@@ -406,6 +406,8 @@ enum AVCodecID {
     AV_CODEC_ID_IAC,
     AV_CODEC_ID_ILBC,
     AV_CODEC_ID_OPUS,
+    AV_CODEC_ID_COMFORT_NOISE,
+    AV_CODEC_ID_TAK,
 
     /* subtitle codecs */
     AV_CODEC_ID_FIRST_SUBTITLE = 0x17000,          ///< A dummy ID pointing at the start of subtitle codecs.
@@ -871,6 +873,28 @@ enum AVPacketSideDataType {
     AV_PKT_DATA_H263_MB_INFO,
 };
 
+/**
+ * This structure stores compressed data. It is typically exported by demuxers
+ * and then passed as input to decoders, or received as output from encoders and
+ * then passed to muxers.
+ *
+ * For video, it should typically contain one compressed frame. For audio it may
+ * contain several compressed frames.
+ *
+ * AVPacket is one of the few structs in Libav, whose size is a part of public
+ * ABI. Thus it may be allocated on stack and no new fields can be added to it
+ * without libavcodec and libavformat major bump.
+ *
+ * The semantics of data ownership depends on the destruct field.
+ * If it is set, the packet data is dynamically allocated and is valid
+ * indefinitely until av_free_packet() is called (which in turn calls the
+ * destruct callback to free the data). If destruct is not set, the packet data
+ * is typically backed by some static buffer somewhere and is only valid for a
+ * limited time (e.g. until the next read call when demuxing).
+ *
+ * The side data is always allocated with av_malloc() and is freed in
+ * av_free_packet().
+ */
 typedef struct AVPacket {
     /**
      * Presentation timestamp in AVStream->time_base units; the time at which
@@ -1442,7 +1466,7 @@ typedef struct AVCodecContext {
     int ticks_per_frame;
 
     /**
-     * Encoder delay.
+     * Codec delay.
      *
      * Video:
      *   Number of frames the decoded output will be delayed relative to the
@@ -2195,7 +2219,12 @@ typedef struct AVCodecContext {
      *
      * Decoders cannot use the buffer after returning from
      * avcodec_decode_audio4(), so they will not call release_buffer(), as it
-     * is assumed to be released immediately upon return.
+     * is assumed to be released immediately upon return. In some rare cases,
+     * a decoder may need to call get_buffer() more than once in a single
+     * call to avcodec_decode_audio4(). In that case, when get_buffer() is
+     * called again after it has already been called once, the previously
+     * acquired buffer is assumed to be released at that time and may not be
+     * reused by the decoder.
      *
      * As a convenience, av_samples_get_buffer_size() and
      * av_samples_fill_arrays() in libavutil may be used by custom get_buffer()
@@ -2263,7 +2292,7 @@ typedef struct AVCodecContext {
 
     /**
      * ratecontrol qmin qmax limiting method
-     * 0-> clipping, 1-> use a nice continous function to limit qscale wthin qmin/qmax.
+     * 0-> clipping, 1-> use a nice continuous function to limit qscale wthin qmin/qmax.
      * - encoding: Set by user.
      * - decoding: unused
      */
@@ -3143,6 +3172,8 @@ enum AVSubtitleType {
     SUBTITLE_ASS,
 };
 
+#define AV_SUBTITLE_FLAG_FORCED 0x00000001
+
 typedef struct AVSubtitleRect {
     int x;         ///< top left corner  of pict, undefined when pict is not set
     int y;         ///< top left corner  of pict, undefined when pict is not set
@@ -3165,6 +3196,7 @@ typedef struct AVSubtitleRect {
      * struct.
      */
     char *ass;
+    int flags;
 } AVSubtitleRect;
 
 typedef struct AVSubtitle {
@@ -3864,6 +3896,10 @@ int av_parser_parse2(AVCodecParserContext *s,
                      int64_t pts, int64_t dts,
                      int64_t pos);
 
+/**
+ * @return 0 if the output buffer is a subset of the input, 1 if it is allocated and must be freed
+ * @deprecated use AVBitstreamFilter
+ */
 int av_parser_change(AVCodecParserContext *s,
                      AVCodecContext *avctx,
                      uint8_t **poutbuf, int *poutbuf_size,
@@ -4255,7 +4291,11 @@ int av_picture_pad(AVPicture *dst, const AVPicture *src, int height, int width, 
  * @{
  */
 
-void avcodec_get_chroma_sub_sample(enum AVPixelFormat pix_fmt, int *h_shift, int *v_shift);
+/**
+ * @deprecated Use av_pix_fmt_get_chroma_sub_sample
+ */
+
+void attribute_deprecated avcodec_get_chroma_sub_sample(enum AVPixelFormat pix_fmt, int *h_shift, int *v_shift);
 
 /**
  * Return a value representing the fourCC code associated to the

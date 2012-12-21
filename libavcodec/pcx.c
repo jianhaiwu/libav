@@ -26,6 +26,7 @@
 #include "avcodec.h"
 #include "bytestream.h"
 #include "get_bits.h"
+#include "internal.h"
 
 typedef struct PCXContext {
     AVFrame picture;
@@ -76,7 +77,7 @@ static void pcx_palette(const uint8_t **src, uint32_t *dst, unsigned int pallen)
         memset(dst, 0, (256 - pallen) * sizeof(*dst));
 }
 
-static int pcx_decode_frame(AVCodecContext *avctx, void *data, int *data_size,
+static int pcx_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
                             AVPacket *avpkt) {
     const uint8_t *buf = avpkt->data;
     int buf_size = avpkt->size;
@@ -147,7 +148,7 @@ static int pcx_decode_frame(AVCodecContext *avctx, void *data, int *data_size,
         return -1;
     if (w != avctx->width || h != avctx->height)
         avcodec_set_dimensions(avctx, w, h);
-    if (avctx->get_buffer(avctx, p) < 0) {
+    if (ff_get_buffer(avctx, p) < 0) {
         av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
         return -1;
     }
@@ -230,7 +231,7 @@ static int pcx_decode_frame(AVCodecContext *avctx, void *data, int *data_size,
     }
 
     *picture = s->picture;
-    *data_size = sizeof(AVFrame);
+    *got_frame = 1;
 
     ret = buf - bufstart;
 end:
