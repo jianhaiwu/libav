@@ -31,6 +31,7 @@
 #include "libavutil/opt.h"
 #include "libavutil/imgutils.h"
 #include "avcodec.h"
+#include "internal.h"
 #include "get_bits.h"
 #include "put_bits.h"
 #include "dsputil.h"
@@ -273,7 +274,12 @@ static int decode_slice_header(FFV1Context *f, FFV1Context *fs)
     unsigned ps, i, context_count;
     memset(state, 128, sizeof(state));
 
-    av_assert0(f->version > 2);
+    if (fs->ac > 1) {
+        for (i = 1; i < 256; i++) {
+            fs->c.one_state[i]        = f->state_transition[i];
+            fs->c.zero_state[256 - i] = 256 - fs->c.one_state[i];
+        }
+    }
 
     fs->slice_x      = get_symbol(c, state, 0) * f->width;
     fs->slice_y      = get_symbol(c, state, 0) * f->height;
@@ -788,7 +794,7 @@ static av_cold int ffv1_decode_init(AVCodecContext *avctx)
 }
 
 static int ffv1_decode_frame(AVCodecContext *avctx, void *data,
-                             int *data_size, AVPacket *avpkt)
+                             int *got_frame, AVPacket *avpkt)
 {
     const uint8_t *buf  = avpkt->data;
     int buf_size        = avpkt->size;
@@ -818,14 +824,14 @@ static int ffv1_decode_frame(AVCodecContext *avctx, void *data,
     } else {
         if (!f->key_frame_ok) {
             av_log(avctx, AV_LOG_ERROR,
-                   "Cant decode non keyframe without valid keyframe\n");
+                   "Cannot decode non-keyframe without valid keyframe\n");
             return AVERROR_INVALIDDATA;
         }
         p->key_frame = 0;
     }
 
     p->reference = 3; //for error concealment
-    if ((ret = avctx->get_buffer(avctx, p)) < 0) {
+    if ((ret = ff_get_buffer(avctx, p)) < 0) {
         av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
         return ret;
     }
@@ -895,7 +901,7 @@ static int ffv1_decode_frame(AVCodecContext *avctx, void *data,
     f->picture_number++;
 
     *picture   = *p;
-    *data_size = sizeof(AVFrame);
+    *got_frame = 1;
 
     FFSWAP(AVFrame, f->picture, f->last_picture);
 

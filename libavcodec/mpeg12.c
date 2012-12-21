@@ -2394,7 +2394,10 @@ static int decode_chunks(AVCodecContext *avctx,
                         thread_context->end_mb_y   = s2->mb_height;
                         if (s->slice_count) {
                             s2->thread_context[s->slice_count-1]->end_mb_y = mb_y;
-                            ff_update_duplicate_context(thread_context, s2);
+                            ret = ff_update_duplicate_context(thread_context,
+                                                              s2);
+                            if (ret < 0)
+                                return ret;
                         }
                         init_get_bits(&thread_context->gb, buf_ptr, input_size*8);
                         s->slice_count++;
@@ -2453,8 +2456,9 @@ static int mpeg_decode_frame(AVCodecContext *avctx,
 
     s->slice_count = 0;
 
-    if (avctx->extradata && !avctx->frame_number) {
+    if (avctx->extradata && !s->extradata_decoded) {
         int ret = decode_chunks(avctx, picture, got_output, avctx->extradata, avctx->extradata_size);
+        s->extradata_decoded = 1;
         if (ret < 0 && (avctx->err_recognition & AV_EF_EXPLODE))
             return ret;
     }

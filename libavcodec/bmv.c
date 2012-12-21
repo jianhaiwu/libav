@@ -19,8 +19,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "libavutil/channel_layout.h"
 #include "avcodec.h"
 #include "bytestream.h"
+#include "internal.h"
 
 enum BMVFlags{
     BMV_NOP = 0,
@@ -192,7 +194,8 @@ static int decode_bmv_frame(const uint8_t *source, int src_len, uint8_t *frame, 
     return 0;
 }
 
-static int decode_frame(AVCodecContext *avctx, void *data, int *data_size, AVPacket *pkt)
+static int decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
+                        AVPacket *pkt)
 {
     BMVDecContext * const c = avctx->priv_data;
     int type, scr_off;
@@ -241,7 +244,7 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *data_size, AVPac
         avctx->release_buffer(avctx, &c->pic);
 
     c->pic.reference = 3;
-    if ((ret = avctx->get_buffer(avctx, &c->pic)) < 0) {
+    if ((ret = ff_get_buffer(avctx, &c->pic)) < 0) {
         av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
         return ret;
     }
@@ -263,7 +266,7 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *data_size, AVPac
         outptr += c->pic.linesize[0];
     }
 
-    *data_size = sizeof(AVFrame);
+    *got_frame = 1;
     *(AVFrame*)data = c->pic;
 
     /* always report that the buffer was completely consumed */
@@ -304,12 +307,9 @@ static av_cold int bmv_aud_decode_init(AVCodecContext *avctx)
 {
     BMVAudioDecContext *c = avctx->priv_data;
 
-    if (avctx->channels != 2) {
-        av_log(avctx, AV_LOG_INFO, "invalid number of channels\n");
-        return AVERROR(EINVAL);
-    }
-
-    avctx->sample_fmt = AV_SAMPLE_FMT_S16;
+    avctx->channels       = 2;
+    avctx->channel_layout = AV_CH_LAYOUT_STEREO;
+    avctx->sample_fmt     = AV_SAMPLE_FMT_S16;
 
     avcodec_get_frame_defaults(&c->frame);
     avctx->coded_frame = &c->frame;
@@ -337,7 +337,7 @@ static int bmv_aud_decode_frame(AVCodecContext *avctx, void *data,
 
     /* get output buffer */
     c->frame.nb_samples = total_blocks * 32;
-    if ((ret = avctx->get_buffer(avctx, &c->frame)) < 0) {
+    if ((ret = ff_get_buffer(avctx, &c->frame)) < 0) {
         av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
         return ret;
     }

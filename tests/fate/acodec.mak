@@ -2,6 +2,7 @@ fate-acodec-%: CODEC = $(@:fate-acodec-%=%)
 fate-acodec-%: SRC = tests/data/asynth-44100-2.wav
 fate-acodec-%: CMD = enc_dec wav $(SRC) $(FMT) "-b 128k -c $(CODEC)" wav "-c pcm_s16le" -keep
 fate-acodec-%: CMP_UNIT = 2
+fate-acodec-%: REF = $(SRC_PATH)/tests/ref/acodec/$(@:fate-acodec-%=%)
 
 FATE_ACODEC_PCM-$(call ENCDEC, PCM_ALAW,  WAV) += alaw
 FATE_ACODEC_PCM-$(call ENCDEC, PCM_MULAW, WAV) += mulaw
@@ -18,7 +19,9 @@ FATE_ACODEC_PCM-$(call ENCDEC, PCM_F32LE, WAV) += f32le
 FATE_ACODEC_PCM-$(call ENCDEC, PCM_F64BE, AU)  += f64be
 FATE_ACODEC_PCM-$(call ENCDEC, PCM_F64LE, WAV) += f64le
 
-FATE_ACODEC += $(FATE_ACODEC_PCM-yes:%=fate-acodec-pcm-%)
+FATE_ACODEC_PCM := $(FATE_ACODEC_PCM-yes:%=fate-acodec-pcm-%)
+FATE_ACODEC += $(FATE_ACODEC_PCM)
+fate-acodec-pcm: $(FATE_ACODEC_PCM)
 
 fate-acodec-pcm-%: FMT = wav
 fate-acodec-pcm-%: CODEC = pcm_$(@:fate-acodec-pcm-%=%)
@@ -34,7 +37,9 @@ FATE_ACODEC_ADPCM-$(call ENCDEC, ADPCM_MS,      WAV)  += ms
 FATE_ACODEC_ADPCM-$(call ENCDEC, ADPCM_SWF,     FLV)  += swf
 FATE_ACODEC_ADPCM-$(call ENCDEC, ADPCM_YAMAHA,  WAV)  += yamaha
 
-FATE_ACODEC += $(FATE_ACODEC_ADPCM-yes:%=fate-acodec-adpcm-%)
+FATE_ACODEC_ADPCM := $(FATE_ACODEC_ADPCM-yes:%=fate-acodec-adpcm-%)
+FATE_ACODEC += $(FATE_ACODEC_ADPCM)
+fate-acodec-adpcm: $(FATE_ACODEC_ADPCM)
 
 fate-acodec-adpcm-%: CODEC = adpcm_$(@:fate-acodec-adpcm-%=%)
 

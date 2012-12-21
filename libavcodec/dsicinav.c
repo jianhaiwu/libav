@@ -24,8 +24,10 @@
  * Delphine Software International CIN audio/video decoders
  */
 
+#include "libavutil/channel_layout.h"
 #include "avcodec.h"
 #include "bytestream.h"
+#include "internal.h"
 #include "mathops.h"
 
 
@@ -199,7 +201,7 @@ static void cin_decode_rle(const unsigned char *src, int src_size, unsigned char
 }
 
 static int cinvideo_decode_frame(AVCodecContext *avctx,
-                                 void *data, int *data_size,
+                                 void *data, int *got_frame,
                                  AVPacket *avpkt)
 {
     const uint8_t *buf = avpkt->data;
@@ -295,7 +297,7 @@ static int cinvideo_decode_frame(AVCodecContext *avctx,
 
     FFSWAP(uint8_t *, cin->bitmap_table[CIN_CUR_BMP], cin->bitmap_table[CIN_PRE_BMP]);
 
-    *data_size = sizeof(AVFrame);
+    *got_frame = 1;
     *(AVFrame *)data = cin->frame;
 
     return buf_size;
@@ -319,14 +321,11 @@ static av_cold int cinaudio_decode_init(AVCodecContext *avctx)
 {
     CinAudioContext *cin = avctx->priv_data;
 
-    if (avctx->channels != 1) {
-        av_log_ask_for_sample(avctx, "Number of channels is not supported\n");
-        return AVERROR_PATCHWELCOME;
-    }
-
     cin->initial_decode_frame = 1;
-    cin->delta = 0;
-    avctx->sample_fmt = AV_SAMPLE_FMT_S16;
+    cin->delta                = 0;
+    avctx->sample_fmt         = AV_SAMPLE_FMT_S16;
+    avctx->channels           = 1;
+    avctx->channel_layout     = AV_CH_LAYOUT_MONO;
 
     avcodec_get_frame_defaults(&cin->frame);
     avctx->coded_frame = &cin->frame;
@@ -345,7 +344,7 @@ static int cinaudio_decode_frame(AVCodecContext *avctx, void *data,
 
     /* get output buffer */
     cin->frame.nb_samples = avpkt->size - cin->initial_decode_frame;
-    if ((ret = avctx->get_buffer(avctx, &cin->frame)) < 0) {
+    if ((ret = ff_get_buffer(avctx, &cin->frame)) < 0) {
         av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
         return ret;
     }

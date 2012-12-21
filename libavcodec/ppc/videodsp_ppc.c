@@ -1,4 +1,6 @@
 /*
+ * Copyright (c) 2003-2004 Romain Dolbeau
+ *
  * This file is part of Libav.
  *
  * Libav is free software; you can redistribute it and/or
@@ -16,19 +18,18 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "intmath.h"
+#include "libavcodec/videodsp.h"
 
-/* undef these to get the function prototypes from common.h */
-#undef av_log2
-#undef av_log2_16bit
-#include "common.h"
-
-int av_log2(unsigned v)
+static void prefetch_ppc(uint8_t *mem, ptrdiff_t stride, int h)
 {
-    return ff_log2(v);
+    register const uint8_t *p = mem;
+    do {
+        __asm__ volatile ("dcbt 0,%0" : : "r" (p));
+        p += stride;
+    } while(--h);
 }
 
-int av_log2_16bit(unsigned v)
+void ff_videodsp_init_ppc(VideoDSPContext *ctx, int bpc)
 {
-    return ff_log2_16bit(v);
+    ctx->prefetch = prefetch_ppc;
 }

@@ -35,6 +35,7 @@
 #include "dsputil.h"
 #include "aandcttab.h"
 #include "eaidct.h"
+#include "internal.h"
 
 typedef struct TgqContext {
     AVCodecContext *avctx;
@@ -183,7 +184,7 @@ static void tgq_calculate_qtable(TgqContext *s, int quant){
 }
 
 static int tgq_decode_frame(AVCodecContext *avctx,
-                            void *data, int *data_size,
+                            void *data, int *got_frame,
                             AVPacket *avpkt){
     const uint8_t *buf = avpkt->data;
     int buf_size = avpkt->size;
@@ -216,7 +217,7 @@ static int tgq_decode_frame(AVCodecContext *avctx,
         s->frame.key_frame = 1;
         s->frame.pict_type = AV_PICTURE_TYPE_I;
         s->frame.buffer_hints = FF_BUFFER_HINTS_VALID;
-        if (avctx->get_buffer(avctx, &s->frame)) {
+        if (ff_get_buffer(avctx, &s->frame)) {
             av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
             return -1;
         }
@@ -226,7 +227,7 @@ static int tgq_decode_frame(AVCodecContext *avctx,
         for (x = 0; x < FFALIGN(avctx->width, 16) >> 4; x++)
             tgq_decode_mb(s, y, x);
 
-    *data_size = sizeof(AVFrame);
+    *got_frame = 1;
     *(AVFrame*)data = s->frame;
 
     return avpkt->size;

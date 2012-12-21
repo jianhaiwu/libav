@@ -41,10 +41,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "libavutil/mem.h"
 #include "avcodec.h"
 #include "bytestream.h"
+#include "internal.h"
 #include "lcl.h"
-#include "libavutil/lzo.h"
 
 #if CONFIG_ZLIB_DECODER
 #include <zlib.h>
@@ -157,7 +158,7 @@ static int zlib_decomp(AVCodecContext *avctx, const uint8_t *src, int src_len, i
  * Decode a frame
  *
  */
-static int decode_frame(AVCodecContext *avctx, void *data, int *data_size, AVPacket *avpkt)
+static int decode_frame(AVCodecContext *avctx, void *data, int *got_frame, AVPacket *avpkt)
 {
     const uint8_t *buf = avpkt->data;
     int buf_size = avpkt->size;
@@ -180,7 +181,7 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *data_size, AVPac
 
     c->pic.reference = 0;
     c->pic.buffer_hints = FF_BUFFER_HINTS_VALID;
-    if(avctx->get_buffer(avctx, &c->pic) < 0){
+    if(ff_get_buffer(avctx, &c->pic) < 0){
         av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
         return -1;
     }
@@ -460,7 +461,7 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *data_size, AVPac
         return -1;
     }
 
-    *data_size = sizeof(AVFrame);
+    *got_frame = 1;
     *(AVFrame*)data = c->pic;
 
     /* always report that the buffer was completely consumed */
@@ -476,7 +477,8 @@ static av_cold int decode_init(AVCodecContext *avctx)
 {
     LclDecContext * const c = avctx->priv_data;
     unsigned int basesize = avctx->width * avctx->height;
-    unsigned int max_basesize = FFALIGN(avctx->width, 4) * FFALIGN(avctx->height, 4) + AV_LZO_OUTPUT_PADDING;
+    unsigned int max_basesize = FFALIGN(avctx->width,  4) *
+                                FFALIGN(avctx->height, 4);
     unsigned int max_decomp_size;
 
     if (avctx->extradata_size < 8) {

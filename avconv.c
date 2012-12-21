@@ -32,7 +32,7 @@
 #include "libswscale/swscale.h"
 #include "libavresample/avresample.h"
 #include "libavutil/opt.h"
-#include "libavutil/audioconvert.h"
+#include "libavutil/channel_layout.h"
 #include "libavutil/parseutils.h"
 #include "libavutil/samplefmt.h"
 #include "libavutil/colorspace.h"
@@ -621,8 +621,7 @@ static double psnr(double d)
     return -10.0 * log(d) / log(10.0);
 }
 
-static void do_video_stats(AVFormatContext *os, OutputStream *ost,
-                           int frame_size)
+static void do_video_stats(OutputStream *ost, int frame_size)
 {
     AVCodecContext *enc;
     int frame_number;
@@ -706,7 +705,7 @@ static int poll_filter(OutputStream *ost)
 
         do_video_out(of->ctx, ost, filtered_frame, &frame_size);
         if (vstats_filename && frame_size)
-            do_video_stats(of->ctx, ost, frame_size);
+            do_video_stats(ost, frame_size);
         break;
     case AVMEDIA_TYPE_AUDIO:
         do_audio_out(of->ctx, ost, filtered_frame);
@@ -807,8 +806,15 @@ static void print_report(int is_last_report, int64_t timer_start)
     oc = output_files[0]->ctx;
 
     total_size = avio_size(oc->pb);
-    if (total_size < 0) // FIXME improve avio_size() so it works with non seekable output too
+    if (total_size <= 0) // FIXME improve avio_size() so it works with non seekable output too
         total_size = avio_tell(oc->pb);
+    if (total_size < 0) {
+        char errbuf[128];
+        av_strerror(total_size, errbuf, sizeof(errbuf));
+        av_log(NULL, AV_LOG_VERBOSE, "Bitrate not available, "
+               "avio_tell() failed: %s\n", errbuf);
+        total_size = 0;
+    }
 
     buf[0] = '\0';
     ti1 = 1e10;
@@ -958,6 +964,8 @@ static void flush_encoders(void)
                     pkt.pts = av_rescale_q(pkt.pts, enc->time_base, ost->st->time_base);
                 if (pkt.dts != AV_NOPTS_VALUE)
                     pkt.dts = av_rescale_q(pkt.dts, enc->time_base, ost->st->time_base);
+                if (pkt.duration > 0)
+                    pkt.duration = av_rescale_q(pkt.duration, enc->time_base, ost->st->time_base);
                 write_frame(os, &pkt, ost);
             }
 
@@ -1039,7 +1047,6 @@ static void do_streamcopy(InputStream *ist, OutputStream *ost, const AVPacket *p
 
     write_frame(of->ctx, &opkt, ost);
     ost->st->codec->frame_number++;
-    av_free_packet(&opkt);
 }
 
 static void rate_emu_sleep(InputStream *ist)
@@ -1074,13 +1081,10 @@ static int decode_audio(InputStream *ist, AVPacket *pkt, int *got_output)
 {
     AVFrame *decoded_frame;
     AVCodecContext *avctx = ist->st->codec;
-    int bps = av_get_bytes_per_sample(ist->st->codec->sample_fmt);
     int i, ret, resample_changed;
 
     if (!ist->decoded_frame && !(ist->decoded_frame = avcodec_alloc_frame()))
         return AVERROR(ENOMEM);
-    else
-        avcodec_get_frame_defaults(ist->decoded_frame);
     decoded_frame = ist->decoded_frame;
 
     ret = avcodec_decode_audio4(avctx, decoded_frame, got_output, pkt);
@@ -1099,64 +1103,6 @@ static int decode_audio(InputStream *ist, AVPacket *pkt, int *got_output)
     else if (pkt->pts != AV_NOPTS_VALUE) {
         decoded_frame->pts = pkt->pts;
         pkt->pts           = AV_NOPTS_VALUE;
-    }
-
-    // preprocess audio (volume)
-    if (audio_volume != 256) {
-        int decoded_data_size = decoded_frame->nb_samples * avctx->channels * bps;
-        void *samples = decoded_frame->data[0];
-        switch (avctx->sample_fmt) {
-        case AV_SAMPLE_FMT_U8:
-        {
-            uint8_t *volp = samples;
-            for (i = 0; i < (decoded_data_size / sizeof(*volp)); i++) {
-                int v = (((*volp - 128) * audio_volume + 128) >> 8) + 128;
-                *volp++ = av_clip_uint8(v);
-            }
-            break;
-        }
-        case AV_SAMPLE_FMT_S16:
-        {
-            int16_t *volp = samples;
-            for (i = 0; i < (decoded_data_size / sizeof(*volp)); i++) {
-                int v = ((*volp) * audio_volume + 128) >> 8;
-                *volp++ = av_clip_int16(v);
-            }
-            break;
-        }
-        case AV_SAMPLE_FMT_S32:
-        {
-            int32_t *volp = samples;
-            for (i = 0; i < (decoded_data_size / sizeof(*volp)); i++) {
-                int64_t v = (((int64_t)*volp * audio_volume + 128) >> 8);
-                *volp++ = av_clipl_int32(v);
-            }
-            break;
-        }
-        case AV_SAMPLE_FMT_FLT:
-        {
-            float *volp = samples;
-            float scale = audio_volume / 256.f;
-            for (i = 0; i < (decoded_data_size / sizeof(*volp)); i++) {
-                *volp++ *= scale;
-            }
-            break;
-        }
-        case AV_SAMPLE_FMT_DBL:
-        {
-            double *volp = samples;
-            double scale = audio_volume / 256.;
-            for (i = 0; i < (decoded_data_size / sizeof(*volp)); i++) {
-                *volp++ *= scale;
-            }
-            break;
-        }
-        default:
-            av_log(NULL, AV_LOG_FATAL,
-                   "Audio volume adjustment on sample format %s is not supported.\n",
-                   av_get_sample_fmt_name(ist->st->codec->sample_fmt));
-            exit(1);
-        }
     }
 
     rate_emu_sleep(ist);
@@ -1220,8 +1166,6 @@ static int decode_video(InputStream *ist, AVPacket *pkt, int *got_output)
 
     if (!ist->decoded_frame && !(ist->decoded_frame = avcodec_alloc_frame()))
         return AVERROR(ENOMEM);
-    else
-        avcodec_get_frame_defaults(ist->decoded_frame);
     decoded_frame = ist->decoded_frame;
 
     ret = avcodec_decode_video2(ist->st->codec,
@@ -2401,21 +2345,12 @@ static int64_t getmaxrss(void)
 #endif
 }
 
-static void parse_cpuflags(int argc, char **argv, const OptionDef *options)
-{
-    int idx = locate_option(argc, argv, options, "cpuflags");
-    if (idx && argv[idx + 1])
-        opt_cpuflags(NULL, "cpuflags", argv[idx + 1]);
-}
-
 int main(int argc, char **argv)
 {
-    OptionsContext o = { 0 };
+    int ret;
     int64_t ti;
 
     atexit(exit_program);
-
-    reset_options(&o);
 
     av_log_set_flags(AV_LOG_SKIP_REPEATED);
     parse_loglevel(argc, argv, options);
@@ -2430,10 +2365,10 @@ int main(int argc, char **argv)
 
     show_banner();
 
-    parse_cpuflags(argc, argv, options);
-
-    /* parse options */
-    parse_options(&o, argc, argv, options, opt_output_file);
+    /* parse options and open all input/output files */
+    ret = avconv_parse_options(argc, argv);
+    if (ret < 0)
+        exit(1);
 
     if (nb_output_files <= 0 && nb_input_files == 0) {
         show_usage();

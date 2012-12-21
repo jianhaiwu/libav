@@ -91,6 +91,7 @@ void avcodec_register_all(void)
     REGISTER_DECODER (CINEPAK, cinepak);
     REGISTER_ENCDEC  (CLJR, cljr);
     REGISTER_DECODER (CLLC, cllc);
+    REGISTER_ENCDEC  (COMFORTNOISE, comfortnoise);
     REGISTER_DECODER (CSCD, cscd);
     REGISTER_DECODER (CYUV, cyuv);
     REGISTER_DECODER (DFA, dfa);
@@ -294,6 +295,7 @@ void avcodec_register_all(void)
     REGISTER_DECODER (SHORTEN, shorten);
     REGISTER_DECODER (SIPR, sipr);
     REGISTER_DECODER (SMACKAUD, smackaud);
+    REGISTER_DECODER (TAK, tak);
     REGISTER_DECODER (TRUEHD, truehd);
     REGISTER_DECODER (TRUESPEECH, truespeech);
     REGISTER_DECODER (TTA, tta);
@@ -430,6 +432,7 @@ void avcodec_register_all(void)
     REGISTER_PARSER  (PNM, pnm);
     REGISTER_PARSER  (RV30, rv30);
     REGISTER_PARSER  (RV40, rv40);
+    REGISTER_PARSER  (TAK, tak);
     REGISTER_PARSER  (VC1, vc1);
     REGISTER_PARSER  (VORBIS, vorbis);
     REGISTER_PARSER  (VP3, vp3);

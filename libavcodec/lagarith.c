@@ -198,8 +198,8 @@ static int lag_read_prob_header(lag_rac *rac, GetBitContext *gb)
             }
             /* Comment from reference source:
              * if (b & 0x80 == 0) {     // order of operations is 'wrong'; it has been left this way
-             *                          // since the compression change is negligable and fixing it
-             *                          // breaks backwards compatibilty
+             *                          // since the compression change is negligible and fixing it
+             *                          // breaks backwards compatibility
              *      b =- (signed int)b;
              *      b &= 0xFF;
              * } else {
@@ -497,7 +497,7 @@ static int lag_decode_arith_plane(LagarithContext *l, uint8_t *dst,
  * @return number of consumed bytes on success or negative if decode fails
  */
 static int lag_decode_frame(AVCodecContext *avctx,
-                            void *data, int *data_size, AVPacket *avpkt)
+                            void *data, int *got_frame, AVPacket *avpkt)
 {
     const uint8_t *buf = avpkt->data;
     int buf_size = avpkt->size;
@@ -664,7 +664,7 @@ static int lag_decode_frame(AVCodecContext *avctx,
     }
 
     *picture = *p;
-    *data_size = sizeof(AVFrame);
+    *got_frame = 1;
 
     return buf_size;
 }

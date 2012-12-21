@@ -23,6 +23,7 @@
 #include "libavutil/imgutils.h"
 #include "bytestream.h"
 #include "avcodec.h"
+#include "internal.h"
 
 typedef struct DPXContext {
     AVFrame picture;
@@ -51,7 +52,7 @@ static inline unsigned make_16bit(unsigned value)
 
 static int decode_frame(AVCodecContext *avctx,
                         void *data,
-                        int *data_size,
+                        int *got_frame,
                         AVPacket *avpkt)
 {
     const uint8_t *buf = avpkt->data;
@@ -159,7 +160,7 @@ static int decode_frame(AVCodecContext *avctx,
         return -1;
     if (w != avctx->width || h != avctx->height)
         avcodec_set_dimensions(avctx, w, h);
-    if (avctx->get_buffer(avctx, p) < 0) {
+    if (ff_get_buffer(avctx, p) < 0) {
         av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
         return -1;
     }
@@ -212,7 +213,7 @@ static int decode_frame(AVCodecContext *avctx,
     }
 
     *picture   = s->picture;
-    *data_size = sizeof(AVPicture);
+    *got_frame = 1;
 
     return buf_size;
 }
@@ -243,4 +244,5 @@ AVCodec ff_dpx_decoder = {
     .close          = decode_end,
     .decode         = decode_frame,
     .long_name      = NULL_IF_CONFIG_SMALL("DPX image"),
+    .capabilities   = CODEC_CAP_DR1,
 };

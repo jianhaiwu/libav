@@ -27,6 +27,7 @@
 
 #include "avcodec.h"
 #include "get_bits.h"
+#include "internal.h"
 
 typedef struct YopDecContext {
     AVFrame frame;
@@ -187,7 +188,7 @@ static void yop_next_macroblock(YopDecContext *s)
     s->dstptr += 2;
 }
 
-static int yop_decode_frame(AVCodecContext *avctx, void *data, int *data_size,
+static int yop_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
                             AVPacket *avpkt)
 {
     YopDecContext *s = avctx->priv_data;
@@ -198,7 +199,7 @@ static int yop_decode_frame(AVCodecContext *avctx, void *data, int *data_size,
     if (s->frame.data[0])
         avctx->release_buffer(avctx, &s->frame);
 
-    ret = avctx->get_buffer(avctx, &s->frame);
+    ret = ff_get_buffer(avctx, &s->frame);
     if (ret < 0) {
         av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
         return ret;
@@ -242,7 +243,7 @@ static int yop_decode_frame(AVCodecContext *avctx, void *data, int *data_size,
         yop_next_macroblock(s);
     }
 
-    *data_size        = sizeof(AVFrame);
+    *got_frame = 1;
     *(AVFrame *) data = s->frame;
     return avpkt->size;
 }
@@ -256,4 +257,5 @@ AVCodec ff_yop_decoder = {
     .close          = yop_decode_close,
     .decode         = yop_decode_frame,
     .long_name      = NULL_IF_CONFIG_SMALL("Psygnosis YOP Video"),
+    .capabilities   = CODEC_CAP_DR1,
 };

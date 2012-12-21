@@ -38,6 +38,7 @@
 #include "libavutil/pixdesc.h"
 #include "avcodec.h"
 #include "dsputil.h"
+#include "internal.h"
 #include "get_bits.h"
 #include "put_bits.h"
 #include "simple_idct.h"
@@ -310,7 +311,7 @@ static int dv_decode_video_segment(AVCodecContext *avctx, void *arg)
 /* NOTE: exactly one frame must be given (120000 bytes for NTSC,
    144000 bytes for PAL - or twice those for 50Mbps) */
 static int dvvideo_decode_frame(AVCodecContext *avctx,
-                                 void *data, int *data_size,
+                                 void *data, int *got_frame,
                                  AVPacket *avpkt)
 {
     uint8_t *buf = avpkt->data;
@@ -334,7 +335,7 @@ static int dvvideo_decode_frame(AVCodecContext *avctx,
     avctx->pix_fmt   = s->sys->pix_fmt;
     avctx->time_base = s->sys->time_base;
     avcodec_set_dimensions(avctx, s->sys->width, s->sys->height);
-    if (avctx->get_buffer(avctx, &s->picture) < 0) {
+    if (ff_get_buffer(avctx, &s->picture) < 0) {
         av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
         return -1;
     }
@@ -348,7 +349,7 @@ static int dvvideo_decode_frame(AVCodecContext *avctx,
     emms_c();
 
     /* return image */
-    *data_size = sizeof(AVFrame);
+    *got_frame = 1;
     *(AVFrame*)data = s->picture;
 
     /* Determine the codec's sample_aspect ratio from the packet */

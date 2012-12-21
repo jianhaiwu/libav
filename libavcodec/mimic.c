@@ -301,7 +301,7 @@ static void prepare_avpic(MimicContext *ctx, AVPicture *dst, AVPicture *src)
 }
 
 static int mimic_decode_frame(AVCodecContext *avctx, void *data,
-                              int *data_size, AVPacket *avpkt)
+                              int *got_frame, AVPacket *avpkt)
 {
     const uint8_t *buf = avpkt->data;
     int buf_size = avpkt->size;
@@ -370,8 +370,7 @@ static int mimic_decode_frame(AVCodecContext *avctx, void *data,
 
     ff_thread_finish_setup(avctx);
 
-    av_fast_malloc(&ctx->swap_buf, &ctx->swap_buf_size,
-                                 swap_buf_size + FF_INPUT_BUFFER_PADDING_SIZE);
+    av_fast_padded_malloc(&ctx->swap_buf, &ctx->swap_buf_size, swap_buf_size);
     if(!ctx->swap_buf)
         return AVERROR(ENOMEM);
 
@@ -390,7 +389,7 @@ static int mimic_decode_frame(AVCodecContext *avctx, void *data,
     }
 
     *(AVFrame*)data = ctx->buf_ptrs[ctx->cur_index];
-    *data_size = sizeof(AVFrame);
+    *got_frame      = 1;
 
     ctx->prev_index = ctx->next_prev_index;
     ctx->cur_index  = ctx->next_cur_index;

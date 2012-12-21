@@ -216,17 +216,15 @@ static inline int svq3_decode_block(GetBitContext *gb, DCTELEM *block,
     static const uint8_t *const scan_patterns[4] =
     { luma_dc_zigzag_scan, zigzag_scan, svq3_scan, chroma_dc_scan };
 
-    int run, level, sign, vlc, limit;
+    int run, level, limit;
+    unsigned vlc;
     const int intra           = 3 * type >> 2;
     const uint8_t *const scan = scan_patterns[type];
 
     for (limit = (16 >> intra); index < 16; index = limit, limit += 8) {
         for (; (vlc = svq3_get_ue_golomb(gb)) != 0; index++) {
-            if (vlc == INVALID_VLC)
-                return -1;
-
-            sign = (vlc & 0x1) - 1;
-            vlc  = vlc + 1 >> 1;
+            int sign = (vlc & 1) ? 0 : -1;
+            vlc      = vlc + 1 >> 1;
 
             if (type == 3) {
                 if (vlc < 3) {
@@ -295,9 +293,9 @@ static inline void svq3_mc_dir_part(MpegEncContext *s,
     src  = pic->f.data[0] + mx + my * s->linesize;
 
     if (emu) {
-        s->dsp.emulated_edge_mc(s->edge_emu_buffer, src, s->linesize,
-                                width + 1, height + 1,
-                                mx, my, s->h_edge_pos, s->v_edge_pos);
+        s->vdsp.emulated_edge_mc(s->edge_emu_buffer, src, s->linesize,
+                                 width + 1, height + 1,
+                                 mx, my, s->h_edge_pos, s->v_edge_pos);
         src = s->edge_emu_buffer;
     }
     if (thirdpel)
@@ -321,10 +319,10 @@ static inline void svq3_mc_dir_part(MpegEncContext *s,
             src  = pic->f.data[i] + mx + my * s->uvlinesize;
 
             if (emu) {
-                s->dsp.emulated_edge_mc(s->edge_emu_buffer, src, s->uvlinesize,
-                                        width + 1, height + 1,
-                                        mx, my, (s->h_edge_pos >> 1),
-                                        s->v_edge_pos >> 1);
+                s->vdsp.emulated_edge_mc(s->edge_emu_buffer, src, s->uvlinesize,
+                                         width + 1, height + 1,
+                                         mx, my, (s->h_edge_pos >> 1),
+                                         s->v_edge_pos >> 1);
                 src = s->edge_emu_buffer;
             }
             if (thirdpel)
@@ -752,6 +750,7 @@ static int svq3_decode_slice_header(AVCodecContext *avctx)
     MpegEncContext *s = &h->s;
     const int mb_xy   = h->mb_xy;
     int i, header;
+    unsigned slice_id;
 
     header = get_bits(&s->gb, 8);
 
@@ -786,12 +785,12 @@ static int svq3_decode_slice_header(AVCodecContext *avctx)
         skip_bits_long(&s->gb, 0);
     }
 
-    if ((i = svq3_get_ue_golomb(&s->gb)) == INVALID_VLC || i >= 3) {
-        av_log(h->s.avctx, AV_LOG_ERROR, "illegal slice type %d \n", i);
+    if ((slice_id = svq3_get_ue_golomb(&s->gb)) >= 3) {
+        av_log(h->s.avctx, AV_LOG_ERROR, "illegal slice type %d \n", slice_id);
         return -1;
     }
 
-    h->slice_type = golomb_to_pict_type[i];
+    h->slice_type = golomb_to_pict_type[slice_id];
 
     if ((header & 0x9F) == 2) {
         i              = (s->mb_num < 64) ? 6 : (1 + av_log2(s->mb_num - 1));
@@ -1003,21 +1002,21 @@ static av_cold int svq3_decode_init(AVCodecContext *avctx)
 }
 
 static int svq3_decode_frame(AVCodecContext *avctx, void *data,
-                             int *data_size, AVPacket *avpkt)
+                             int *got_frame, AVPacket *avpkt)
 {
     const uint8_t *buf = avpkt->data;
     SVQ3Context *svq3  = avctx->priv_data;
     H264Context *h     = &svq3->h;
     MpegEncContext *s  = &h->s;
     int buf_size       = avpkt->size;
-    int m, mb_type;
+    int m;
 
     /* special case for last picture */
     if (buf_size == 0) {
         if (s->next_picture_ptr && !s->low_delay) {
             *(AVFrame *) data   = s->next_picture.f;
             s->next_picture_ptr = NULL;
-            *data_size          = sizeof(AVFrame);
+            *got_frame          = 1;
         }
         return 0;
     }
@@ -1093,6 +1092,7 @@ static int svq3_decode_frame(AVCodecContext *avctx, void *data,
 
     for (s->mb_y = 0; s->mb_y < s->mb_height; s->mb_y++) {
         for (s->mb_x = 0; s->mb_x < s->mb_width; s->mb_x++) {
+            unsigned mb_type;
             h->mb_xy = s->mb_x + s->mb_y * s->mb_stride;
 
             if ((get_bits_count(&s->gb) + 7) >= s->gb.size_in_bits &&
@@ -1113,7 +1113,7 @@ static int svq3_decode_frame(AVCodecContext *avctx, void *data,
                 mb_type += 8;
             else if (s->pict_type == AV_PICTURE_TYPE_B && mb_type >= 4)
                 mb_type += 4;
-            if ((unsigned)mb_type > 33 || svq3_decode_mb(svq3, mb_type)) {
+            if (mb_type > 33 || svq3_decode_mb(svq3, mb_type)) {
                 av_log(h->s.avctx, AV_LOG_ERROR,
                        "error while decoding MB %d %d\n", s->mb_x, s->mb_y);
                 return -1;
@@ -1139,7 +1139,7 @@ static int svq3_decode_frame(AVCodecContext *avctx, void *data,
 
     /* Do not output the last pic after seeking. */
     if (s->last_picture_ptr || s->low_delay)
-        *data_size = sizeof(AVFrame);
+        *got_frame = 1;
 
     return buf_size;
 }

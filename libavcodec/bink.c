@@ -25,6 +25,7 @@
 #include "dsputil.h"
 #include "binkdata.h"
 #include "binkdsp.h"
+#include "internal.h"
 #include "mathops.h"
 
 #define BITSTREAM_READER_LE
@@ -1160,7 +1161,7 @@ static int bink_decode_plane(BinkContext *c, GetBitContext *gb, int plane_idx,
     return 0;
 }
 
-static int decode_frame(AVCodecContext *avctx, void *data, int *data_size, AVPacket *pkt)
+static int decode_frame(AVCodecContext *avctx, void *data, int *got_frame, AVPacket *pkt)
 {
     BinkContext * const c = avctx->priv_data;
     GetBitContext gb;
@@ -1171,7 +1172,7 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *data_size, AVPac
         if(c->pic.data[0])
             avctx->release_buffer(avctx, &c->pic);
 
-        if(avctx->get_buffer(avctx, &c->pic) < 0){
+        if(ff_get_buffer(avctx, &c->pic) < 0){
             av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
             return -1;
         }
@@ -1207,7 +1208,7 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *data_size, AVPac
     }
     emms_c();
 
-    *data_size = sizeof(AVFrame);
+    *got_frame = 1;
     *(AVFrame*)data = c->pic;
 
     if (c->version > 'b')
@@ -1336,4 +1337,5 @@ AVCodec ff_bink_decoder = {
     .close          = decode_end,
     .decode         = decode_frame,
     .long_name      = NULL_IF_CONFIG_SMALL("Bink video"),
+    .capabilities   = CODEC_CAP_DR1,
 };
