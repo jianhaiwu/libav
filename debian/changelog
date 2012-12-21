@@ -1,3 +1,9 @@
+libav (6:9~beta3-1) experimental; urgency=low
+
+  * New upstream version.
+
+ -- Reinhard Tartler <siretart@tauware.de>  Fri, 21 Dec 2012 15:32:13 +0100
+
 libav (6:9~beta2-4) experimental; urgency=low
 
   * Fix compilation on the buildds
