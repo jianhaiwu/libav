@@ -6,7 +6,7 @@ Forwarded: not-needed
 
 --- a/cmdutils.c
 +++ b/cmdutils.c
-@@ -458,7 +458,9 @@ void print_error(const char *filename, i
+@@ -712,7 +712,9 @@ void print_error(const char *filename, i
      av_log(NULL, AV_LOG_ERROR, "%s: %s\n", filename, errbuf_ptr);
  }
  
