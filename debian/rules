@@ -1,5 +1,9 @@
 #!/usr/bin/make -f
 
+include /usr/share/cdbs/1/rules/utils.mk
+
+DEB_COPYRIGHT_CHECK_MERGE_SAME_LICENSE = yes, please!
+
 EPOCH=6:
 DEB_SOURCE := $(shell dpkg-parsechangelog | sed -n 's/^Source: //p')
 DEB_VERSION := $(shell dpkg-parsechangelog | sed -n 's/^Version: //p')
@@ -129,7 +133,7 @@ build-stamp: $(addprefix build-stamp-, $(FLAVORS)) debian-shared/tools/qt-fastst
 build-extra: $(addprefix build-extra-stamp-, $(filter-out static,$(FLAVORS)))
 	touch $@
 
-clean:
+clean::
 	dh_testdir
 	rm -f build-stamp build-extra $(addprefix build-stamp-, $(FLAVORS)) \
 	    $(addprefix build-extra-stamp-, $(FLAVORS)) \
