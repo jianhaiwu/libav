@@ -357,6 +357,15 @@ License: LGPL-2.1+~Libav
  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
  License for more details.
+ .
+ Comment:
+ .
+ On Debian systems the 'GNU Lesser General Public License' version 2.1
+ is located in '/usr/share/common-licenses/LGPL-2.1'.
+ .
+ You should have received a copy of the 'GNU Lesser General Public
+ License' along with this program.  If not, see
+ <http://www.gnu.org/licenses/>.
 
 License: GPL-2+~Libav
  Libav is free software; you can redistribute it and/or modify it under
@@ -368,6 +377,14 @@ License: GPL-2+~Libav
  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  for more details.
+ .
+ Comment:
+ .
+ On Debian systems the 'GNU General Public License' version 2 is located
+ in '/usr/share/common-licenses/GPL-2'.
+ .
+ You should have received a copy of the 'GNU General Public License'
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 License: GPL-2+~GCC
  GNU CC is free software; you can redistribute it and/or modify it under
@@ -381,8 +398,6 @@ License: GPL-2+~GCC
  for more details.
 
 License: Apache-2.0
- License:
- .
  Licensed under the Apache License v2.0
  .
  http://www.apache.org/licenses/LICENSE-2.0
