@@ -252,11 +252,6 @@ Comments:
  Some copyright holder details extracted from referenced sources at
  <http://samples.libav.org/A-codecs/Nelly_Moser/ASAO/ASAO.zip>.
 
-Files: debian/recordshow.sh
-Copyright: 2008, Daniel Dickinson <cshore@wightman.ca>
-License: None
- FIXME
-
 Files: doc/doxy/doxy_stylesheet.css
 Copyright: 2012, Twitter, Inc
 License: Apache-2.0

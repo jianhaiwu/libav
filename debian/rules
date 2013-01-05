@@ -214,7 +214,6 @@ ifeq ($(DEB_SOURCE), libav)
 		-plibavformat-dev -plibavfilter-dev -plibavresample-dev \
 		-plibswscale-dev -plibavutil-dev -plibav-doc \
 		doc/APIchanges
-	dh_installexamples -p libav-tools doc/avserver.conf debian/recordshow.sh
 	dh_installexamples -p libavcodec-dev libavcodec/api-example.c
 	dh_strip --dbg-package=libav-dbg
 	dh_installchangelogs Changelog
