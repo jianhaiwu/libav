@@ -258,8 +258,6 @@ Files: libavcodec/jfdctfst.c
  libavcodec/jrevdct.c
 Copyright: 1991-1996, Thomas G. Lane
 License: IJG
-Comment:
- FIXME: Seems the requirements of clause 1 is not fulfilled.
 
 Files: libavdevice/x11grab.c
  libavfilter/yadif.h
