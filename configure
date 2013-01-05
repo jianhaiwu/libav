@@ -100,6 +100,7 @@ Configuration options:
   --enable-runtime-cpudetect detect cpu capabilities at runtime (bigger binary)
   --enable-gray            enable full grayscale support (slower color)
   --disable-swscale-alpha  disable alpha channel support in swscale
+  --disable-all            disable building components, libraries and programs
 
 Program options:
   --disable-programs       do not build command line programs
@@ -1327,6 +1328,7 @@ CONFIG_EXTRA="
     nettle
     rangecoder
     rtpdec
+    rtpenc_chain
     sinewin
     videodsp
     vp3dsp
@@ -1455,9 +1457,10 @@ mdct_select="fft"
 rdft_select="fft"
 mpegaudio_select="mpegaudiodsp"
 mpegaudiodsp_select="dct"
+mpegvideo_select="videodsp"
 mpegvideoenc_select="mpegvideo"
 
-# decoders / encoders / hardware accelerators
+# decoders / encoders
 aac_decoder_select="mdct sinewin"
 aac_encoder_select="mdct sinewin"
 aac_latm_decoder_select="aac_decoder aac_latm_parser"
@@ -1499,15 +1502,9 @@ h261_decoder_select="error_resilience mpegvideo"
 h261_encoder_select="aandcttables mpegvideoenc"
 h263_decoder_select="error_resilience h263_parser mpegvideo"
 h263_encoder_select="aandcttables error_resilience mpegvideoenc"
-h263_vaapi_hwaccel_select="vaapi h263_decoder"
 h263i_decoder_select="h263_decoder"
 h263p_encoder_select="h263_encoder"
 h264_decoder_select="error_resilience golomb h264chroma h264dsp h264pred h264qpel mpegvideo"
-h264_dxva2_hwaccel_deps="dxva2api_h"
-h264_dxva2_hwaccel_select="dxva2 h264_decoder"
-h264_vaapi_hwaccel_select="vaapi h264_decoder"
-h264_vda_hwaccel_select="vda h264_decoder"
-h264_vdpau_decoder_select="vdpau h264_decoder"
 huffyuv_encoder_select="huffman"
 iac_decoder_select="fft mdct sinewin"
 imc_decoder_select="fft mdct sinewin"
@@ -1530,22 +1527,14 @@ mp3on4_decoder_select="mpegaudio"
 mp3on4float_decoder_select="mpegaudio"
 mpc7_decoder_select="mpegaudiodsp"
 mpc8_decoder_select="mpegaudiodsp"
-mpeg_vdpau_decoder_select="vdpau mpegvideo_decoder"
 mpeg_xvmc_decoder_deps="X11_extensions_XvMClib_h"
 mpeg_xvmc_decoder_select="mpegvideo_decoder"
-mpeg1_vdpau_decoder_select="vdpau mpeg1video_decoder"
 mpeg1video_decoder_select="error_resilience mpegvideo"
 mpeg1video_encoder_select="aandcttables error_resilience mpegvideoenc"
-mpeg2_dxva2_hwaccel_deps="dxva2api_h"
-mpeg2_dxva2_hwaccel_select="dxva2 mpeg2video_decoder"
-mpeg2_vaapi_hwaccel_select="vaapi mpeg2video_decoder"
 mpeg2video_decoder_select="error_resilience mpegvideo"
 mpeg2video_encoder_select="aandcttables error_resilience mpegvideoenc"
 mpeg4_decoder_select="h263_decoder mpeg4video_parser"
 mpeg4_encoder_select="h263_encoder"
-mpeg4_vaapi_hwaccel_select="vaapi mpeg4_decoder"
-mpeg4_vdpau_decoder_select="vdpau mpeg4_decoder"
-mpegvideo_select="videodsp"
 msmpeg4v1_decoder_select="h263_decoder"
 msmpeg4v1_encoder_select="h263_encoder"
 msmpeg4v2_decoder_select="h263_decoder"
@@ -1584,10 +1573,6 @@ tscc_decoder_select="zlib"
 twinvq_decoder_select="mdct lsp sinewin"
 utvideo_encoder_select="huffman"
 vc1_decoder_select="h263_decoder h264chroma h264qpel"
-vc1_dxva2_hwaccel_deps="dxva2api_h"
-vc1_dxva2_hwaccel_select="dxva2 vc1_decoder"
-vc1_vaapi_hwaccel_select="vaapi vc1_decoder"
-vc1_vdpau_decoder_select="vdpau vc1_decoder"
 vc1image_decoder_select="vc1_decoder"
 vorbis_decoder_select="mdct"
 vorbis_encoder_select="mdct"
@@ -1608,9 +1593,6 @@ wmv1_encoder_select="h263_encoder"
 wmv2_decoder_select="h263_decoder"
 wmv2_encoder_select="h263_encoder"
 wmv3_decoder_select="vc1_decoder"
-wmv3_dxva2_hwaccel_select="vc1_dxva2_hwaccel"
-wmv3_vaapi_hwaccel_select="vc1_vaapi_hwaccel"
-wmv3_vdpau_decoder_select="vc1_vdpau_decoder"
 wmv3image_decoder_select="wmv3_decoder"
 zerocodec_decoder_select="zlib"
 zlib_decoder_select="zlib"
@@ -1618,9 +1600,31 @@ zlib_encoder_select="zlib"
 zmbv_decoder_select="zlib"
 zmbv_encoder_select="zlib"
 
+# hardware accelerators
 vaapi_deps="va_va_h"
 vda_deps="VideoDecodeAcceleration_VDADecoder_h pthreads"
 vdpau_deps="vdpau_vdpau_h vdpau_vdpau_x11_h"
+
+h263_vaapi_hwaccel_select="vaapi h263_decoder"
+h264_dxva2_hwaccel_deps="dxva2api_h"
+h264_dxva2_hwaccel_select="dxva2 h264_decoder"
+h264_vaapi_hwaccel_select="vaapi h264_decoder"
+h264_vda_hwaccel_select="vda h264_decoder"
+h264_vdpau_decoder_select="vdpau h264_decoder"
+mpeg_vdpau_decoder_select="vdpau mpegvideo_decoder"
+mpeg1_vdpau_decoder_select="vdpau mpeg1video_decoder"
+mpeg2_dxva2_hwaccel_deps="dxva2api_h"
+mpeg2_dxva2_hwaccel_select="dxva2 mpeg2video_decoder"
+mpeg2_vaapi_hwaccel_select="vaapi mpeg2video_decoder"
+mpeg4_vaapi_hwaccel_select="vaapi mpeg4_decoder"
+mpeg4_vdpau_decoder_select="vdpau mpeg4_decoder"
+vc1_dxva2_hwaccel_deps="dxva2api_h"
+vc1_dxva2_hwaccel_select="dxva2 vc1_decoder"
+vc1_vaapi_hwaccel_select="vaapi vc1_decoder"
+vc1_vdpau_decoder_select="vdpau vc1_decoder"
+wmv3_dxva2_hwaccel_select="vc1_dxva2_hwaccel"
+wmv3_vaapi_hwaccel_select="vc1_vaapi_hwaccel"
+wmv3_vdpau_decoder_select="vc1_vdpau_decoder"
 
 # parsers
 h264_parser_select="error_resilience golomb h264dsp h264pred mpegvideo"
@@ -1671,6 +1675,7 @@ ismv_muxer_select="mov_muxer"
 matroska_audio_muxer_select="matroska_muxer"
 matroska_demuxer_suggest="bzlib lzo zlib"
 mov_demuxer_suggest="zlib"
+mov_muxer_select="rtpenc_chain"
 mp3_demuxer_select="mpegaudio_parser"
 mp4_muxer_select="mov_muxer"
 mpegts_muxer_select="adts_muxer latm_muxer mpegvideo"
@@ -1682,9 +1687,9 @@ rtp_demuxer_select="sdp_demuxer"
 rtp_muxer_select="mpegvideo"
 rtpdec_select="asf_demuxer rm_demuxer rtp_protocol mpegts_demuxer mov_demuxer"
 rtsp_demuxer_select="http_protocol rtpdec"
-rtsp_muxer_select="rtp_muxer http_protocol rtp_protocol"
+rtsp_muxer_select="rtp_muxer http_protocol rtp_protocol rtpenc_chain"
 sap_demuxer_select="sdp_demuxer"
-sap_muxer_select="rtp_muxer rtp_protocol"
+sap_muxer_select="rtp_muxer rtp_protocol rtpenc_chain"
 sdp_demuxer_select="rtpdec"
 smoothstreaming_muxer_select="ismv_muxer"
 spdif_muxer_select="aac_parser"
@@ -1988,6 +1993,10 @@ for opt do
         --disable-everything)
             map 'eval unset \${$(toupper ${v%s})_LIST}' $COMPONENT_LIST
         ;;
+        --disable-all)
+            map 'eval unset \${$(toupper ${v%s})_LIST}' $COMPONENT_LIST
+            disable $LIBRARY_LIST $PROGRAM_LIST doc
+        ;;
         --enable-random|--disable-random)
             action=${opt%%-random}
             do_random ${action#--} $COMPONENT_LIST
@@ -2178,6 +2187,7 @@ msvc_flags(){
             -fno-math-errno)      ;;
             -fno-common)          ;;
             -fno-signed-zeros)    ;;
+            -fPIC)                ;;
             -lz)                  echo zlib.lib ;;
             -lavifil32)           echo vfw32.lib ;;
             -lavicap32)           echo vfw32.lib user32.lib ;;
