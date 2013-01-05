@@ -1,16 +1,13 @@
 Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: Libav
-Upstream-Contact: FIXME
+Upstream-Contact: libav-devel@libav.org
 Source: http://libav.org
 Comment:
- Because the libavcodec-extra-54 package links against libraries that
- are licensed under Apache License 2.0, it is distributed under the GPL
- version 3.
+ Because the libavcodec-extra-* package (replace * with a number equal
+ or higher than 54) links against libraries that are licensed under Apache
+ License 2.0, it is distributed under the GPL version 3.
  .
  The libav-dbg package does also contain its debug symbols.
- .
- FIXME: Proof-read above comments and (at least) rewrite to not refer to
- specific versions which is unlikely to be maintained properly.
 
 Files: *
 Copyright: 1994-2012, the Xiph.Org Foundation and contributors
