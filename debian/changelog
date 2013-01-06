@@ -11,8 +11,10 @@ libav (6:9-1) UNRELEASED; urgency=low
     - New releases fixes (among others) CVE-2012-2882 CVE-2012-5359
       CVE-2012-5360 CVE-2012-5361
   * drop debian/recordshow.sh
+  * ignore shlib-with-non-pic-code also for libavcodec-extra-54
+  * make libavcodec54/libavcodec-extra-54 properly conflict/replace each other
 
- -- Reinhard Tartler <siretart@tauware.de>  Sun, 06 Jan 2013 00:44:54 +0100
+ -- Reinhard Tartler <siretart@tauware.de>  Sun, 06 Jan 2013 10:34:35 +0100
 
 libav (6:9~beta3-1) experimental; urgency=low
 
