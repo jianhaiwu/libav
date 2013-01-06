@@ -3,9 +3,9 @@ Upstream-Name: Libav
 Upstream-Contact: libav-devel@libav.org
 Source: http://libav.org
 Comment:
- Because the libavcodec-extra-* package (replace * with a number equal
- or higher than 54) links against libraries that are licensed under Apache
- License 2.0, it is distributed under the GPL version 3.
+ Because the libavcodec-extra-* package (since libavcodec-extra-54)
+ links against libraries that are licensed under Apache License 2.0, it
+ is distributed under the GPL version 3.
  .
  The libav-dbg package does also contain its debug symbols.
 
