@@ -4,7 +4,7 @@ libav (6:9-1) UNRELEASED; urgency=low
   * Rewrite copyright file using copyright format 1.0.
     Closes: bug#694657. Thanks to Francesco Poli.
   * Include CDBS utils.mk, to track future copyright/licensing changes.
-    Build-depend on cdbs.
+    Build-depend on cdbs. Update README.source.
 
   [ Reinhard Tartler ]
   * Imported Upstream version 9
