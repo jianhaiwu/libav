@@ -391,6 +391,9 @@ Files: avconv.c
  libavcodec/huffman.c
  libavcodec/huffman.h
  libavcodec/huffyuv.c
+ libavcodec/huffyuv.h
+ libavcodec/huffyuvdec.c
+ libavcodec/huffyuvenc.c
  libavcodec/idcinvideo.c
  libavcodec/iff.c
  libavcodec/iirfilter.c
@@ -1998,7 +2001,6 @@ Files: CREDITS
  debian/rules
  debian/source/format
  debian/source/lintian-overrides
- debian/source/local-options
  debian/watch
  doc/APIchanges
  doc/Doxyfile
@@ -2250,6 +2252,7 @@ Files: CREDITS
  tests/ref/fate/bmv-audio
  tests/ref/fate/bmv-video
  tests/ref/fate/caf
+ tests/ref/fate/cavs
  tests/ref/fate/cdgraphics
  tests/ref/fate/cdxl-bitline-ham6
  tests/ref/fate/cdxl-demux
@@ -3238,7 +3241,6 @@ License: LGPL-2.1+
  FIXME
 
 Files: configure
- debian/recordshow.sh
  doc/doxy/doxy_stylesheet.css
  libavcodec/arm/dsputil_arm.S
  libavcodec/arm/videodsp_armv5te.S
@@ -3303,7 +3305,6 @@ Copyright: 1991-1992, Thomas G. Lane
   2005-2011, x264 project
   2005-2012, x264 project
   2007, Aurelien Jacobs <aurel@gnuage.org>
-  2008, Daniel Dickinson <cshore@wightman.ca>
   2008, Loren Merritt
   2008, Loren Merritt <lorenm@u.washington.edu>
   2008-2010, x264 project
