@@ -1,5 +1,14 @@
+CDBS+git-buildpackage
+---------------------
+
+This source package uses CDBS for tracking changes to copyrights and
+licensing.
+
+More info here: http://wiki.debian.org/CDBS+git-buildpackage#Copyright_check
+
+
 Circular Build-Depends and bootstrapping libav on new architectures
-===================================================================
+-------------------------------------------------------------------
 
 libav is involved in several circular build-dependencies that give porters a
 hard time (c.f. #671302) at bootstrapping, e.g.:
