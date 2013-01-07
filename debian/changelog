@@ -1,4 +1,4 @@
-libav (6:9-1) UNRELEASED; urgency=low
+libav (6:9.1-1) experimental; urgency=low
 
   [ Jonas Smedegaard ]
   * Rewrite copyright file using copyright format 1.0.
@@ -9,12 +9,12 @@ libav (6:9-1) UNRELEASED; urgency=low
   [ Reinhard Tartler ]
   * Imported Upstream version 9
     - New releases fixes (among others) CVE-2012-2882 CVE-2012-5359
-      CVE-2012-5360 CVE-2012-5361
+      CVE-2012-5360 CVE-2012-5361, Closes: #694483
   * drop debian/recordshow.sh
   * ignore shlib-with-non-pic-code also for libavcodec-extra-54
   * make libavcodec54/libavcodec-extra-54 properly conflict/replace each other
 
- -- Reinhard Tartler <siretart@tauware.de>  Sun, 06 Jan 2013 10:34:35 +0100
+ -- Reinhard Tartler <siretart@tauware.de>  Mon, 07 Jan 2013 22:42:25 +0100
 
 libav (6:9~beta3-1) experimental; urgency=low
 
