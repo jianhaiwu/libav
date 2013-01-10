@@ -93,6 +93,10 @@ parts of ffmpeg were activated -- namely libpostproc, libswscale, x11grab and
 (optionally) libfaad2. If you need LGPL versions of the libraries, please
 comment out the appropriate line in debian/confflags.
 
+Because libavcodec-extra-* links against libraries that are licensed
+under Apache License 2.0, the resulting binaries are distributed under
+the GPL version 3 or later.
+
 
 Differences with unofficial ffmpeg packages
 ===========================================

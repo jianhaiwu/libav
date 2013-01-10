@@ -2,10 +2,6 @@ Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: Libav
 Upstream-Contact: libav-devel@libav.org
 Source: http://libav.org
-Comment:
- Because the libavcodec-extra-* package (since libavcodec-extra-54)
- links against libraries licensed under Apache-2.0 (not compatible with
- LGPL), effective license of that package and libav-dbg is GPL-3+.
 
 Files: *
 Copyright: 1994-2012, the Xiph.Org Foundation and contributors
