@@ -1,10 +1,15 @@
-libav (6:9.1-2) UNRELEASED; urgency=low
+libav (6:9.1-2) experimental; urgency=low
 
+  [ Jonas Smedegaard ]
   * Document all licensing of binary packages in README.Debian (not
     partly as comment in copyright file), to avoid confusing source
     issued licenses with binary resolved licensing.
 
- -- Jonas Smedegaard <dr@jones.dk>  Fri, 11 Jan 2013 00:04:41 +0100
+  [ Reinhard Tartler ]
+  * Bump shlibs to 6:9.1-1
+  * Fix internal shlibs
+
+ -- Reinhard Tartler <siretart@tauware.de>  Sat, 19 Jan 2013 10:06:15 +0100
 
 libav (6:9.1-1) experimental; urgency=low
 
