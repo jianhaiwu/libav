@@ -230,12 +230,12 @@ endif
 	for pkg in $(LIB_PKGS); do \
 	    dh_makeshlibs -p"$$pkg" -V"$$pkg (>= $(SHLIBS_VERSION))"; \
 	done
-	# operate e.g. the -extra- packages, produce shlibs on their counterparts
+	# operate e.g. the -extra- packages, produce shlibs that have alternative dependencies
 	for pkg in $(LIB_EXTRA_PKGS); do \
 	    npkg=$$(echo "$$pkg" | sed -r 's/-extra-//'); \
-	    dh_makeshlibs -p"$$pkg" -V"$$npkg (>= $(SHLIBS_VERSION))"; \
+	    dh_makeshlibs -p"$$pkg" -V"$$npkg (>= $(SHLIBS_VERSION)) | $$pkg (>= $(EPOCH)$(UPSTREAM_VERSION))"; \
 	done
-	# operate on libavcodec54 - these produce shlibs that have alternative dependencies
+	# operate on packages with -extra- variants such as libavcodec54 - produce shlibs that have alternative dependencies
 	for pkg in $(LIB_PKGS2); do \
 	    upkg=$$(echo "$$pkg" | sed -r 's/([0-9]+)$$/-extra-\1/'); \
 	    dh_makeshlibs -p"$$pkg" -V"$$pkg (>= $(SHLIBS_VERSION)) | $$upkg (>= $(EPOCH)$(UPSTREAM_VERSION))"; \
