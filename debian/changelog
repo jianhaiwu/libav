@@ -118,7 +118,7 @@ libav (6:9~beta1-1) experimental; urgency=low
 
   [ Fabian Greffrath ]
   * Clarify relations between libavcodec54 and libavcodec-extra-54 in debian/control.
-  
+
   [ Reinhard Tartler ]
   * New Upstream version: 9 beta1
   * remove compatibility links for ff* tools.
@@ -157,7 +157,7 @@ libav (6:0.8.99-1537-gacb2c79-1) experimental; urgency=low
 
 libav (6:0.8.2-2) unstable; urgency=low
 
-  * 
+  *
 
  -- Reinhard Tartler <siretart@tauware.de>  Mon, 14 May 2012 21:37:59 +0200
 
@@ -649,9 +649,9 @@ ffmpeg (4:0.6~svn20100505-1) experimental; urgency=low
               #298095, #294422, #561553, #525385, #495274, #420230
       LP: #305286, #457106, #529200, #301723, #305315, #336479, #420230,
           #412063, #428912, #432181, #440591, #453732, #453732, #453732,
-   	  #514259, #515243, #521472, #530186, #530186, #197842, #483317,
-  	  #483317, #539407, #280098, #331255, #566107, #569823, #570305,
-  	  #573190
+          #514259, #515243, #521472, #530186, #530186, #197842, #483317,
+          #483317, #539407, #280098, #331255, #566107, #569823, #570305,
+          #573190
   * Fixup lintian overrides for new upstream snapshot
   * Bump Standards-Version to 3.8.4
   * Many upstream changes, see upstream Changelog for details
@@ -671,7 +671,7 @@ ffmpeg (4:0.5.2-5) unstable; urgency=low
   [ Dominic Evans ]
   * add libxfixes-dev to build-depends to unbreak x11grab input,
     Closes: #596342, LP: #631103
-  
+
   [ Reinhard Tartler ]
   * fix x11grab example in e.g. the manpage so that they actually work
 
@@ -998,7 +998,7 @@ ffmpeg-debian (4:0.5+svn20090420-1) unstable; urgency=low
   * Reorder some confflags to account for GPL licensed libraries.
   * Remove patents.txt
   * Explicitely mention that no decoders are disabled in our packages.
-  
+
   [ Loïc Minier ]
   * Disable more autodetecter ARM arch features
   * Add neon and vfp flavors to armel disabled for now
@@ -1006,7 +1006,7 @@ ffmpeg-debian (4:0.5+svn20090420-1) unstable; urgency=low
 
   [ Reinhard Tartler ]
   * New Upstream Version (svn revision 18630)
-  * bump epoch as 0.5 was released. Future version will use '+' to indicate 
+  * bump epoch as 0.5 was released. Future version will use '+' to indicate
     that the package is based on a release branch and '~' to indicate that
     the package is based on the 'trunk' branch.
   * update from the upstream release branch to generate a new upstream
@@ -1026,7 +1026,7 @@ ffmpeg-debian (4:0.5+svn20090420-1) unstable; urgency=low
     Closes: #526007, LP: #312898
   * be more careful with svn:externals in debian/get-orig-source.sh.
     (Closes: #525348)
-  
+
  -- Reinhard Tartler <siretart@tauware.de>  Sat, 02 May 2009 09:09:54 +0200
 
 ffmpeg-debian (3:0.svn20090303-1) unstable; urgency=low
@@ -1134,11 +1134,11 @@ ffmpeg-debian (3:0.svn20090119-1) experimental; urgency=low
 ffmpeg-debian (3:0.svn20090110-1) experimental; urgency=low
 
   * new upstream svn snapshot (svn revision 16508, libswscale revision 28286)
-  
+
   Upstream Changes:
    - RV30 and RV40 decoder
    - QCELP / PureVoice decoder
-  
+
   * removed patch 050_fix_pkgconfig_files.patch. Merged upstream
   * disabled patch 020_visibility_patch. It needs to be adapted to the new
     upstream changes. Hopefully it will get merged into ffmpeg properly.
@@ -1159,7 +1159,7 @@ ffmpeg-debian (3:0.svn20081115-1) experimental; urgency=low
 ffmpeg-debian (3:0.svn20081108-1) experimental; urgency=low
 
   * upstream svn snapshot (svn revision 15786, libswscale revision 27900).
-  * apply visibility patch from ffmpeg-devel mailing list. This reduces the 
+  * apply visibility patch from ffmpeg-devel mailing list. This reduces the
     number of symbols that are exposed to other applications. Please file
     bugs if applications fail to link against ffmpeg because of that.
   * remove 001_fixup_version.diff patch and use upstream --extra-version
@@ -1244,7 +1244,7 @@ ffmpeg-debian (0.svn20080206-11) unstable; urgency=low
 
 ffmpeg-debian (0.svn20080206-10) unstable; urgency=high
 
-  * enable mmx and sse3 in builds. These CPU features are autodetected 
+  * enable mmx and sse3 in builds. These CPU features are autodetected
     at runtime on amd64 and i386 using the 'cpuid' instrcution.
     (Closes: #489732)
   * disable support for liba52-dev. ffmpeg has its own implementation.
@@ -1610,12 +1610,12 @@ ffmpeg (0.cvs20070307-5) unstable; urgency=low
 ffmpeg (0.cvs20070307-4) experimental; urgency=low
 
   * added myself to uploaders
-  
+
   * 020_fix_libswscale_pic_code:
     + added, avoid some MMX code to avoid PIC code
 
   [ Sam Hocevar ]
-  
+
   * fixed path in library installation.
 
  -- Reinhard Tartler <siretart@tauware.de>  Wed, 11 Apr 2007 23:17:47 +0200
@@ -1693,7 +1693,7 @@ ffmpeg (0.cvs20070307-1) experimental; urgency=low
   * debian/rules:
     + Fix syntax for a few --enable flags.
     + Only ship ffmpeg_powerpc_performance_evaluation_howto.txt.gz on
-      powerpc machines (Closes: #385079). 
+      powerpc machines (Closes: #385079).
     + Readded --enable-libtheora, it's here again.
     + Activate --enable-swscaler (Closes: #399141, #398442).
 
@@ -2111,4 +2111,3 @@ ffmpeg (0.cvs20040716-1) unstable; urgency=low
   * Initial release (Closes: #199266).
 
  -- Sam Hocevar (Debian packages) <sam+deb@zoy.org>  Fri, 16 Jul 2004 12:47:27 +0200
-
