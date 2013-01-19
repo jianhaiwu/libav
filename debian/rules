@@ -8,7 +8,7 @@ EPOCH=6:
 DEB_SOURCE := $(shell dpkg-parsechangelog | sed -n 's/^Source: //p')
 DEB_VERSION := $(shell dpkg-parsechangelog | sed -n 's/^Version: //p')
 UPSTREAM_VERSION := $(shell echo $(DEB_VERSION) | sed -r 's/[^:]+://; s/-[^-]+$$//')
-SHLIBS_VERSION := $(EPOCH)9~beta2-1
+SHLIBS_VERSION := $(EPOCH)9.1-1
 
 ifeq ($(shell dpkg-vendor --derives-from Ubuntu && echo yes),yes)
 # In Ubuntu, all -extra- packages are built from a special source
