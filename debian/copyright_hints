@@ -2001,6 +2001,7 @@ Files: CREDITS
  debian/rules
  debian/source/format
  debian/source/lintian-overrides
+ debian/source/local-options
  debian/watch
  doc/APIchanges
  doc/Doxyfile
