@@ -1,12 +1,13 @@
-libav (6:9.1-3) UNRELEASED; urgency=low
+libav (6:9.1-3) experimental; urgency=low
 
   * Build-depend on libopus-dev.
   * Stop needlessly build-depending on libcv-dev.
   * Tighten build-dependencies on frei0r-plugins-dev, libopencv-dev and
     libx264-dev, to use experimental packages.
   * Have libav-tools and libavfilter3 suggest frei0r-plugins.
+  * Add upstream patch 02 to fix build on armel without armv5te support.
 
- -- Jonas Smedegaard <dr@jones.dk>  Sun, 20 Jan 2013 03:10:09 +0100
+ -- Jonas Smedegaard <dr@jones.dk>  Sun, 20 Jan 2013 15:54:42 +0100
 
 libav (6:9.1-2) experimental; urgency=low
 

@@ -1995,6 +1995,7 @@ Files: CREDITS
  debian/libswscale2.install.in
  debian/libswscale2.lintian-overrides
  debian/patches/01-Tweak-doxygen-config.patch
+ debian/patches/02-fix-build-on-non-armv5te.patch
  debian/patches/03-disable-configuration-warnings.patch
  debian/patches/series
  debian/qt-faststart.1
