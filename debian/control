@@ -72,6 +72,8 @@ Pre-Depends:
 Depends:
  ${misc:Depends},
  ${shlibs:Depends}
+Suggests:
+ frei0r-plugins (>= 1.3)
 Conflicts:
  ffprobe
 Description: Multimedia player, server, encoder and transcoder
@@ -208,6 +210,8 @@ Pre-Depends: ${misc:Pre-Depends}
 Depends:
  ${misc:Depends},
  ${shlibs:Depends}
+Suggests:
+ frei0r-plugins (>= 1.3)
 Replaces:
  libavfilter-extra-3
 Breaks:
