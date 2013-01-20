@@ -1,1 +1,2 @@
+02-fix-build-on-non-armv5te.patch
 03-disable-configuration-warnings.patch
