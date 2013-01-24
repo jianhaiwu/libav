@@ -2,10 +2,9 @@ CDBS+git-buildpackage
 ---------------------
 
 This source package uses CDBS for tracking changes to copyrights and
-licensing, and for updating build-dependencies (but currently not for
-fetching new upstream source).
+licensing.
 
-More info here: http://wiki.debian.org/CDBS+git-buildpackage
+More info here: http://wiki.debian.org/CDBS+git-buildpackage#Copyright_check
 
 
 Circular Build-Depends and bootstrapping libav on new architectures
