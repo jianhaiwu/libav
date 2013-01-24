@@ -93,7 +93,7 @@ CDBS_BUILD_DEPENDS += $(patsubst %,$(comma) lib%-dev,$(dev-deps)), \
  librtmp-dev (>= 2.2e-4), \
  libtheora-dev (>> 0.0.0.alpha4), \
  libtiff4-dev | libtiff-dev, \
- libva-dev [!hurd-any], \
+ libva-dev$(if $(experimental),(>= 1.1)) [!hurd-any], \
  libx264-dev $(if $(experimental),(>= 2:0.129)), \
  texi2html, \
  yasm [any-amd64 any-i386], \
