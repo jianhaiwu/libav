@@ -1,13 +1,15 @@
-libav (6:9.2-1) experimental; urgency=low
+libav (6:9.3-1) experimental; urgency=low
 
   [ Jonas Smedegaard ]
   * Stop using CDBS.
 
   [ Reinhard Tartler ]
-  * Imported Upstream version 9.2
+  * Imported Upstream version 9.2 (never uploaded, though)
+  * Imported Upstream version 9.3:
+    - Fixes CVE-2013-0894
   * drop 02-fix-build-on-non-armv5te.patch, merged upstream
 
- -- Reinhard Tartler <siretart@sandy.tauware.de>  Tue, 26 Feb 2013 20:06:16 +0100
+ -- Reinhard Tartler <siretart@tauware.de>  Sat, 02 Mar 2013 14:34:27 +0100
 
 libav (6:9.1-3) experimental; urgency=low
 
