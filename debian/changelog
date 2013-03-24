@@ -1,3 +1,13 @@
+libav (6:9.4-1) experimental; urgency=low
+
+  * Imported Upstream version 9.4
+    - h264: check for luma and chroma bit dept being equal (CVE-2013-2277)
+    - iff: validate CMAP palette size (CVE-2013-2495)
+    - Thus, closes: #703200
+  * debian/watch: download xz files and  tigthen checks
+
+ -- Reinhard Tartler <siretart@tauware.de>  Sun, 24 Mar 2013 07:30:01 +0100
+
 libav (6:9.3-1) experimental; urgency=low
 
   [ Jonas Smedegaard ]
