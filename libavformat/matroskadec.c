@@ -1757,10 +1757,10 @@ static void matroska_clear_queue(MatroskaDemuxContext *matroska)
 }
 
 static int matroska_parse_laces(MatroskaDemuxContext *matroska, uint8_t **buf,
-                                int size, int type,
+                                int* buf_size, int type,
                                 uint32_t **lace_buf, int *laces)
 {
-    int res = 0, n;
+    int res = 0, n, size = *buf_size;
     uint8_t *data = *buf;
     uint32_t *lace_size;
 
@@ -1821,7 +1821,7 @@ static int matroska_parse_laces(MatroskaDemuxContext *matroska, uint8_t **buf,
 
     case 0x3: /* EBML lacing */ {
         uint64_t num;
-        uint32_t total;
+        uint64_t total;
         n = matroska_ebmlnum_uint(matroska, data, size, &num);
         if (n < 0) {
             av_log(matroska->ctx, AV_LOG_INFO,
@@ -1858,6 +1858,7 @@ static int matroska_parse_laces(MatroskaDemuxContext *matroska, uint8_t **buf,
 
     *buf      = data;
     *lace_buf = lace_size;
+    *buf_size = size;
 
     return res;
 }
@@ -2052,7 +2053,7 @@ static int matroska_parse_block(MatroskaDemuxContext *matroska, uint8_t *data,
         matroska->skip_to_keyframe = 0;
     }
 
-    res = matroska_parse_laces(matroska, &data, size, (flags & 0x06) >> 1,
+    res = matroska_parse_laces(matroska, &data, &size, (flags & 0x06) >> 1,
                                &lace_size, &laces);
 
     if (res)
@@ -2080,7 +2081,8 @@ static int matroska_parse_block(MatroskaDemuxContext *matroska, uint8_t *data,
              st->codec->codec_id == AV_CODEC_ID_ATRAC3) &&
              st->codec->block_align && track->audio.sub_packet_size) {
 
-            res = matroska_parse_rm_audio(matroska, track, st, data, size,
+            res = matroska_parse_rm_audio(matroska, track, st, data,
+                                          lace_size[n],
                                           timecode, duration, pos);
             if (res)
                 goto end;
@@ -2096,7 +2098,6 @@ static int matroska_parse_block(MatroskaDemuxContext *matroska, uint8_t *data,
         if (timecode != AV_NOPTS_VALUE)
             timecode = duration ? timecode + duration : AV_NOPTS_VALUE;
         data += lace_size[n];
-        size -= lace_size[n];
     }
 
 end:
