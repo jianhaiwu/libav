@@ -1,3 +1,11 @@
+libav (6:9.6-1) experimental; urgency=low
+
+  * New Upstream release 9.6
+    - wav: Always seek to an even offset, Bug #500, LP: #1174737
+    - various security relevant patches
+
+ -- Reinhard Tartler <siretart@tauware.de>  Mon, 20 May 2013 10:54:36 +0200
+
 libav (6:9.5-1) experimental; urgency=low
 
   * New Upstream version 9.5:
