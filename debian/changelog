@@ -1,6 +1,6 @@
-libav (6:0.8.6-2) unstable; urgency=medium
+libav (6:0.8.7-1) unstable; urgency=medium
 
-  * Imported Upstream version 0.8.6, new releases fixes:
+  * Imported Upstream version 0.8.7, new releases fixes:
     - wav: Always seek to an even offset, Bug #500, LP: #1174737
     - A number of further security relevant patches.
 
