@@ -117,12 +117,6 @@ build-extra-stamp-%: configure-extra-stamp-%
 debian-shared/tools/qt-faststart: build-stamp-shared
 	$(MAKE) -C debian-shared tools/qt-faststart V=1
 
-build-doxy: build-doxy-stamp
-build-doxy-stamp:
-	dh_testdir
-	[ ! -x /usr/bin/doxygen ] || doxygen doc/Doxyfile
-	touch $@
-
 build: build-stamp build-extra
 build-stamp: $(addprefix build-stamp-, $(FLAVORS)) debian-shared/tools/qt-faststart
 	touch $@
@@ -155,32 +149,18 @@ define install_flavor_extra
 
 endef
 
+# installs arch-dependent files only
 install: install-common install-extra
 install-common: build $(DH_INSTALL_FILES)
 	dh_testdir
 	dh_testroot
-	dh_prep
-ifeq ($(DEB_SOURCE), libav)
-	# the libav-source package does exist in some derivatives such as ubuntu, etc.
-	if grep -q 'Package: libav-source' debian/control; then \
-	  dh_installdirs -ptmp usr/src;  \
-	  tar czvf debian/tmp/usr/src/libav-source.tar.gz . \
-	  	 --exclude 'debian*' --exclude .git  --exclude .pc --exclude '*-stamp' \
-	  	 --transform 's,^./,libav/,' ; \
-	fi
-endif
-	dh_installdirs -ptmp usr/src
-	dh_installdirs -ptmp usr/share/doc/libav/html etc
-	dh_installdirs -ptmp usr/share/doc/libav-doc/html
+	dh_prep -a
 	$(foreach flavor,$(FLAVORS),$(call install_flavor,$(flavor)))
-	# don't fail on binary-indep only builds.
-	-cp -avf doc/doxy/html debian/tmp/usr/share/doc/libav-doc
-	install -m 644 -D debian-shared/doc/*.html debian/tmp/usr/share/doc/libav/html/
+	mkdir -p debian/tmp/etc
 	install -m 644 -D doc/avserver.conf debian/tmp/etc/
 	install -m 644 -D debian-shared/tools/qt-faststart debian/tmp/usr/bin/qt-faststart
-	dh_install $(addprefix -N,$(LIB_EXTRA_PKGS)) \
-		-Xusr/share/doc/libav-doc \
-		-Xusr/share/doc/libav --fail-missing --sourcedir=debian/tmp
+	dh_install -a $(addprefix -N,$(LIB_EXTRA_PKGS)) \
+		 --fail-missing --sourcedir=debian/tmp
 	env LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(CURDIR)/debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)" \
 	debian/tmp/usr/bin/avconv -formats | tee formats-$(DEB_HOST_ARCH).txt
 	env LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(CURDIR)/debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)" \
@@ -191,36 +171,58 @@ install-extra: build $(DH_INSTALL_FILES)
 	dh_testdir
 	dh_testroot
 	$(foreach flavor,$(filter-out static,$(FLAVORS)),$(call install_flavor_extra,$(flavor)))
-	dh_install $(addprefix -p,$(LIB_EXTRA_PKGS)) -Xusr/share/doc/libav-doc \
-		-Xusr/share/doc/libav --fail-missing \
+	dh_install -a $(addprefix -p,$(LIB_EXTRA_PKGS)) --fail-missing \
 		--sourcedir=debian/tmp/extra
 	env LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(CURDIR)/debian/tmp/extra/usr/lib/$(DEB_HOST_MULTIARCH)" \
 	debian/tmp/usr/bin/avconv -codecs | tee codecs.txt
 	dh_installdocs -plibavcodec-extra-54 codecs.txt
+ifeq ($(DEB_SOURCE), libav)
+	dh_installdocs -a doc/APIchanges
+	dh_installexamples -p libavcodec-dev libavcodec/api-example.c
+	dh_installchangelogs -a Changelog
+else
+	dh_installchangelogs -a libav/Changelog
+endif
 
-binary-indep: build-doxy install
+binary-indep:
+ifeq ($(DEB_SOURCE), libav)
+	dh_testdir
+	dh_testroot
+	dh_prep -i
+	# the libav-source package does exist in some derivatives such as ubuntu, etc.
+	if grep -q 'Package: libav-source' debian/control; then \
+	  dh_installdirs -ptmp usr/src;  \
+	  tar czvf debian/tmp/usr/src/libav-source.tar.gz . \
+	  	 --exclude 'debian*' --exclude .git  --exclude .pc --exclude '*-stamp' \
+	  	 --transform 's,^./,libav/,' ; \
+	fi
+endif
+	doxygen doc/Doxyfile
+	mkdir -p debian/libav-doc/usr/share/doc/libav-doc
+	mv -v doc/doxy/html debian/libav-doc/usr/share/doc/libav-doc
+	install -m 644 -D debian-shared/doc/*.html debian/libav-doc/usr/share/doc/libav-doc/html/
+	dh_installdocs -i
+	dh_installchangelogs -i
+	dh_compress -i
+	dh_fixperms -i
+	dh_installdeb -i
+	dh_gencontrol -i
+	dh_md5sums -i
+	dh_builddeb -i -- -Zxz
 
 binary-arch: build install
 	dh_testdir
 	dh_testroot
 	dh_installman -plibav-tools debian/qt-faststart.1
-	dh_installdocs -A debian/README.Debian
 ifeq ($(DEB_SOURCE), libav)
-	dh_installdocs -p libavcodec-dev -plibavdevice-dev \
-		-plibavformat-dev -plibavfilter-dev -plibavresample-dev \
-		-plibswscale-dev -plibavutil-dev -plibav-doc \
-		doc/APIchanges
-	dh_installexamples -p libavcodec-dev libavcodec/api-example.c
-	dh_strip --dbg-package=libav-dbg
-	dh_installchangelogs Changelog
+	dh_strip -a --dbg-package=libav-dbg
 else
-	dh_strip --dbg-package=libav-extra-dbg
-	dh_installchangelogs libav/Changelog
+	dh_strip -a --dbg-package=libav-extra-dbg
 endif
-	dh_lintian
-	dh_link
-	dh_compress
-	dh_fixperms
+	dh_lintian -a
+	dh_link -a
+	dh_compress -a
+	dh_fixperms -a
 
 	# operate on non -extra package producing packages
 	for pkg in $(LIB_PKGS); do \
@@ -237,16 +239,16 @@ endif
 	    dh_makeshlibs -p"$$pkg" -V"$$pkg (>= $(SHLIBS_VERSION)) | $$upkg (>= $(EPOCH)$(UPSTREAM_VERSION))"; \
 	done
 	dh_shlibdeps
-	dh_installdeb
-	dh_gencontrol
-	dh_md5sums
-	dh_builddeb -- -Zxz
+	dh_installdeb -a
+	dh_gencontrol -a
+	dh_md5sums -a
+	dh_builddeb -a -- -Zxz
 
 binary: binary-indep binary-arch
 
-.PHONY: build $(addprefix build-, $(FLAVORS)) build-doxy \
+.PHONY: build $(addprefix build-, $(FLAVORS)) \
 	clean \
 	configure $(addprefix configure-, $(FLAVORS)) \
 	binary binary-indep binary-arch \
-	install \
+	install install-common install-extra \
 	get-orig-source
