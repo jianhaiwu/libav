@@ -480,3 +480,16 @@ Description: Libav video software scaling library (transitional package)
  .
  This package is only used for transitional purposes and can be safely
  removed when no other packages depend on this package.
+
+Package: libavcodec-extra
+Priority: extra
+Architecture: all
+Depends:
+ libavcodec-extra-54
+Description: Libav codec library (additional codecs meta-package)
+ Libav is a complete, cross-platform solution to decode, encode, record,
+ convert and stream audio and video.
+ .
+ This package depends on the latest version of the libavcodec variant
+ that offers additional codec support. Application packages can depend
+ on it if they require or suggest this variant in a robust manner.
