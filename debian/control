@@ -51,7 +51,7 @@ Build-Depends:
  libvorbis-dev,
  libvpx-dev,
  libx11-dev,
- libx264-dev (>= 2:0.129),
+ libx264-dev (>= 2:0.130),
  libxext-dev,
  libxfixes-dev,
  libxvidcore-dev,
