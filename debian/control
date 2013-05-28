@@ -9,7 +9,6 @@ Uploaders:
  Fabian Greffrath <fabian+debian@greffrath.com>,
  Andres Mejia <amejia@debian.org>,
  Jonas Smedegaard <dr@jones.dk>
-DM-Upload-Allowed: yes
 Standards-Version: 3.9.4
 Vcs-Git: git://git.debian.org/git/pkg-multimedia/libav.git
 Vcs-Browser: http://git.debian.org/?p=pkg-multimedia/libav.git;a=summary
