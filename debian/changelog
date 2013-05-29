@@ -1,3 +1,17 @@
+libav (6:9.6-2) experimental; urgency=low
+
+  * Tighten build dependency on libx264, Closes: #709817
+  * Introduce the libavcodec-extra meta-package
+  * No longer check for --enable-dirac switch
+  * Bump standards version
+  * Cleanup some obsolete Package relationship fields
+  * Drop obsolete DM-Upload field
+  * libavcodec-extra: add misc:Depends substvar
+  * Factor out binary-indep builds
+  * Install tool HTML documentation into libav-tools package
+
+ -- Reinhard Tartler <siretart@tauware.de>  Wed, 29 May 2013 22:07:02 +0200
+
 libav (6:9.6-1) experimental; urgency=low
 
   * New Upstream release 9.6
