@@ -178,6 +178,7 @@ install-extra: build $(DH_INSTALL_FILES)
 	dh_installdocs -plibavcodec-extra-54 codecs.txt
 ifeq ($(DEB_SOURCE), libav)
 	dh_installdocs -a doc/APIchanges
+	install -m 644 -D debian-shared/doc/*.html debian/libav-tools/usr/share/doc/libav-tools
 	dh_installexamples -p libavcodec-dev libavcodec/api-example.c
 	dh_installchangelogs -a Changelog
 else
@@ -200,7 +201,6 @@ endif
 	doxygen doc/Doxyfile
 	mkdir -p debian/libav-doc/usr/share/doc/libav-doc
 	mv -v doc/doxy/html debian/libav-doc/usr/share/doc/libav-doc
-	install -m 644 -D debian-shared/doc/*.html debian/libav-doc/usr/share/doc/libav-doc/html/
 	dh_installdocs -i
 	dh_installchangelogs -i
 	dh_compress -i
