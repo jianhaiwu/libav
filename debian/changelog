@@ -1,3 +1,27 @@
+libav (6:9.7-1) experimental; urgency=low
+
+  * New upstream release 9.7, Most of the following fixes resulted from
+    test samples that the Google Security Team has kindly made available:
+
+     - 4xm: fix several programming errors to avoid crashes, etc.
+     - apetag: use int64_t for filesize
+     - jpegls: Fix invalid writes to memory
+     - ljpeg: use the correct number of components in YUV
+     - mjpeg: Validate sampling factors
+     - mjpegdec: properly report unsupported disabled features
+     - mjpegdec: validate parameters in mjpeg_decode_scan_progressive_ac
+     - mpegvideo: allocate sufficiently large scratch buffer for interlaced vid
+     - pixdesc: mark gray8 as pseudopal
+     - smacker: fix several programming errors to avoid crashes, etc.
+     - tiff: do not overread the source buffer
+     - vmd: drop incomplete chunks and spurious samples
+     - vmdav: convert to bytestream2 to avoid invalid reads and writes
+     - wavpack: check packet size early
+     - wavpack: use bytestream2 in wavpack_decode_block
+     - wavpack: validate samples size parsed in wavpack_decode_block
+
+ -- Reinhard Tartler <siretart@tauware.de>  Sun, 30 Jun 2013 17:21:27 +0200
+
 libav (6:9.6-2) experimental; urgency=low
 
   * Tighten build dependency on libx264, Closes: #709817
