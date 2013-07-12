@@ -2,6 +2,8 @@ libav (6:0.8.8-1) unstable; urgency=low
 
   * Imported Upstream version 0.8.7, new releases fixes a number of
     security relevant patches.
+  * backport patch from upstream to make samplefmt auto-aling buffers
+    (Closes: #713856)
 
  -- Reinhard Tartler <siretart@tauware.de>  Fri, 12 Jul 2013 22:00:28 +0200
 
