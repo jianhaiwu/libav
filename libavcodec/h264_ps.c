@@ -341,7 +341,7 @@ int ff_h264_decode_seq_parameter_set(H264Context *h){
         sps->chroma_format_idc= get_ue_golomb_31(&s->gb);
         if(sps->chroma_format_idc > 3) {
             av_log(h->s.avctx, AV_LOG_ERROR, "chroma_format_idc (%u) out of range\n", sps->chroma_format_idc);
-            return -1;
+            goto fail;
         } else if(sps->chroma_format_idc == 3) {
             sps->residual_color_transform_flag = get_bits1(&s->gb);
         }
@@ -361,7 +361,7 @@ int ff_h264_decode_seq_parameter_set(H264Context *h){
         av_log(h->s.avctx, AV_LOG_ERROR,
                "log2_max_frame_num_minus4 out of range (0-12): %d\n",
                log2_max_frame_num_minus4);
-        return AVERROR_INVALIDDATA;
+        goto fail;
     }
     sps->log2_max_frame_num = log2_max_frame_num_minus4 + 4;
 
@@ -447,6 +447,7 @@ int ff_h264_decode_seq_parameter_set(H264Context *h){
         sps->sar.den= 1;
 
     if(s->avctx->debug&FF_DEBUG_PICT_INFO){
+        static const char csp[4][5] = { "Gray", "420", "422", "444" };
         av_log(h->s.avctx, AV_LOG_DEBUG, "sps:%u profile:%d/%d poc:%d ref:%d %dx%d %s %s crop:%d/%d/%d/%d %s %s %d/%d\n",
                sps_id, sps->profile_idc, sps->level_idc,
                sps->poc_type,
@@ -457,15 +458,18 @@ int ff_h264_decode_seq_parameter_set(H264Context *h){
                sps->crop_left, sps->crop_right,
                sps->crop_top, sps->crop_bottom,
                sps->vui_parameters_present_flag ? "VUI" : "",
-               ((const char*[]){"Gray","420","422","444"})[sps->chroma_format_idc],
+               csp[sps->chroma_format_idc],
                sps->timing_info_present_flag ? sps->num_units_in_tick : 0,
                sps->timing_info_present_flag ? sps->time_scale : 0
                );
     }
+    sps->new = 1;
 
     av_free(h->sps_buffers[sps_id]);
-    h->sps_buffers[sps_id]= sps;
-    h->sps = *sps;
+    h->sps_buffers[sps_id] = sps;
+    h->sps                 = *sps;
+    h->current_sps_id      = sps_id;
+
     return 0;
 fail:
     av_free(sps);

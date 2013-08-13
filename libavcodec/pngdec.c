@@ -21,8 +21,9 @@
 #include "libavutil/imgutils.h"
 #include "avcodec.h"
 #include "bytestream.h"
+#include "internal.h"
 #include "png.h"
-#include "dsputil.h"
+#include "pngdsp.h"
 
 /* TODO:
  * - add 2, 4 and 16 bit depth support
@@ -33,7 +34,7 @@
 //#define DEBUG
 
 typedef struct PNGDecContext {
-    DSPContext dsp;
+    PNGDSPContext dsp;
 
     GetByteContext gb;
     AVFrame picture1, picture2;
@@ -189,7 +190,7 @@ void ff_add_png_paeth_prediction(uint8_t *dst, uint8_t *src, uint8_t *top, int w
     }
 
 /* NOTE: 'dst' can be equal to 'last' */
-static void png_filter_row(DSPContext *dsp, uint8_t *dst, int filter_type,
+static void png_filter_row(PNGDSPContext *dsp, uint8_t *dst, int filter_type,
                            uint8_t *src, uint8_t *last, int size, int bpp)
 {
     int i, p, r, g, b, a;
@@ -233,7 +234,7 @@ static void png_filter_row(DSPContext *dsp, uint8_t *dst, int filter_type,
         if(bpp > 1 && size > 4) {
             // would write off the end of the array if we let it process the last pixel with bpp=3
             int w = bpp==4 ? size : size-3;
-            dsp->add_png_paeth_prediction(dst+i, src+i, last+i, w-i, bpp);
+            dsp->add_paeth_prediction(dst+i, src+i, last+i, w-i, bpp);
             i = w;
         }
         ff_add_png_paeth_prediction(dst+i, src+i, last+i, size-i, bpp);
@@ -382,7 +383,7 @@ static int png_decode_idat(PNGDecContext *s, int length)
 }
 
 static int decode_frame(AVCodecContext *avctx,
-                        void *data, int *data_size,
+                        void *data, int *got_frame,
                         AVPacket *avpkt)
 {
     const uint8_t *buf = avpkt->data;
@@ -463,28 +464,28 @@ static int decode_frame(AVCodecContext *avctx,
 
                 if (s->bit_depth == 8 &&
                     s->color_type == PNG_COLOR_TYPE_RGB) {
-                    avctx->pix_fmt = PIX_FMT_RGB24;
+                    avctx->pix_fmt = AV_PIX_FMT_RGB24;
                 } else if (s->bit_depth == 8 &&
                            s->color_type == PNG_COLOR_TYPE_RGB_ALPHA) {
-                    avctx->pix_fmt = PIX_FMT_RGB32;
+                    avctx->pix_fmt = AV_PIX_FMT_RGB32;
                 } else if (s->bit_depth == 8 &&
                            s->color_type == PNG_COLOR_TYPE_GRAY) {
-                    avctx->pix_fmt = PIX_FMT_GRAY8;
+                    avctx->pix_fmt = AV_PIX_FMT_GRAY8;
                 } else if (s->bit_depth == 16 &&
                            s->color_type == PNG_COLOR_TYPE_GRAY) {
-                    avctx->pix_fmt = PIX_FMT_GRAY16BE;
+                    avctx->pix_fmt = AV_PIX_FMT_GRAY16BE;
                 } else if (s->bit_depth == 16 &&
                            s->color_type == PNG_COLOR_TYPE_RGB) {
-                    avctx->pix_fmt = PIX_FMT_RGB48BE;
+                    avctx->pix_fmt = AV_PIX_FMT_RGB48BE;
                 } else if (s->bit_depth == 1 &&
                            s->color_type == PNG_COLOR_TYPE_GRAY) {
-                    avctx->pix_fmt = PIX_FMT_MONOBLACK;
+                    avctx->pix_fmt = AV_PIX_FMT_MONOBLACK;
                 } else if (s->bit_depth == 8 &&
                            s->color_type == PNG_COLOR_TYPE_PALETTE) {
-                    avctx->pix_fmt = PIX_FMT_PAL8;
+                    avctx->pix_fmt = AV_PIX_FMT_PAL8;
                 } else if (s->bit_depth == 8 &&
                            s->color_type == PNG_COLOR_TYPE_GRAY_ALPHA) {
-                    avctx->pix_fmt = PIX_FMT_Y400A;
+                    avctx->pix_fmt = AV_PIX_FMT_Y400A;
                 } else {
                     goto fail;
                 }
@@ -492,7 +493,7 @@ static int decode_frame(AVCodecContext *avctx,
                     avctx->release_buffer(avctx, p);
 
                 p->reference= 0;
-                if(avctx->get_buffer(avctx, p) < 0){
+                if(ff_get_buffer(avctx, p) < 0){
                     av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
                     goto fail;
                 }
@@ -610,7 +611,7 @@ static int decode_frame(AVCodecContext *avctx,
     }
 
     *picture= *s->current_picture;
-    *data_size = sizeof(AVFrame);
+    *got_frame = 1;
 
     ret = bytestream2_tell(&s->gb);
  the_end:
@@ -632,7 +633,7 @@ static av_cold int png_dec_init(AVCodecContext *avctx){
     s->last_picture = &s->picture2;
     avcodec_get_frame_defaults(&s->picture1);
     avcodec_get_frame_defaults(&s->picture2);
-    dsputil_init(&s->dsp, avctx);
+    ff_pngdsp_init(&s->dsp);
 
     return 0;
 }
@@ -652,11 +653,11 @@ static av_cold int png_dec_end(AVCodecContext *avctx)
 AVCodec ff_png_decoder = {
     .name           = "png",
     .type           = AVMEDIA_TYPE_VIDEO,
-    .id             = CODEC_ID_PNG,
+    .id             = AV_CODEC_ID_PNG,
     .priv_data_size = sizeof(PNGDecContext),
     .init           = png_dec_init,
     .close          = png_dec_end,
     .decode         = decode_frame,
     .capabilities   = CODEC_CAP_DR1 /*| CODEC_CAP_DRAW_HORIZ_BAND*/,
-    .long_name = NULL_IF_CONFIG_SMALL("PNG image"),
+    .long_name      = NULL_IF_CONFIG_SMALL("PNG (Portable Network Graphics) image"),
 };

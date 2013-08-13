@@ -46,7 +46,7 @@ static void decode_mb(MpegEncContext *s, int ref)
     s->dest[1] = s->current_picture.f.data[1] + (s->mb_y * (16 >> s->chroma_y_shift) * s->uvlinesize) + s->mb_x * (16 >> s->chroma_x_shift);
     s->dest[2] = s->current_picture.f.data[2] + (s->mb_y * (16 >> s->chroma_y_shift) * s->uvlinesize) + s->mb_x * (16 >> s->chroma_x_shift);
 
-    if (CONFIG_H264_DECODER && s->codec_id == CODEC_ID_H264) {
+    if (CONFIG_H264_DECODER && s->codec_id == AV_CODEC_ID_H264) {
         H264Context *h = (void*)s;
         h->mb_xy = s->mb_x + s->mb_y * s->mb_stride;
         memset(h->non_zero_count_cache, 0, sizeof(h->non_zero_count_cache));
@@ -66,7 +66,7 @@ static void decode_mb(MpegEncContext *s, int ref)
         ff_h264_hl_decode_mb(h);
     } else {
         assert(ref == 0);
-        MPV_decode_mb(s, s->block);
+        ff_MPV_decode_mb(s, s->block);
     }
 }
 
@@ -76,7 +76,7 @@ static void decode_mb(MpegEncContext *s, int ref)
  */
 static void set_mv_strides(MpegEncContext *s, int *mv_step, int *stride)
 {
-    if (s->codec_id == CODEC_ID_H264) {
+    if (s->codec_id == AV_CODEC_ID_H264) {
         H264Context *h = (void*)s;
         assert(s->quarter_sample);
         *mv_step = 4;
@@ -388,7 +388,7 @@ static void v_block_filter(MpegEncContext *s, uint8_t *dst, int w, int h,
 
 static void guess_mv(MpegEncContext *s)
 {
-    uint8_t fixed[s->mb_stride * s->mb_height];
+    uint8_t *fixed = s->er_temp_buffer;
 #define MV_FROZEN    3
 #define MV_CHANGED   2
 #define MV_UNCHANGED 1
@@ -599,10 +599,10 @@ skip_mean_and_median:
                     pred_count++;
 
                     if (!fixed[mb_xy]) {
-                        if (s->avctx->codec_id == CODEC_ID_H264) {
+                        if (s->avctx->codec_id == AV_CODEC_ID_H264) {
                             // FIXME
                         } else {
-                            ff_thread_await_progress((AVFrame *) s->last_picture_ptr,
+                            ff_thread_await_progress(&s->last_picture_ptr->f,
                                                      mb_y, 0);
                         }
                         if (!s->last_picture.f.motion_val[0] ||
@@ -699,8 +699,6 @@ skip_last_mv:
                         fixed[mb_xy] = MV_UNCHANGED;
                 }
             }
-
-            // printf(".%d/%d", changed, score_sum); fflush(stdout);
         }
 
         if (none_left)
@@ -711,7 +709,6 @@ skip_last_mv:
             if (fixed[mb_xy])
                 fixed[mb_xy] = MV_FROZEN;
         }
-        // printf(":"); fflush(stdout);
     }
 }
 
@@ -730,7 +727,7 @@ static int is_intra_more_likely(MpegEncContext *s)
             undamaged_count++;
     }
 
-    if (s->codec_id == CODEC_ID_H264) {
+    if (s->codec_id == AV_CODEC_ID_H264) {
         H264Context *h = (void*) s;
         if (h->list_count <= 0 || h->ref_count[0] <= 0 ||
             !h->ref_list[0][0].f.data[0])
@@ -770,10 +767,10 @@ static int is_intra_more_likely(MpegEncContext *s)
                 uint8_t *last_mb_ptr = s->last_picture.f.data[0] +
                                        mb_x * 16 + mb_y * 16 * s->linesize;
 
-                if (s->avctx->codec_id == CODEC_ID_H264) {
+                if (s->avctx->codec_id == AV_CODEC_ID_H264) {
                     // FIXME
                 } else {
-                    ff_thread_await_progress((AVFrame *) s->last_picture_ptr,
+                    ff_thread_await_progress(&s->last_picture_ptr->f,
                                              mb_y, 0);
                 }
                 is_intra_likely += s->dsp.sad[0](NULL, last_mb_ptr, mb_ptr,
@@ -789,7 +786,6 @@ static int is_intra_more_likely(MpegEncContext *s)
             }
         }
     }
-    // printf("is_intra_likely: %d type:%d\n", is_intra_likely, s->pict_type);
     return is_intra_likely > 0;
 }
 
@@ -891,7 +887,7 @@ void ff_er_frame_end(MpegEncContext *s)
 
     /* We do not support ER of field pictures yet,
      * though it should not crash if enabled. */
-    if (!s->err_recognition || s->error_count == 0 || s->avctx->lowres ||
+    if (!s->err_recognition || s->error_count == 0                     ||
         s->avctx->hwaccel                                              ||
         s->avctx->codec->capabilities&CODEC_CAP_HWACCEL_VDPAU          ||
         s->picture_structure != PICT_FRAME                             ||
@@ -1161,10 +1157,10 @@ void ff_er_frame_end(MpegEncContext *s)
                     int time_pp = s->pp_time;
                     int time_pb = s->pb_time;
 
-                    if (s->avctx->codec_id == CODEC_ID_H264) {
+                    if (s->avctx->codec_id == AV_CODEC_ID_H264) {
                         // FIXME
                     } else {
-                        ff_thread_await_progress((AVFrame *) s->next_picture_ptr, mb_y, 0);
+                        ff_thread_await_progress(&s->next_picture_ptr->f, mb_y, 0);
                     }
                     s->mv[0][0][0] = s->next_picture.f.motion_val[0][xy][0] *  time_pb            / time_pp;
                     s->mv[0][0][1] = s->next_picture.f.motion_val[0][xy][1] *  time_pb            / time_pp;

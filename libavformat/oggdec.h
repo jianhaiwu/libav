@@ -68,6 +68,7 @@ struct ogg_stream {
     unsigned int pduration;
     uint32_t serial;
     uint64_t granule;
+    uint64_t start_granule;
     int64_t lastpts;
     int64_t lastdts;
     int64_t sync_pos;   ///< file offset of the first page needed to reconstruct the current packet
@@ -80,6 +81,7 @@ struct ogg_stream {
     int incomplete; ///< whether we're expecting a continuation in the next page
     int page_end;   ///< current packet is the last one completed in the page
     int keyframe_seek;
+    int nb_header; ///< set to the number of parsed headers
     void *private;
 };
 
@@ -102,6 +104,8 @@ struct ogg {
 #define OGG_FLAG_CONT 1
 #define OGG_FLAG_BOS  2
 #define OGG_FLAG_EOS  4
+
+#define OGG_NOGRANULE_VALUE -1ull
 
 extern const struct ogg_codec ff_celt_codec;
 extern const struct ogg_codec ff_dirac_codec;

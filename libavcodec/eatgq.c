@@ -34,10 +34,11 @@
 #include "bytestream.h"
 #include "dsputil.h"
 #include "aandcttab.h"
+#include "eaidct.h"
+#include "internal.h"
 
 typedef struct TgqContext {
     AVCodecContext *avctx;
-    DSPContext dsp;
     AVFrame frame;
     int width,height;
     ScanTable scantable;
@@ -48,13 +49,12 @@ typedef struct TgqContext {
 
 static av_cold int tgq_decode_init(AVCodecContext *avctx){
     TgqContext *s = avctx->priv_data;
+    uint8_t idct_permutation[64];
     s->avctx = avctx;
-    if(avctx->idct_algo==FF_IDCT_AUTO)
-        avctx->idct_algo=FF_IDCT_EA;
-    dsputil_init(&s->dsp, avctx);
-    ff_init_scantable(s->dsp.idct_permutation, &s->scantable, ff_zigzag_direct);
+    ff_init_scantable_permutation(idct_permutation, FF_NO_IDCT_PERM);
+    ff_init_scantable(idct_permutation, &s->scantable, ff_zigzag_direct);
     avctx->time_base = (AVRational){1, 15};
-    avctx->pix_fmt = PIX_FMT_YUV420P;
+    avctx->pix_fmt = AV_PIX_FMT_YUV420P;
     return 0;
 }
 
@@ -109,13 +109,13 @@ static void tgq_idct_put_mb(TgqContext *s, DCTELEM (*block)[64], int mb_x, int m
     uint8_t *dest_cb = s->frame.data[1] + (mb_y * 8 * s->frame.linesize[1]) + mb_x * 8;
     uint8_t *dest_cr = s->frame.data[2] + (mb_y * 8 * s->frame.linesize[2]) + mb_x * 8;
 
-    s->dsp.idct_put(dest_y                 , linesize, block[0]);
-    s->dsp.idct_put(dest_y              + 8, linesize, block[1]);
-    s->dsp.idct_put(dest_y + 8*linesize    , linesize, block[2]);
-    s->dsp.idct_put(dest_y + 8*linesize + 8, linesize, block[3]);
+    ff_ea_idct_put_c(dest_y                 , linesize, block[0]);
+    ff_ea_idct_put_c(dest_y              + 8, linesize, block[1]);
+    ff_ea_idct_put_c(dest_y + 8*linesize    , linesize, block[2]);
+    ff_ea_idct_put_c(dest_y + 8*linesize + 8, linesize, block[3]);
     if(!(s->avctx->flags&CODEC_FLAG_GRAY)){
-         s->dsp.idct_put(dest_cb, s->frame.linesize[1], block[4]);
-         s->dsp.idct_put(dest_cr, s->frame.linesize[2], block[5]);
+         ff_ea_idct_put_c(dest_cb, s->frame.linesize[1], block[4]);
+         ff_ea_idct_put_c(dest_cr, s->frame.linesize[2], block[5]);
     }
 }
 
@@ -180,14 +180,11 @@ static void tgq_calculate_qtable(TgqContext *s, int quant){
     const int b = (11*(100-quant))/100 + 4;
     for(j=0;j<8;j++)
     for(i=0;i<8;i++)
-        if (s->avctx->idct_algo==FF_IDCT_EA)
-            s->qtable[j*8+i] = ((a*(j+i)/(7+7) + b)*ff_inv_aanscales[j*8+i])>>(14-4);
-        else
-            s->qtable[j*8+i] = (a*(j+i)/(7+7) + b)<<3;
+        s->qtable[j*8+i] = ((a*(j+i)/(7+7) + b)*ff_inv_aanscales[j*8+i])>>(14-4);
 }
 
 static int tgq_decode_frame(AVCodecContext *avctx,
-                            void *data, int *data_size,
+                            void *data, int *got_frame,
                             AVPacket *avpkt){
     const uint8_t *buf = avpkt->data;
     int buf_size = avpkt->size;
@@ -220,7 +217,7 @@ static int tgq_decode_frame(AVCodecContext *avctx,
         s->frame.key_frame = 1;
         s->frame.pict_type = AV_PICTURE_TYPE_I;
         s->frame.buffer_hints = FF_BUFFER_HINTS_VALID;
-        if (avctx->get_buffer(avctx, &s->frame)) {
+        if (ff_get_buffer(avctx, &s->frame)) {
             av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
             return -1;
         }
@@ -230,7 +227,7 @@ static int tgq_decode_frame(AVCodecContext *avctx,
         for (x = 0; x < FFALIGN(avctx->width, 16) >> 4; x++)
             tgq_decode_mb(s, y, x);
 
-    *data_size = sizeof(AVFrame);
+    *got_frame = 1;
     *(AVFrame*)data = s->frame;
 
     return avpkt->size;
@@ -246,11 +243,11 @@ static av_cold int tgq_decode_end(AVCodecContext *avctx){
 AVCodec ff_eatgq_decoder = {
     .name           = "eatgq",
     .type           = AVMEDIA_TYPE_VIDEO,
-    .id             = CODEC_ID_TGQ,
+    .id             = AV_CODEC_ID_TGQ,
     .priv_data_size = sizeof(TgqContext),
     .init           = tgq_decode_init,
     .close          = tgq_decode_end,
     .decode         = tgq_decode_frame,
     .capabilities   = CODEC_CAP_DR1,
-    .long_name = NULL_IF_CONFIG_SMALL("Electronic Arts TGQ video"),
+    .long_name      = NULL_IF_CONFIG_SMALL("Electronic Arts TGQ video"),
 };

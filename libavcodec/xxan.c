@@ -22,11 +22,10 @@
 
 #include "avcodec.h"
 #include "libavutil/intreadwrite.h"
+#include "libavutil/mem.h"
 #include "bytestream.h"
 #define BITSTREAM_READER_LE
 #include "get_bits.h"
-// for av_memcpy_backptr
-#include "libavutil/lzo.h"
 
 typedef struct XanContext {
     AVCodecContext *avctx;
@@ -44,7 +43,12 @@ static av_cold int xan_decode_init(AVCodecContext *avctx)
 
     s->avctx = avctx;
 
-    avctx->pix_fmt = PIX_FMT_YUV420P;
+    avctx->pix_fmt = AV_PIX_FMT_YUV420P;
+
+    if (avctx->height < 8) {
+        av_log(avctx, AV_LOG_ERROR, "Invalid frame height: %d.\n", avctx->height);
+        return AVERROR(EINVAL);
+    }
 
     s->buffer_size = avctx->width * avctx->height;
     s->y_buffer = av_malloc(s->buffer_size);
@@ -62,42 +66,42 @@ static av_cold int xan_decode_init(AVCodecContext *avctx)
 static int xan_unpack_luma(XanContext *s,
                            uint8_t *dst, const int dst_size)
 {
-   int tree_size, eof;
-   int bits, mask;
-   int tree_root, node;
-   const uint8_t *dst_end = dst + dst_size;
-   GetByteContext tree = s->gb;
-   int start_off = bytestream2_tell(&tree);
+    int tree_size, eof;
+    int bits, mask;
+    int tree_root, node;
+    const uint8_t *dst_end = dst + dst_size;
+    GetByteContext tree = s->gb;
+    int start_off = bytestream2_tell(&tree);
 
-   tree_size = bytestream2_get_byte(&s->gb);
-   eof       = bytestream2_get_byte(&s->gb);
-   tree_root = eof + tree_size;
-   bytestream2_skip(&s->gb, tree_size * 2);
+    tree_size = bytestream2_get_byte(&s->gb);
+    eof       = bytestream2_get_byte(&s->gb);
+    tree_root = eof + tree_size;
+    bytestream2_skip(&s->gb, tree_size * 2);
 
-   node = tree_root;
-   bits = bytestream2_get_byte(&s->gb);
-   mask = 0x80;
-   for (;;) {
-       int bit = !!(bits & mask);
-       mask >>= 1;
-       bytestream2_seek(&tree, start_off + node*2 + bit - eof * 2, SEEK_SET);
-       node = bytestream2_get_byte(&tree);
-       if (node == eof)
-           break;
-       if (node < eof) {
-           *dst++ = node;
-           if (dst > dst_end)
-               break;
-           node = tree_root;
-       }
-       if (!mask) {
-           if (bytestream2_get_bytes_left(&s->gb) <= 0)
-               break;
-           bits = bytestream2_get_byteu(&s->gb);
-           mask = 0x80;
-       }
-   }
-   return dst != dst_end ? AVERROR_INVALIDDATA : 0;
+    node = tree_root;
+    bits = bytestream2_get_byte(&s->gb);
+    mask = 0x80;
+    for (;;) {
+        int bit = !!(bits & mask);
+        mask >>= 1;
+        bytestream2_seek(&tree, start_off + node*2 + bit - eof * 2, SEEK_SET);
+        node = bytestream2_get_byte(&tree);
+        if (node == eof)
+            break;
+        if (node < eof) {
+            *dst++ = node;
+            if (dst > dst_end)
+                break;
+            node = tree_root;
+        }
+        if (!mask) {
+            if (bytestream2_get_bytes_left(&s->gb) <= 0)
+                break;
+            bits = bytestream2_get_byteu(&s->gb);
+            mask = 0x80;
+        }
+    }
+    return dst != dst_end ? AVERROR_INVALIDDATA : 0;
 }
 
 /* almost the same as in xan_wc3 decoder */
@@ -211,6 +215,10 @@ static int xan_decode_chroma(AVCodecContext *avctx, unsigned chroma_off)
             U += s->pic.linesize[1];
             V += s->pic.linesize[2];
         }
+        if (avctx->height & 1) {
+            memcpy(U, U - s->pic.linesize[1], avctx->width >> 1);
+            memcpy(V, V - s->pic.linesize[2], avctx->width >> 1);
+        }
     } else {
         uint8_t *U2 = U + s->pic.linesize[1];
         uint8_t *V2 = V + s->pic.linesize[2];
@@ -230,6 +238,12 @@ static int xan_decode_chroma(AVCodecContext *avctx, unsigned chroma_off)
             V  += s->pic.linesize[2] * 2;
             U2 += s->pic.linesize[1] * 2;
             V2 += s->pic.linesize[2] * 2;
+        }
+        if (avctx->height & 3) {
+            int lines = ((avctx->height + 1) >> 1) - (avctx->height >> 2) * 2;
+
+            memcpy(U, U - lines * s->pic.linesize[1], lines * s->pic.linesize[1]);
+            memcpy(V, V - lines * s->pic.linesize[2], lines * s->pic.linesize[2]);
         }
     }
 
@@ -290,11 +304,8 @@ static int xan_decode_frame_type0(AVCodecContext *avctx)
     }
 
     if (corr_off) {
-        int corr_end, dec_size;
+        int dec_size;
 
-        corr_end = (s->gb.buffer_end - s->gb.buffer_start);
-        if (chroma_off > corr_off)
-            corr_end = chroma_off;
         bytestream2_seek(&s->gb, 8 + corr_off, SEEK_SET);
         dec_size = xan_unpack(s, s->scratch_buffer, s->buffer_size / 2);
         if (dec_size < 0)
@@ -361,7 +372,7 @@ static int xan_decode_frame_type1(AVCodecContext *avctx)
 }
 
 static int xan_decode_frame(AVCodecContext *avctx,
-                            void *data, int *data_size,
+                            void *data, int *got_frame,
                             AVPacket *avpkt)
 {
     XanContext *s = avctx->priv_data;
@@ -393,7 +404,7 @@ static int xan_decode_frame(AVCodecContext *avctx,
     if (ret)
         return ret;
 
-    *data_size = sizeof(AVFrame);
+    *got_frame = 1;
     *(AVFrame*)data = s->pic;
 
     return avpkt->size;
@@ -415,12 +426,11 @@ static av_cold int xan_decode_end(AVCodecContext *avctx)
 AVCodec ff_xan_wc4_decoder = {
     .name           = "xan_wc4",
     .type           = AVMEDIA_TYPE_VIDEO,
-    .id             = CODEC_ID_XAN_WC4,
+    .id             = AV_CODEC_ID_XAN_WC4,
     .priv_data_size = sizeof(XanContext),
     .init           = xan_decode_init,
     .close          = xan_decode_end,
     .decode         = xan_decode_frame,
     .capabilities   = CODEC_CAP_DR1,
-    .long_name = NULL_IF_CONFIG_SMALL("Wing Commander IV / Xxan"),
+    .long_name      = NULL_IF_CONFIG_SMALL("Wing Commander IV / Xxan"),
 };
-

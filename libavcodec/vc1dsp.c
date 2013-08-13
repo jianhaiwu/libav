@@ -26,6 +26,7 @@
  */
 
 #include "vc1dsp.h"
+#include "libavutil/common.h"
 
 
 /** Apply overlap transform to horizontal edge
@@ -561,7 +562,7 @@ static av_always_inline int vc1_mspel_filter(const uint8_t *src, int stride, int
 /** Function used to do motion compensation with bicubic interpolation
  */
 #define VC1_MSPEL_MC(OP, OPNAME)\
-static void OPNAME ## vc1_mspel_mc(uint8_t *dst, const uint8_t *src, int stride, int hmode, int vmode, int rnd)\
+static av_always_inline void OPNAME ## vc1_mspel_mc(uint8_t *dst, const uint8_t *src, int stride, int hmode, int vmode, int rnd)\
 {\
     int     i, j;\
 \
@@ -848,6 +849,6 @@ av_cold void ff_vc1dsp_init(VC1DSPContext* dsp) {
 
     if (HAVE_ALTIVEC)
         ff_vc1dsp_init_altivec(dsp);
-    if (HAVE_MMX)
-        ff_vc1dsp_init_mmx(dsp);
+    if (ARCH_X86)
+        ff_vc1dsp_init_x86(dsp);
 }

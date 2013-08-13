@@ -46,6 +46,7 @@ typedef struct FrapsContext{
     AVCodecContext *avctx;
     AVFrame frame;
     uint8_t *tmpbuf;
+    int tmpbuf_size;
     DSPContext dsp;
 } FrapsContext;
 
@@ -59,13 +60,13 @@ static av_cold int decode_init(AVCodecContext *avctx)
 {
     FrapsContext * const s = avctx->priv_data;
 
-    avctx->coded_frame = (AVFrame*)&s->frame;
-    avctx->pix_fmt= PIX_FMT_NONE; /* set in decode_frame */
+    avctx->coded_frame = &s->frame;
+    avctx->pix_fmt= AV_PIX_FMT_NONE; /* set in decode_frame */
 
     s->avctx = avctx;
     s->tmpbuf = NULL;
 
-    dsputil_init(&s->dsp, avctx);
+    ff_dsputil_init(&s->dsp, avctx);
 
     return 0;
 }
@@ -123,14 +124,14 @@ static int fraps2_decode_plane(FrapsContext *s, uint8_t *dst, int stride, int w,
 }
 
 static int decode_frame(AVCodecContext *avctx,
-                        void *data, int *data_size,
+                        void *data, int *got_frame,
                         AVPacket *avpkt)
 {
     const uint8_t *buf = avpkt->data;
     int buf_size = avpkt->size;
     FrapsContext * const s = avctx->priv_data;
     AVFrame *frame = data;
-    AVFrame * const f = (AVFrame*)&s->frame;
+    AVFrame * const f = &s->frame;
     uint32_t header;
     unsigned int version,header_size;
     unsigned int x, y;
@@ -138,7 +139,7 @@ static int decode_frame(AVCodecContext *avctx,
     uint32_t *luma1,*luma2,*cb,*cr;
     uint32_t offs[4];
     int i, j, is_chroma, planes;
-    enum PixelFormat pix_fmt;
+    enum AVPixelFormat pix_fmt;
 
     header = AV_RL32(buf);
     version = header & 0xff;
@@ -155,7 +156,7 @@ static int decode_frame(AVCodecContext *avctx,
     if (header_size == 8)
         buf+=4;
 
-    pix_fmt = version & 1 ? PIX_FMT_BGR24 : PIX_FMT_YUVJ420P;
+    pix_fmt = version & 1 ? AV_PIX_FMT_BGR24 : AV_PIX_FMT_YUVJ420P;
     if (avctx->pix_fmt != pix_fmt && f->data[0]) {
         avctx->release_buffer(avctx, f);
     }
@@ -234,7 +235,7 @@ static int decode_frame(AVCodecContext *avctx,
 
         if (f->pict_type == AV_PICTURE_TYPE_I) {
             for(y=0; y<avctx->height; y++)
-                memcpy(&f->data[0][ (avctx->height-y)*f->linesize[0] ],
+                memcpy(&f->data[0][ (avctx->height - y -1) * f->linesize[0]],
                        &buf[y*avctx->width*3],
                        3*avctx->width);
         }
@@ -277,7 +278,10 @@ static int decode_frame(AVCodecContext *avctx,
         offs[planes] = buf_size;
         for(i = 0; i < planes; i++){
             is_chroma = !!i;
-            s->tmpbuf = av_realloc(s->tmpbuf, offs[i + 1] - offs[i] - 1024 + FF_INPUT_BUFFER_PADDING_SIZE);
+            av_fast_padded_malloc(&s->tmpbuf, &s->tmpbuf_size,
+                                  offs[i + 1] - offs[i] - 1024);
+            if (!s->tmpbuf)
+                return AVERROR(ENOMEM);
             if(fraps2_decode_plane(s, f->data[i], f->linesize[i], avctx->width >> is_chroma,
                     avctx->height >> is_chroma, buf + offs[i], offs[i + 1] - offs[i], is_chroma, 1) < 0) {
                 av_log(avctx, AV_LOG_ERROR, "Error decoding plane %i\n", i);
@@ -318,7 +322,10 @@ static int decode_frame(AVCodecContext *avctx,
         }
         offs[planes] = buf_size;
         for(i = 0; i < planes; i++){
-            s->tmpbuf = av_realloc(s->tmpbuf, offs[i + 1] - offs[i] - 1024 + FF_INPUT_BUFFER_PADDING_SIZE);
+            av_fast_padded_malloc(&s->tmpbuf, &s->tmpbuf_size,
+                                  offs[i + 1] - offs[i] - 1024);
+            if (!s->tmpbuf)
+                return AVERROR(ENOMEM);
             if(fraps2_decode_plane(s, f->data[0] + i + (f->linesize[0] * (avctx->height - 1)), -f->linesize[0],
                     avctx->width, avctx->height, buf + offs[i], offs[i + 1] - offs[i], 0, 3) < 0) {
                 av_log(avctx, AV_LOG_ERROR, "Error decoding plane %i\n", i);
@@ -336,7 +343,7 @@ static int decode_frame(AVCodecContext *avctx,
     }
 
     *frame = *f;
-    *data_size = sizeof(AVFrame);
+    *got_frame = 1;
 
     return buf_size;
 }
@@ -362,11 +369,11 @@ static av_cold int decode_end(AVCodecContext *avctx)
 AVCodec ff_fraps_decoder = {
     .name           = "fraps",
     .type           = AVMEDIA_TYPE_VIDEO,
-    .id             = CODEC_ID_FRAPS,
+    .id             = AV_CODEC_ID_FRAPS,
     .priv_data_size = sizeof(FrapsContext),
     .init           = decode_init,
     .close          = decode_end,
     .decode         = decode_frame,
     .capabilities   = CODEC_CAP_DR1,
-    .long_name = NULL_IF_CONFIG_SMALL("Fraps"),
+    .long_name      = NULL_IF_CONFIG_SMALL("Fraps"),
 };

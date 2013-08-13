@@ -27,17 +27,36 @@
  */
 
 #define BITSTREAM_READER_LE
+#include "libavutil/attributes.h"
 #include "avcodec.h"
 #include "get_bits.h"
+#include "internal.h"
+#include "mathops.h"
 #include "ivi_common.h"
-#include "libavutil/common.h"
 #include "ivi_dsp.h"
 
 extern const IVIHuffDesc ff_ivi_mb_huff_desc[8];  ///< static macroblock huffman tables
 extern const IVIHuffDesc ff_ivi_blk_huff_desc[8]; ///< static block huffman tables
 
-VLC ff_ivi_mb_vlc_tabs [8];
-VLC ff_ivi_blk_vlc_tabs[8];
+static VLC ivi_mb_vlc_tabs [8]; ///< static macroblock Huffman tables
+static VLC ivi_blk_vlc_tabs[8]; ///< static block Huffman tables
+
+typedef void (*ivi_mc_func) (int16_t *buf, const int16_t *ref_buf,
+                             uint32_t pitch, int mc_type);
+
+static int ivi_mc(ivi_mc_func mc, int16_t *buf, const int16_t *ref_buf,
+                  int offs, int mv_x, int mv_y, uint32_t pitch,
+                  int mc_type)
+{
+    int ref_offs = offs + mv_y * pitch + mv_x;
+
+    if (offs < 0 || ref_offs < 0 || !ref_buf)
+        return AVERROR_INVALIDDATA;
+
+    mc(buf + offs, ref_buf + ref_offs, pitch, mc_type);
+
+    return 0;
+}
 
 /**
  *  Reverse "nbits" bits of the value "val" and return the result
@@ -48,14 +67,24 @@ static uint16_t inv_bits(uint16_t val, int nbits)
     uint16_t res;
 
     if (nbits <= 8) {
-        res = av_reverse[val] >> (8-nbits);
+        res = ff_reverse[val] >> (8 - nbits);
     } else
-        res = ((av_reverse[val & 0xFF] << 8) + (av_reverse[val >> 8])) >> (16-nbits);
+        res = ((ff_reverse[val & 0xFF] << 8) +
+               (ff_reverse[val >> 8])) >> (16 - nbits);
 
     return res;
 }
 
-int ff_ivi_create_huff_from_desc(const IVIHuffDesc *cb, VLC *vlc, int flag)
+/*
+ *  Generate a huffman codebook from the given descriptor
+ *  and convert it into the Libav VLC table.
+ *
+ *  @param[in]   cb    pointer to codebook descriptor
+ *  @param[out]  vlc   where to place the generated VLC table
+ *  @param[in]   flag  flag: 1 - for static or 0 for dynamic tables
+ *  @return     result code: 0 - OK, -1 = error (invalid codebook descriptor)
+ */
+static int ivi_create_huff_from_desc(const IVIHuffDesc *cb, VLC *vlc, int flag)
 {
     int         pos, i, j, codes_per_row, prefix, not_last_row;
     uint16_t    codewords[256]; /* FIXME: move this temporal storage out? */
@@ -74,7 +103,7 @@ int ff_ivi_create_huff_from_desc(const IVIHuffDesc *cb, VLC *vlc, int flag)
 
             bits[pos] = i + cb->xbits[i] + not_last_row;
             if (bits[pos] > IVI_VLC_BITS)
-                return -1; /* invalid descriptor */
+                return AVERROR_INVALIDDATA; /* invalid descriptor */
 
             codewords[pos] = inv_bits((prefix | j), bits[pos]);
             if (!bits[pos])
@@ -98,84 +127,128 @@ void ff_ivi_init_static_vlc(void)
     if (initialized_vlcs)
         return;
     for (i = 0; i < 8; i++) {
-        ff_ivi_mb_vlc_tabs[i].table = table_data + i * 2 * 8192;
-        ff_ivi_mb_vlc_tabs[i].table_allocated = 8192;
-        ff_ivi_create_huff_from_desc(&ff_ivi_mb_huff_desc[i],  &ff_ivi_mb_vlc_tabs[i],  1);
-        ff_ivi_blk_vlc_tabs[i].table = table_data + (i * 2 + 1) * 8192;
-        ff_ivi_blk_vlc_tabs[i].table_allocated = 8192;
-        ff_ivi_create_huff_from_desc(&ff_ivi_blk_huff_desc[i], &ff_ivi_blk_vlc_tabs[i], 1);
+        ivi_mb_vlc_tabs[i].table = table_data + i * 2 * 8192;
+        ivi_mb_vlc_tabs[i].table_allocated = 8192;
+        ivi_create_huff_from_desc(&ff_ivi_mb_huff_desc[i],
+                                  &ivi_mb_vlc_tabs[i], 1);
+        ivi_blk_vlc_tabs[i].table = table_data + (i * 2 + 1) * 8192;
+        ivi_blk_vlc_tabs[i].table_allocated = 8192;
+        ivi_create_huff_from_desc(&ff_ivi_blk_huff_desc[i],
+                                  &ivi_blk_vlc_tabs[i], 1);
     }
     initialized_vlcs = 1;
 }
 
-int ff_ivi_dec_huff_desc(GetBitContext *gb, int desc_coded, int which_tab,
-                         IVIHuffTab *huff_tab, AVCodecContext *avctx)
-{
-    int         i, result;
-    IVIHuffDesc new_huff;
-
-    if (!desc_coded) {
-        /* select default table */
-        huff_tab->tab = (which_tab) ? &ff_ivi_blk_vlc_tabs[7]
-            : &ff_ivi_mb_vlc_tabs [7];
-    } else {
-        huff_tab->tab_sel = get_bits(gb, 3);
-        if (huff_tab->tab_sel == 7) {
-            /* custom huffman table (explicitly encoded) */
-            new_huff.num_rows = get_bits(gb, 4);
-            if (!new_huff.num_rows) {
-                av_log(avctx, AV_LOG_ERROR, "Empty custom Huffman table!\n");
-                return AVERROR_INVALIDDATA;
-            }
-
-            for (i = 0; i < new_huff.num_rows; i++)
-                new_huff.xbits[i] = get_bits(gb, 4);
-
-            /* Have we got the same custom table? Rebuild if not. */
-            if (ff_ivi_huff_desc_cmp(&new_huff, &huff_tab->cust_desc)) {
-                ff_ivi_huff_desc_copy(&huff_tab->cust_desc, &new_huff);
-
-                if (huff_tab->cust_tab.table)
-                    ff_free_vlc(&huff_tab->cust_tab);
-                result = ff_ivi_create_huff_from_desc(&huff_tab->cust_desc,
-                        &huff_tab->cust_tab, 0);
-                if (result) {
-                    huff_tab->cust_desc.num_rows = 0; // reset faulty description
-                    av_log(avctx, AV_LOG_ERROR,
-                           "Error while initializing custom vlc table!\n");
-                    return result;
-                }
-            }
-            huff_tab->tab = &huff_tab->cust_tab;
-        } else {
-            /* select one of predefined tables */
-            huff_tab->tab = (which_tab) ? &ff_ivi_blk_vlc_tabs[huff_tab->tab_sel]
-                : &ff_ivi_mb_vlc_tabs [huff_tab->tab_sel];
-        }
-    }
-
-    return 0;
-}
-
-int ff_ivi_huff_desc_cmp(const IVIHuffDesc *desc1, const IVIHuffDesc *desc2)
-{
-    return    desc1->num_rows != desc2->num_rows
-           || memcmp(desc1->xbits, desc2->xbits, desc1->num_rows);
-}
-
-void ff_ivi_huff_desc_copy(IVIHuffDesc *dst, const IVIHuffDesc *src)
+/*
+ *  Copy huffman codebook descriptors.
+ *
+ *  @param[out]  dst  ptr to the destination descriptor
+ *  @param[in]   src  ptr to the source descriptor
+ */
+static void ivi_huff_desc_copy(IVIHuffDesc *dst, const IVIHuffDesc *src)
 {
     dst->num_rows = src->num_rows;
     memcpy(dst->xbits, src->xbits, src->num_rows);
 }
 
-int av_cold ff_ivi_init_planes(IVIPlaneDesc *planes, const IVIPicConfig *cfg)
+/*
+ *  Compare two huffman codebook descriptors.
+ *
+ *  @param[in]  desc1  ptr to the 1st descriptor to compare
+ *  @param[in]  desc2  ptr to the 2nd descriptor to compare
+ *  @return         comparison result: 0 - equal, 1 - not equal
+ */
+static int ivi_huff_desc_cmp(const IVIHuffDesc *desc1,
+                             const IVIHuffDesc *desc2)
 {
-    int         p, b;
-    uint32_t    b_width, b_height, align_fac, width_aligned, height_aligned, buf_size;
+    return desc1->num_rows != desc2->num_rows ||
+           memcmp(desc1->xbits, desc2->xbits, desc1->num_rows);
+}
+
+int ff_ivi_dec_huff_desc(GetBitContext *gb, int desc_coded, int which_tab,
+                         IVIHuffTab *huff_tab, AVCodecContext *avctx)
+{
+    int i, result;
+    IVIHuffDesc new_huff;
+
+    if (!desc_coded) {
+        /* select default table */
+        huff_tab->tab = (which_tab) ? &ivi_blk_vlc_tabs[7]
+                                    : &ivi_mb_vlc_tabs [7];
+        return 0;
+    }
+
+    huff_tab->tab_sel = get_bits(gb, 3);
+    if (huff_tab->tab_sel == 7) {
+        /* custom huffman table (explicitly encoded) */
+        new_huff.num_rows = get_bits(gb, 4);
+        if (!new_huff.num_rows) {
+            av_log(avctx, AV_LOG_ERROR, "Empty custom Huffman table!\n");
+            return AVERROR_INVALIDDATA;
+        }
+
+        for (i = 0; i < new_huff.num_rows; i++)
+            new_huff.xbits[i] = get_bits(gb, 4);
+
+        /* Have we got the same custom table? Rebuild if not. */
+        if (ivi_huff_desc_cmp(&new_huff, &huff_tab->cust_desc)) {
+            ivi_huff_desc_copy(&huff_tab->cust_desc, &new_huff);
+
+            if (huff_tab->cust_tab.table)
+                ff_free_vlc(&huff_tab->cust_tab);
+            result = ivi_create_huff_from_desc(&huff_tab->cust_desc,
+                    &huff_tab->cust_tab, 0);
+            if (result) {
+                // reset faulty description
+                huff_tab->cust_desc.num_rows = 0;
+                av_log(avctx, AV_LOG_ERROR,
+                       "Error while initializing custom vlc table!\n");
+                return result;
+            }
+        }
+        huff_tab->tab = &huff_tab->cust_tab;
+    } else {
+        /* select one of predefined tables */
+        huff_tab->tab = (which_tab) ? &ivi_blk_vlc_tabs[huff_tab->tab_sel]
+            : &ivi_mb_vlc_tabs [huff_tab->tab_sel];
+    }
+
+    return 0;
+}
+
+/*
+ *  Free planes, bands and macroblocks buffers.
+ *
+ *  @param[in]  planes  pointer to the array of the plane descriptors
+ */
+static av_cold void ivi_free_buffers(IVIPlaneDesc *planes)
+{
+    int p, b, t;
+
+    for (p = 0; p < 3; p++) {
+        for (b = 0; b < planes[p].num_bands; b++) {
+            av_freep(&planes[p].bands[b].bufs[0]);
+            av_freep(&planes[p].bands[b].bufs[1]);
+            av_freep(&planes[p].bands[b].bufs[2]);
+
+            if (planes[p].bands[b].blk_vlc.cust_tab.table)
+                ff_free_vlc(&planes[p].bands[b].blk_vlc.cust_tab);
+            for (t = 0; t < planes[p].bands[b].num_tiles; t++)
+                av_freep(&planes[p].bands[b].tiles[t].mbs);
+            av_freep(&planes[p].bands[b].tiles);
+        }
+        av_freep(&planes[p].bands);
+    }
+}
+
+av_cold int ff_ivi_init_planes(IVIPlaneDesc *planes, const IVIPicConfig *cfg)
+{
+    int p, b;
+    uint32_t b_width, b_height, align_fac, width_aligned,
+             height_aligned, buf_size;
     IVIBandDesc *band;
 
-    ff_ivi_free_buffers(planes);
+    ivi_free_buffers(planes);
 
     /* fill in the descriptor of the luminance plane */
     planes[0].width     = cfg->pic_width;
@@ -195,8 +268,10 @@ int av_cold ff_ivi_init_planes(IVIPlaneDesc *planes, const IVIPicConfig *cfg)
         /* select band dimensions: if there is only one band then it
          *  has the full size, if there are several bands each of them
          *  has only half size */
-        b_width  = planes[p].num_bands == 1 ? planes[p].width  : (planes[p].width  + 1) >> 1;
-        b_height = planes[p].num_bands == 1 ? planes[p].height : (planes[p].height + 1) >> 1;
+        b_width  = planes[p].num_bands == 1 ? planes[p].width
+                                            : (planes[p].width  + 1) >> 1;
+        b_height = planes[p].num_bands == 1 ? planes[p].height
+                                            : (planes[p].height + 1) >> 1;
 
         /* luma   band buffers will be aligned on 16x16 (max macroblock size) */
         /* chroma band buffers will be aligned on   8x8 (max macroblock size) */
@@ -224,39 +299,54 @@ int av_cold ff_ivi_init_planes(IVIPlaneDesc *planes, const IVIPicConfig *cfg)
                 if (!band->bufs[2])
                     return AVERROR(ENOMEM);
             }
-
-            planes[p].bands[0].blk_vlc.cust_desc.num_rows = 0; /* reset custom vlc */
+            /* reset custom vlc */
+            planes[p].bands[0].blk_vlc.cust_desc.num_rows = 0;
         }
     }
 
     return 0;
 }
 
-void av_cold ff_ivi_free_buffers(IVIPlaneDesc *planes)
+static int ivi_init_tiles(IVIBandDesc *band, IVITile *ref_tile,
+                          int p, int b, int t_height, int t_width)
 {
-    int p, b, t;
+    int x, y;
+    IVITile *tile = band->tiles;
 
-    for (p = 0; p < 3; p++) {
-        for (b = 0; b < planes[p].num_bands; b++) {
-            av_freep(&planes[p].bands[b].bufs[0]);
-            av_freep(&planes[p].bands[b].bufs[1]);
-            av_freep(&planes[p].bands[b].bufs[2]);
+    for (y = 0; y < band->height; y += t_height) {
+        for (x = 0; x < band->width; x += t_width) {
+            tile->xpos     = x;
+            tile->ypos     = y;
+            tile->mb_size  = band->mb_size;
+            tile->width    = FFMIN(band->width - x,  t_width);
+            tile->height   = FFMIN(band->height - y, t_height);
+            tile->is_empty = tile->data_size = 0;
+            /* calculate number of macroblocks */
+            tile->num_MBs  = IVI_MBs_PER_TILE(tile->width, tile->height,
+                                              band->mb_size);
 
-            if (planes[p].bands[b].blk_vlc.cust_tab.table)
-                ff_free_vlc(&planes[p].bands[b].blk_vlc.cust_tab);
-            for (t = 0; t < planes[p].bands[b].num_tiles; t++)
-                av_freep(&planes[p].bands[b].tiles[t].mbs);
-            av_freep(&planes[p].bands[b].tiles);
+            av_freep(&tile->mbs);
+            tile->mbs = av_malloc(tile->num_MBs * sizeof(IVIMbInfo));
+            if (!tile->mbs)
+                return AVERROR(ENOMEM);
+
+            tile->ref_mbs = 0;
+            if (p || b) {
+                tile->ref_mbs = ref_tile->mbs;
+                ref_tile++;
+            }
+            tile++;
         }
-        av_freep(&planes[p].bands);
     }
+
+    return 0;
 }
 
-int av_cold ff_ivi_init_tiles(IVIPlaneDesc *planes, int tile_width, int tile_height)
+av_cold int ff_ivi_init_tiles(IVIPlaneDesc *planes,
+                              int tile_width, int tile_height)
 {
-    int         p, b, x, y, x_tiles, y_tiles, t_width, t_height;
+    int p, b, x_tiles, y_tiles, t_width, t_height, ret;
     IVIBandDesc *band;
-    IVITile     *tile, *ref_tile;
 
     for (p = 0; p < 3; p++) {
         t_width  = !p ? tile_width  : (tile_width  + 3) >> 2;
@@ -278,46 +368,29 @@ int av_cold ff_ivi_init_tiles(IVIPlaneDesc *planes, int tile_width, int tile_hei
             if (!band->tiles)
                 return AVERROR(ENOMEM);
 
-            tile = band->tiles;
-
             /* use the first luma band as reference for motion vectors
              * and quant */
-            ref_tile = planes[0].bands[0].tiles;
-
-            for (y = 0; y < band->height; y += t_height) {
-                for (x = 0; x < band->width; x += t_width) {
-                    tile->xpos     = x;
-                    tile->ypos     = y;
-                    tile->mb_size  = band->mb_size;
-                    tile->width    = FFMIN(band->width - x,  t_width);
-                    tile->height   = FFMIN(band->height - y, t_height);
-                    tile->is_empty = tile->data_size = 0;
-                    /* calculate number of macroblocks */
-                    tile->num_MBs  = IVI_MBs_PER_TILE(tile->width, tile->height,
-                                                      band->mb_size);
-
-                    av_freep(&tile->mbs);
-                    tile->mbs = av_malloc(tile->num_MBs * sizeof(IVIMbInfo));
-                    if (!tile->mbs)
-                        return AVERROR(ENOMEM);
-
-                    tile->ref_mbs = 0;
-                    if (p || b) {
-                        tile->ref_mbs = ref_tile->mbs;
-                        ref_tile++;
-                    }
-
-                    tile++;
-                }
-            }
-
-        }// for b
-    }// for p
+            ret = ivi_init_tiles(band, planes[0].bands[0].tiles,
+                                 p, b, t_height, t_width);
+            if (ret < 0)
+                return ret;
+        }
+    }
 
     return 0;
 }
 
-int ff_ivi_dec_tile_data_size(GetBitContext *gb)
+/*
+ *  Decode size of the tile data.
+ *  The size is stored as a variable-length field having the following format:
+ *  if (tile_data_size < 255) than this field is only one byte long
+ *  if (tile_data_size >= 255) than this field four is byte long: 0xFF X1 X2 X3
+ *  where X1-X3 is size of the tile data
+ *
+ *  @param[in,out]  gb  the GetBit context
+ *  @return     size of the tile data in bytes
+ */
+static int ivi_dec_tile_data_size(GetBitContext *gb)
 {
     int    len;
 
@@ -334,26 +407,120 @@ int ff_ivi_dec_tile_data_size(GetBitContext *gb)
     return len;
 }
 
-int ff_ivi_decode_blocks(GetBitContext *gb, IVIBandDesc *band, IVITile *tile)
+
+static int ivi_decode_coded_blocks(GetBitContext *gb, IVIBandDesc *band,
+                                   ivi_mc_func mc, int mv_x, int mv_y,
+                                   int *prev_dc, int is_intra, int mc_type,
+                                   uint32_t quant, int offs,
+                                   AVCodecContext *avctx)
 {
-    int         mbn, blk, num_blocks, num_coeffs, blk_size, scan_pos, run, val,
-                pos, is_intra, mc_type, mv_x, mv_y, col_mask;
-    uint8_t     col_flags[8];
-    int32_t     prev_dc, trvec[64];
-    uint32_t    cbp, sym, lo, hi, quant, buf_offs, q;
-    IVIMbInfo   *mb;
-    RVMapDesc   *rvmap = band->rv_map;
-    void (*mc_with_delta_func)(int16_t *buf, const int16_t *ref_buf, uint32_t pitch, int mc_type);
-    void (*mc_no_delta_func)  (int16_t *buf, const int16_t *ref_buf, uint32_t pitch, int mc_type);
-    const uint16_t  *base_tab;
-    const uint8_t   *scale_tab;
+    const uint16_t *base_tab  = is_intra ? band->intra_base : band->inter_base;
+    RVMapDesc *rvmap = band->rv_map;
+    uint8_t col_flags[8];
+    int32_t trvec[64];
+    uint32_t sym = 0, lo, hi, q;
+    int pos, run, val;
+    int blk_size   = band->blk_size;
+    int num_coeffs = blk_size * blk_size;
+    int col_mask   = blk_size - 1;
+    int scan_pos   = -1;
 
-    prev_dc = 0; /* init intra prediction for the DC coefficient */
+    if (!band->scan) {
+        av_log(avctx, AV_LOG_ERROR, "Scan pattern is not set.\n");
+        return AVERROR_INVALIDDATA;
+    }
 
+    /* zero transform vector */
+    memset(trvec, 0, num_coeffs * sizeof(trvec[0]));
+    /* zero column flags */
+    memset(col_flags, 0, sizeof(col_flags));
+    while (scan_pos <= num_coeffs) {
+        sym = get_vlc2(gb, band->blk_vlc.tab->table,
+                       IVI_VLC_BITS, 1);
+        if (sym == rvmap->eob_sym)
+            break; /* End of block */
+
+        /* Escape - run/val explicitly coded using 3 vlc codes */
+        if (sym == rvmap->esc_sym) {
+            run = get_vlc2(gb, band->blk_vlc.tab->table, IVI_VLC_BITS, 1) + 1;
+            lo  = get_vlc2(gb, band->blk_vlc.tab->table, IVI_VLC_BITS, 1);
+            hi  = get_vlc2(gb, band->blk_vlc.tab->table, IVI_VLC_BITS, 1);
+            /* merge them and convert into signed val */
+            val = IVI_TOSIGNED((hi << 6) | lo);
+        } else {
+            if (sym >= 256U) {
+                av_log(avctx, AV_LOG_ERROR, "Invalid sym encountered: %d.\n", sym);
+                return AVERROR_INVALIDDATA;
+            }
+            run = rvmap->runtab[sym];
+            val = rvmap->valtab[sym];
+        }
+
+        /* de-zigzag and dequantize */
+        scan_pos += run;
+        if (scan_pos >= num_coeffs || scan_pos < 0)
+            break;
+        pos = band->scan[scan_pos];
+
+        if (!val)
+            av_dlog(avctx, "Val = 0 encountered!\n");
+
+        q = (base_tab[pos] * quant) >> 9;
+        if (q > 1)
+            val = val * q + FFSIGN(val) * (((q ^ 1) - 1) >> 1);
+        trvec[pos] = val;
+        /* track columns containing non-zero coeffs */
+        col_flags[pos & col_mask] |= !!val;
+    }
+
+    if (scan_pos < 0 || scan_pos >= num_coeffs && sym != rvmap->eob_sym)
+        return AVERROR_INVALIDDATA; /* corrupt block data */
+
+    /* undoing DC coeff prediction for intra-blocks */
+    if (is_intra && band->is_2d_trans) {
+        *prev_dc     += trvec[0];
+        trvec[0]      = *prev_dc;
+        col_flags[0] |= !!*prev_dc;
+    }
+
+    /* apply inverse transform */
+    band->inv_transform(trvec, band->buf + offs,
+                        band->pitch, col_flags);
+
+    /* apply motion compensation */
+    if (!is_intra)
+        return ivi_mc(mc, band->buf, band->ref_buf, offs, mv_x, mv_y,
+                      band->pitch, mc_type);
+
+    return 0;
+}
+/*
+ *  Decode block data:
+ *  extract huffman-coded transform coefficients from the bitstream,
+ *  dequantize them, apply inverse transform and motion compensation
+ *  in order to reconstruct the picture.
+ *
+ *  @param[in,out]  gb    the GetBit context
+ *  @param[in]      band  pointer to the band descriptor
+ *  @param[in]      tile  pointer to the tile descriptor
+ *  @return     result code: 0 - OK, -1 = error (corrupted blocks data)
+ */
+static int ivi_decode_blocks(GetBitContext *gb, IVIBandDesc *band,
+                             IVITile *tile, AVCodecContext *avctx)
+{
+    int mbn, blk, num_blocks, blk_size, ret, is_intra, mc_type = 0;
+    int mv_x = 0, mv_y = 0;
+    int32_t prev_dc;
+    uint32_t cbp, quant, buf_offs;
+    IVIMbInfo *mb;
+    ivi_mc_func mc_with_delta_func, mc_no_delta_func;
+    const uint8_t *scale_tab;
+
+    /* init intra prediction for the DC coefficient */
+    prev_dc    = 0;
     blk_size   = band->blk_size;
-    col_mask   = blk_size - 1; /* column mask for tracking non-zero coeffs */
-    num_blocks = (band->mb_size != blk_size) ? 4 : 1; /* number of blocks per mb */
-    num_coeffs = blk_size * blk_size;
+    /* number of blocks per mb */
+    num_blocks = (band->mb_size != blk_size) ? 4 : 1;
     if (blk_size == 8) {
         mc_with_delta_func = ff_ivi_mc_8x8_delta;
         mc_no_delta_func   = ff_ivi_mc_8x8_no_delta;
@@ -369,7 +536,6 @@ int ff_ivi_decode_blocks(GetBitContext *gb, IVIBandDesc *band, IVITile *tile)
 
         quant = av_clip(band->glob_quant + mb->q_delta, 0, 23);
 
-        base_tab  = is_intra ? band->intra_base  : band->inter_base;
         scale_tab = is_intra ? band->intra_scale : band->inter_scale;
         if (scale_tab)
             quant = scale_tab[quant];
@@ -377,9 +543,7 @@ int ff_ivi_decode_blocks(GetBitContext *gb, IVIBandDesc *band, IVITile *tile)
         if (!is_intra) {
             mv_x = mb->mv_x;
             mv_y = mb->mv_y;
-            if (!band->is_halfpel) {
-                mc_type = 0; /* we have only fullpel vectors */
-            } else {
+            if (band->is_halfpel) {
                 mc_type = ((mv_y & 1) << 1) | (mv_x & 1);
                 mv_x >>= 1;
                 mv_y >>= 1; /* convert halfpel vectors into fullpel ones */
@@ -392,10 +556,10 @@ int ff_ivi_decode_blocks(GetBitContext *gb, IVIBandDesc *band, IVITile *tile)
                 cx    = mb->mv_x &  band->is_halfpel;
                 cy    = mb->mv_y &  band->is_halfpel;
 
-                if (   mb->xpos + dmv_x < 0
-                    || mb->xpos + dmv_x + band->mb_size + cx > band->pitch
-                    || mb->ypos + dmv_y < 0
-                    || mb->ypos + dmv_y + band->mb_size + cy > band->aheight) {
+                if (mb->xpos + dmv_x < 0 ||
+                    mb->xpos + dmv_x + band->mb_size + cx > band->pitch ||
+                    mb->ypos + dmv_y < 0 ||
+                    mb->ypos + dmv_y + band->mb_size + cy > band->aheight) {
                     return AVERROR_INVALIDDATA;
                 }
             }
@@ -411,69 +575,11 @@ int ff_ivi_decode_blocks(GetBitContext *gb, IVIBandDesc *band, IVITile *tile)
             }
 
             if (cbp & 1) { /* block coded ? */
-                if (!band->scan) {
-                    av_log(NULL, AV_LOG_ERROR, "Scan pattern is not set.\n");
-                    return AVERROR_INVALIDDATA;
-                }
-
-                scan_pos = -1;
-                memset(trvec, 0, num_coeffs*sizeof(trvec[0])); /* zero transform vector */
-                memset(col_flags, 0, sizeof(col_flags));      /* zero column flags */
-
-                while (scan_pos <= num_coeffs) {
-                    sym = get_vlc2(gb, band->blk_vlc.tab->table, IVI_VLC_BITS, 1);
-                    if (sym == rvmap->eob_sym)
-                        break; /* End of block */
-
-                    if (sym == rvmap->esc_sym) { /* Escape - run/val explicitly coded using 3 vlc codes */
-                        run = get_vlc2(gb, band->blk_vlc.tab->table, IVI_VLC_BITS, 1) + 1;
-                        lo  = get_vlc2(gb, band->blk_vlc.tab->table, IVI_VLC_BITS, 1);
-                        hi  = get_vlc2(gb, band->blk_vlc.tab->table, IVI_VLC_BITS, 1);
-                        val = IVI_TOSIGNED((hi << 6) | lo); /* merge them and convert into signed val */
-                    } else {
-                        if (sym >= 256U) {
-                            av_log(NULL, AV_LOG_ERROR, "Invalid sym encountered: %d.\n", sym);
-                            return -1;
-                        }
-                        run = rvmap->runtab[sym];
-                        val = rvmap->valtab[sym];
-                    }
-
-                    /* de-zigzag and dequantize */
-                    scan_pos += run;
-                    if (scan_pos >= num_coeffs)
-                        break;
-                    pos = band->scan[scan_pos];
-
-                    if (!val)
-                        av_dlog(NULL, "Val = 0 encountered!\n");
-
-                    q = (base_tab[pos] * quant) >> 9;
-                    if (q > 1)
-                        val = val * q + FFSIGN(val) * (((q ^ 1) - 1) >> 1);
-                    trvec[pos] = val;
-                    col_flags[pos & col_mask] |= !!val; /* track columns containing non-zero coeffs */
-                }// while
-
-                if (scan_pos >= num_coeffs && sym != rvmap->eob_sym)
-                    return -1; /* corrupt block data */
-
-                /* undoing DC coeff prediction for intra-blocks */
-                if (is_intra && band->is_2d_trans) {
-                    prev_dc      += trvec[0];
-                    trvec[0]      = prev_dc;
-                    col_flags[0] |= !!prev_dc;
-                }
-
-                /* apply inverse transform */
-                band->inv_transform(trvec, band->buf + buf_offs,
-                                    band->pitch, col_flags);
-
-                /* apply motion compensation */
-                if (!is_intra)
-                    mc_with_delta_func(band->buf + buf_offs,
-                                       band->ref_buf + buf_offs + mv_y * band->pitch + mv_x,
-                                       band->pitch, mc_type);
+                ret = ivi_decode_coded_blocks(gb, band, mc_with_delta_func,
+                                              mv_x, mv_y, &prev_dc, is_intra,
+                                              mc_type, quant, buf_offs, avctx);
+                if (ret < 0)
+                    return ret;
             } else {
                 /* block not coded */
                 /* for intra blocks apply the dc slant transform */
@@ -482,10 +588,12 @@ int ff_ivi_decode_blocks(GetBitContext *gb, IVIBandDesc *band, IVITile *tile)
                     if (band->dc_transform)
                         band->dc_transform(&prev_dc, band->buf + buf_offs,
                                            band->pitch, blk_size);
-                } else
-                    mc_no_delta_func(band->buf + buf_offs,
-                                     band->ref_buf + buf_offs + mv_y * band->pitch + mv_x,
-                                     band->pitch, mc_type);
+                } else {
+                    ret = ivi_mc(mc_no_delta_func, band->buf, band->ref_buf,
+                                 buf_offs, mv_x, mv_y, band->pitch, mc_type);
+                    if (ret < 0)
+                        return ret;
+                }
             }
 
             cbp >>= 1;
@@ -510,12 +618,11 @@ static int ivi_process_empty_tile(AVCodecContext *avctx, IVIBandDesc *band,
                                   IVITile *tile, int32_t mv_scale)
 {
     int             x, y, need_mc, mbn, blk, num_blocks, mv_x, mv_y, mc_type;
-    int             offs, mb_offset, row_offset;
+    int             offs, mb_offset, row_offset, ret;
     IVIMbInfo       *mb, *ref_mb;
     const int16_t   *src;
     int16_t         *dst;
-    void (*mc_no_delta_func)(int16_t *buf, const int16_t *ref_buf, uint32_t pitch,
-                             int mc_type);
+    ivi_mc_func     mc_no_delta_func;
 
     if (tile->num_MBs != IVI_MBs_PER_TILE(tile->width, tile->height, band->mb_size)) {
         av_log(avctx, AV_LOG_ERROR, "Allocated tile size %d mismatches "
@@ -550,7 +657,7 @@ static int ivi_process_empty_tile(AVCodecContext *avctx, IVIBandDesc *band,
             if (band->inherit_qdelta && ref_mb)
                 mb->q_delta = ref_mb->q_delta;
 
-            if (band->inherit_mv) {
+            if (band->inherit_mv && ref_mb) {
                 /* motion vector inheritance */
                 if (mv_scale) {
                     mb->mv_x = ivi_scale_mv(ref_mb->mv_x, mv_scale);
@@ -589,9 +696,10 @@ static int ivi_process_empty_tile(AVCodecContext *avctx, IVIBandDesc *band,
             for (blk = 0; blk < num_blocks; blk++) {
                 /* adjust block position in the buffer according with its number */
                 offs = mb->buf_offs + band->blk_size * ((blk & 1) + !!(blk & 2) * band->pitch);
-                mc_no_delta_func(band->buf + offs,
-                                 band->ref_buf + offs + mv_y * band->pitch + mv_x,
-                                 band->pitch, mc_type);
+                ret = ivi_mc(mc_no_delta_func, band->buf, band->ref_buf,
+                             offs, mv_x, mv_y, band->pitch, mc_type);
+                if (ret < 0)
+                    return ret;
             }
         }
     } else {
@@ -610,7 +718,7 @@ static int ivi_process_empty_tile(AVCodecContext *avctx, IVIBandDesc *band,
 
 
 #ifdef DEBUG
-uint16_t ivi_calc_band_checksum (IVIBandDesc *band)
+static uint16_t ivi_calc_band_checksum(IVIBandDesc *band)
 {
     int         x, y;
     int16_t     *src, checksum;
@@ -624,34 +732,18 @@ uint16_t ivi_calc_band_checksum (IVIBandDesc *band)
 
     return checksum;
 }
-
-int ivi_check_band (IVIBandDesc *band, const uint8_t *ref, int pitch)
-{
-    int         x, y, result;
-    uint8_t     t1, t2;
-    int16_t    *src;
-
-    src = band->buf;
-    result = 0;
-
-    for (y = 0; y < band->height; src += band->pitch, y++) {
-        for (x = 0; x < band->width; x++) {
-            t1 = av_clip(src[x] + 128, 0, 255);
-            t2 = ref[x];
-            if (t1 != t2) {
-                av_log(NULL, AV_LOG_ERROR, "Data mismatch: row %d, column %d\n",
-                       y / band->blk_size, x / band->blk_size);
-                result = -1;
-            }
-        }
-        ref += pitch;
-    }
-
-    return result;
-}
 #endif
 
-void ff_ivi_output_plane(IVIPlaneDesc *plane, uint8_t *dst, int dst_pitch)
+/*
+ *  Convert and output the current plane.
+ *  This conversion is done by adding back the bias value of 128
+ *  (subtracted in the encoder) and clipping the result.
+ *
+ *  @param[in]   plane      pointer to the descriptor of the plane being processed
+ *  @param[out]  dst        pointer to the buffer receiving converted pixels
+ *  @param[in]   dst_pitch  pitch for moving to the next y line
+ */
+static void ivi_output_plane(IVIPlaneDesc *plane, uint8_t *dst, int dst_pitch)
 {
     int             x, y;
     const int16_t   *src  = plane->bands[0].buf;
@@ -676,13 +768,17 @@ void ff_ivi_output_plane(IVIPlaneDesc *plane, uint8_t *dst, int dst_pitch)
  *  @param[in]      avctx  ptr to the AVCodecContext
  *  @return         result code: 0 = OK, -1 = error
  */
-static int decode_band(IVI45DecContext *ctx, int plane_num,
+static int decode_band(IVI45DecContext *ctx,
                        IVIBandDesc *band, AVCodecContext *avctx)
 {
     int         result, i, t, idx1, idx2, pos;
     IVITile     *tile;
 
     band->buf     = band->bufs[ctx->dst_buf];
+    if (!band->buf) {
+        av_log(avctx, AV_LOG_ERROR, "Band buffer points to no data!\n");
+        return AVERROR_INVALIDDATA;
+    }
     band->ref_buf = band->bufs[ctx->ref_buf];
     band->data_ptr = ctx->frame_data + (get_bits_count(&ctx->gb) >> 3);
 
@@ -726,7 +822,7 @@ static int decode_band(IVI45DecContext *ctx, int plane_num,
                 break;
             av_dlog(avctx, "Empty tile encountered!\n");
         } else {
-            tile->data_size = ff_ivi_dec_tile_data_size(&ctx->gb);
+            tile->data_size = ivi_dec_tile_data_size(&ctx->gb);
             if (!tile->data_size) {
                 av_log(avctx, AV_LOG_ERROR, "Tile data size is zero!\n");
                 return AVERROR_INVALIDDATA;
@@ -736,9 +832,17 @@ static int decode_band(IVI45DecContext *ctx, int plane_num,
             if (result < 0)
                 break;
 
-            result = ff_ivi_decode_blocks(&ctx->gb, band, tile);
-            if (result < 0 || ((get_bits_count(&ctx->gb) - pos) >> 3) != tile->data_size) {
-                av_log(avctx, AV_LOG_ERROR, "Corrupted tile data encountered!\n");
+            result = ivi_decode_blocks(&ctx->gb, band, tile, avctx);
+            if (result < 0) {
+                av_log(avctx, AV_LOG_ERROR,
+                       "Corrupted tile data encountered!\n");
+                break;
+            }
+
+            if (((get_bits_count(&ctx->gb) - pos) >> 3) != tile->data_size) {
+                av_log(avctx, AV_LOG_ERROR,
+                       "Tile data_size mismatch!\n");
+                result = AVERROR_INVALIDDATA;
                 break;
             }
 
@@ -746,7 +850,8 @@ static int decode_band(IVI45DecContext *ctx, int plane_num,
         }
     }
 
-    /* restore the selected rvmap table by applying its corrections in reverse order */
+    /* restore the selected rvmap table by applying its corrections in
+     * reverse order */
     for (i = band->num_corr-1; i >= 0; i--) {
         idx1 = band->corr[i*2];
         idx2 = band->corr[i*2+1];
@@ -759,7 +864,8 @@ static int decode_band(IVI45DecContext *ctx, int plane_num,
         uint16_t chksum = ivi_calc_band_checksum(band);
         if (chksum != band->checksum) {
             av_log(avctx, AV_LOG_ERROR,
-                   "Band checksum mismatch! Plane %d, band %d, received: %x, calculated: %x\n",
+                   "Band checksum mismatch! Plane %d, band %d, "
+                   "received: %x, calculated: %x\n",
                    band->plane, band->band_num, band->checksum, chksum);
         }
     }
@@ -770,7 +876,7 @@ static int decode_band(IVI45DecContext *ctx, int plane_num,
     return result;
 }
 
-int ff_ivi_decode_frame(AVCodecContext *avctx, void *data, int *data_size,
+int ff_ivi_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
                         AVPacket *avpkt)
 {
     IVI45DecContext *ctx = avctx->priv_data;
@@ -786,14 +892,14 @@ int ff_ivi_decode_frame(AVCodecContext *avctx, void *data, int *data_size,
     if (result) {
         av_log(avctx, AV_LOG_ERROR,
                "Error while decoding picture header: %d\n", result);
-        return -1;
+        return result;
     }
     if (ctx->gop_invalid)
         return AVERROR_INVALIDDATA;
 
     if (ctx->gop_flags & IVI5_IS_PROTECTED) {
         av_log(avctx, AV_LOG_ERROR, "Password-protected clip!\n");
-        return -1;
+        return AVERROR_PATCHWELCOME;
     }
 
     ctx->switch_buffers(ctx);
@@ -803,11 +909,11 @@ int ff_ivi_decode_frame(AVCodecContext *avctx, void *data, int *data_size,
     if (ctx->is_nonnull_frame(ctx)) {
         for (p = 0; p < 3; p++) {
             for (b = 0; b < ctx->planes[p].num_bands; b++) {
-                result = decode_band(ctx, p, &ctx->planes[p].bands[b], avctx);
-                if (result) {
+                result = decode_band(ctx, &ctx->planes[p].bands[b], avctx);
+                if (result < 0) {
                     av_log(avctx, AV_LOG_ERROR,
                            "Error while decoding band: %d, plane: %d\n", b, p);
-                    return -1;
+                    return result;
                 }
             }
         }
@@ -815,10 +921,13 @@ int ff_ivi_decode_frame(AVCodecContext *avctx, void *data, int *data_size,
 
     //STOP_TIMER("decode_planes"); }
 
-    /* If the bidirectional mode is enabled, next I and the following P frame will */
-    /* be sent together. Unfortunately the approach below seems to be the only way */
-    /* to handle the B-frames mode. That's exactly the same Intel decoders do.     */
-    if (avctx->codec_id == CODEC_ID_INDEO4 && ctx->frame_type == 0/*FRAMETYPE_INTRA*/) {
+    /* If the bidirectional mode is enabled, next I and the following P
+     * frame will be sent together. Unfortunately the approach below seems
+     * to be the only way to handle the B-frames mode.
+     * That's exactly the same Intel decoders do.
+     */
+    if (avctx->codec_id == AV_CODEC_ID_INDEO4 &&
+        ctx->frame_type == 0/*FRAMETYPE_INTRA*/) {
         while (get_bits(&ctx->gb, 8)); // skip version string
         skip_bits_long(&ctx->gb, 64);  // skip padding, TODO: implement correct 8-bytes alignment
         if (get_bits_left(&ctx->gb) > 18 && show_bits(&ctx->gb, 18) == 0x3FFF8)
@@ -830,24 +939,24 @@ int ff_ivi_decode_frame(AVCodecContext *avctx, void *data, int *data_size,
 
     ctx->frame.reference = 0;
     avcodec_set_dimensions(avctx, ctx->planes[0].width, ctx->planes[0].height);
-    if ((result = avctx->get_buffer(avctx, &ctx->frame)) < 0) {
+    if ((result = ff_get_buffer(avctx, &ctx->frame)) < 0) {
         av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
         return result;
     }
 
     if (ctx->is_scalable) {
-        if (avctx->codec_id == CODEC_ID_INDEO4)
-            ff_ivi_recompose_haar(&ctx->planes[0], ctx->frame.data[0], ctx->frame.linesize[0], 4);
+        if (avctx->codec_id == AV_CODEC_ID_INDEO4)
+            ff_ivi_recompose_haar(&ctx->planes[0], ctx->frame.data[0], ctx->frame.linesize[0]);
         else
-            ff_ivi_recompose53   (&ctx->planes[0], ctx->frame.data[0], ctx->frame.linesize[0], 4);
+            ff_ivi_recompose53   (&ctx->planes[0], ctx->frame.data[0], ctx->frame.linesize[0]);
     } else {
-        ff_ivi_output_plane(&ctx->planes[0], ctx->frame.data[0], ctx->frame.linesize[0]);
+        ivi_output_plane(&ctx->planes[0], ctx->frame.data[0], ctx->frame.linesize[0]);
     }
 
-    ff_ivi_output_plane(&ctx->planes[2], ctx->frame.data[1], ctx->frame.linesize[1]);
-    ff_ivi_output_plane(&ctx->planes[1], ctx->frame.data[2], ctx->frame.linesize[2]);
+    ivi_output_plane(&ctx->planes[2], ctx->frame.data[1], ctx->frame.linesize[1]);
+    ivi_output_plane(&ctx->planes[1], ctx->frame.data[2], ctx->frame.linesize[2]);
 
-    *data_size = sizeof(AVFrame);
+    *got_frame = 1;
     *(AVFrame*)data = ctx->frame;
 
     return buf_size;
@@ -860,7 +969,7 @@ av_cold int ff_ivi_decode_close(AVCodecContext *avctx)
 {
     IVI45DecContext *ctx = avctx->priv_data;
 
-    ff_ivi_free_buffers(&ctx->planes[0]);
+    ivi_free_buffers(&ctx->planes[0]);
 
     if (ctx->mb_vlc.cust_tab.table)
         ff_free_vlc(&ctx->mb_vlc.cust_tab);
@@ -869,7 +978,7 @@ av_cold int ff_ivi_decode_close(AVCodecContext *avctx)
         avctx->release_buffer(avctx, &ctx->frame);
 
 #if IVI4_STREAM_ANALYSER
-    if (avctx->codec_id == CODEC_ID_INDEO4) {
+    if (avctx->codec_id == AV_CODEC_ID_INDEO4) {
     if (ctx->is_scalable)
         av_log(avctx, AV_LOG_ERROR, "This video uses scalability mode!\n");
     if (ctx->uses_tiling)

@@ -69,7 +69,7 @@ int ff_h263_decode_motion(MpegEncContext * s, int pred, int f_code);
 av_const int ff_h263_aspect_to_info(AVRational aspect);
 int ff_h263_decode_init(AVCodecContext *avctx);
 int ff_h263_decode_frame(AVCodecContext *avctx,
-                             void *data, int *data_size,
+                             void *data, int *got_frame,
                              AVPacket *avpkt);
 int ff_h263_decode_end(AVCodecContext *avctx);
 void ff_h263_encode_mb(MpegEncContext *s,
@@ -148,7 +148,7 @@ static inline int get_p_cbp(MpegEncContext * s,
                       int motion_x, int motion_y){
     int cbp, i;
 
-    if(s->flags & CODEC_FLAG_CBP_RD){
+    if (s->mpv_flags & FF_MPV_FLAG_CBP_RD) {
         int best_cbpy_score= INT_MAX;
         int best_cbpc_score= INT_MAX;
         int cbpc = (-1), cbpy= (-1);

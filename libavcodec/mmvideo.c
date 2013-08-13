@@ -58,7 +58,7 @@ static av_cold int mm_decode_init(AVCodecContext *avctx)
 
     s->avctx = avctx;
 
-    avctx->pix_fmt = PIX_FMT_PAL8;
+    avctx->pix_fmt = AV_PIX_FMT_PAL8;
 
     s->frame.reference = 1;
 
@@ -84,8 +84,7 @@ static int mm_decode_pal(MmContext *s)
  */
 static int mm_decode_intra(MmContext * s, int half_horiz, int half_vert)
 {
-    int i, x, y;
-    i=0; x=0; y=0;
+    int x = 0, y = 0;
 
     while (bytestream2_get_bytes_left(&s->gb) > 0) {
         int run_length, color;
@@ -173,7 +172,7 @@ static int mm_decode_inter(MmContext * s, int half_horiz, int half_vert)
 }
 
 static int mm_decode_frame(AVCodecContext *avctx,
-                            void *data, int *data_size,
+                            void *data, int *got_frame,
                             AVPacket *avpkt)
 {
     const uint8_t *buf = avpkt->data;
@@ -210,7 +209,7 @@ static int mm_decode_frame(AVCodecContext *avctx,
 
     memcpy(s->frame.data[1], s->palette, AVPALETTE_SIZE);
 
-    *data_size = sizeof(AVFrame);
+    *got_frame      = 1;
     *(AVFrame*)data = s->frame;
 
     return buf_size;
@@ -229,11 +228,11 @@ static av_cold int mm_decode_end(AVCodecContext *avctx)
 AVCodec ff_mmvideo_decoder = {
     .name           = "mmvideo",
     .type           = AVMEDIA_TYPE_VIDEO,
-    .id             = CODEC_ID_MMVIDEO,
+    .id             = AV_CODEC_ID_MMVIDEO,
     .priv_data_size = sizeof(MmContext),
     .init           = mm_decode_init,
     .close          = mm_decode_end,
     .decode         = mm_decode_frame,
     .capabilities   = CODEC_CAP_DR1,
-    .long_name = NULL_IF_CONFIG_SMALL("American Laser Games MM Video"),
+    .long_name      = NULL_IF_CONFIG_SMALL("American Laser Games MM Video"),
 };

@@ -56,10 +56,10 @@ static av_cold int msrle_decode_init(AVCodecContext *avctx)
     switch (avctx->bits_per_coded_sample) {
     case 4:
     case 8:
-        avctx->pix_fmt = PIX_FMT_PAL8;
+        avctx->pix_fmt = AV_PIX_FMT_PAL8;
         break;
     case 24:
-        avctx->pix_fmt = PIX_FMT_BGR24;
+        avctx->pix_fmt = AV_PIX_FMT_BGR24;
         break;
     default:
         av_log(avctx, AV_LOG_ERROR, "unsupported bits per sample\n");
@@ -72,7 +72,7 @@ static av_cold int msrle_decode_init(AVCodecContext *avctx)
 }
 
 static int msrle_decode_frame(AVCodecContext *avctx,
-                              void *data, int *data_size,
+                              void *data, int *got_frame,
                               AVPacket *avpkt)
 {
     const uint8_t *buf = avpkt->data;
@@ -128,7 +128,7 @@ static int msrle_decode_frame(AVCodecContext *avctx,
         ff_msrle_decode(avctx, (AVPicture*)&s->frame, avctx->bits_per_coded_sample, &s->gb);
     }
 
-    *data_size = sizeof(AVFrame);
+    *got_frame      = 1;
     *(AVFrame*)data = s->frame;
 
     /* report that the buffer was completely consumed */
@@ -149,11 +149,11 @@ static av_cold int msrle_decode_end(AVCodecContext *avctx)
 AVCodec ff_msrle_decoder = {
     .name           = "msrle",
     .type           = AVMEDIA_TYPE_VIDEO,
-    .id             = CODEC_ID_MSRLE,
+    .id             = AV_CODEC_ID_MSRLE,
     .priv_data_size = sizeof(MsrleContext),
     .init           = msrle_decode_init,
     .close          = msrle_decode_end,
     .decode         = msrle_decode_frame,
     .capabilities   = CODEC_CAP_DR1,
-    .long_name= NULL_IF_CONFIG_SMALL("Microsoft RLE"),
+    .long_name      = NULL_IF_CONFIG_SMALL("Microsoft RLE"),
 };

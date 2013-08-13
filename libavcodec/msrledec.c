@@ -133,8 +133,8 @@ static int msrle_decode_8_16_24_32(AVCodecContext *avctx, AVPicture *pic,
 {
     uint8_t *output, *output_end;
     int p1, p2, line=avctx->height - 1, pos=0, i;
-    uint16_t av_uninit(pix16);
-    uint32_t av_uninit(pix32);
+    uint16_t pix16;
+    uint32_t pix32;
     unsigned int width= FFABS(pic->linesize[0]) / (depth >> 3);
 
     output     = pic->data[0] + (avctx->height - 1) * pic->linesize[0];
@@ -259,4 +259,3 @@ int ff_msrle_decode(AVCodecContext *avctx, AVPicture *pic,
         return -1;
     }
 }
-

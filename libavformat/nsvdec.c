@@ -19,10 +19,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "libavutil/attributes.h"
 #include "libavutil/mathematics.h"
 #include "avformat.h"
 #include "internal.h"
-#include "riff.h"
 #include "libavutil/dict.h"
 
 //#define DEBUG_DUMP_INDEX // XXX dumbdriving-271.nsv breaks with it commented!!
@@ -186,31 +186,31 @@ typedef struct {
 } NSVContext;
 
 static const AVCodecTag nsv_codec_video_tags[] = {
-    { CODEC_ID_VP3, MKTAG('V', 'P', '3', ' ') },
-    { CODEC_ID_VP3, MKTAG('V', 'P', '3', '0') },
-    { CODEC_ID_VP3, MKTAG('V', 'P', '3', '1') },
-    { CODEC_ID_VP5, MKTAG('V', 'P', '5', ' ') },
-    { CODEC_ID_VP5, MKTAG('V', 'P', '5', '0') },
-    { CODEC_ID_VP6, MKTAG('V', 'P', '6', ' ') },
-    { CODEC_ID_VP6, MKTAG('V', 'P', '6', '0') },
-    { CODEC_ID_VP6, MKTAG('V', 'P', '6', '1') },
-    { CODEC_ID_VP6, MKTAG('V', 'P', '6', '2') },
+    { AV_CODEC_ID_VP3, MKTAG('V', 'P', '3', ' ') },
+    { AV_CODEC_ID_VP3, MKTAG('V', 'P', '3', '0') },
+    { AV_CODEC_ID_VP3, MKTAG('V', 'P', '3', '1') },
+    { AV_CODEC_ID_VP5, MKTAG('V', 'P', '5', ' ') },
+    { AV_CODEC_ID_VP5, MKTAG('V', 'P', '5', '0') },
+    { AV_CODEC_ID_VP6, MKTAG('V', 'P', '6', ' ') },
+    { AV_CODEC_ID_VP6, MKTAG('V', 'P', '6', '0') },
+    { AV_CODEC_ID_VP6, MKTAG('V', 'P', '6', '1') },
+    { AV_CODEC_ID_VP6, MKTAG('V', 'P', '6', '2') },
 /*
-    { CODEC_ID_VP4, MKTAG('V', 'P', '4', ' ') },
-    { CODEC_ID_VP4, MKTAG('V', 'P', '4', '0') },
+    { AV_CODEC_ID_VP4, MKTAG('V', 'P', '4', ' ') },
+    { AV_CODEC_ID_VP4, MKTAG('V', 'P', '4', '0') },
 */
-    { CODEC_ID_MPEG4, MKTAG('X', 'V', 'I', 'D') }, /* cf sample xvid decoder from nsv_codec_sdk.zip */
-    { CODEC_ID_RAWVIDEO, MKTAG('R', 'G', 'B', '3') },
-    { CODEC_ID_NONE, 0 },
+    { AV_CODEC_ID_MPEG4, MKTAG('X', 'V', 'I', 'D') }, /* cf sample xvid decoder from nsv_codec_sdk.zip */
+    { AV_CODEC_ID_RAWVIDEO, MKTAG('R', 'G', 'B', '3') },
+    { AV_CODEC_ID_NONE, 0 },
 };
 
 static const AVCodecTag nsv_codec_audio_tags[] = {
-    { CODEC_ID_MP3,       MKTAG('M', 'P', '3', ' ') },
-    { CODEC_ID_AAC,       MKTAG('A', 'A', 'C', ' ') },
-    { CODEC_ID_AAC,       MKTAG('A', 'A', 'C', 'P') },
-    { CODEC_ID_SPEEX,     MKTAG('S', 'P', 'X', ' ') },
-    { CODEC_ID_PCM_U16LE, MKTAG('P', 'C', 'M', ' ') },
-    { CODEC_ID_NONE,      0 },
+    { AV_CODEC_ID_MP3,       MKTAG('M', 'P', '3', ' ') },
+    { AV_CODEC_ID_AAC,       MKTAG('A', 'A', 'C', ' ') },
+    { AV_CODEC_ID_AAC,       MKTAG('A', 'A', 'C', 'P') },
+    { AV_CODEC_ID_SPEEX,     MKTAG('S', 'P', 'X', ' ') },
+    { AV_CODEC_ID_PCM_U16LE, MKTAG('P', 'C', 'M', ' ') },
+    { AV_CODEC_ID_NONE,      0 },
 };
 
 //static int nsv_load_index(AVFormatContext *s);
@@ -252,7 +252,7 @@ static int nsv_resync(AVFormatContext *s)
             nsv->state = NSV_FOUND_BEEF;
             return 0;
         }
-        /* we read as big endian, thus the MK*BE* */
+        /* we read as big-endian, thus the MK*BE* */
         if (v == TB_NSVF) { /* NSVf */
             av_dlog(s, "NSV resynced on NSVf after %d bytes\n", i+1);
             nsv->state = NSV_FOUND_NSVF;
@@ -269,7 +269,7 @@ static int nsv_resync(AVFormatContext *s)
     return -1;
 }
 
-static int nsv_parse_NSVf_header(AVFormatContext *s, AVFormatParameters *ap)
+static int nsv_parse_NSVf_header(AVFormatContext *s)
 {
     NSVContext *nsv = s->priv_data;
     AVIOContext *pb = s->pb;
@@ -397,7 +397,7 @@ static int nsv_parse_NSVf_header(AVFormatContext *s, AVFormatParameters *ap)
     return 0;
 }
 
-static int nsv_parse_NSVs_header(AVFormatContext *s, AVFormatParameters *ap)
+static int nsv_parse_NSVs_header(AVFormatContext *s)
 {
     NSVContext *nsv = s->priv_data;
     AVIOContext *pb = s->pb;
@@ -518,7 +518,7 @@ fail:
     return -1;
 }
 
-static int nsv_read_header(AVFormatContext *s, AVFormatParameters *ap)
+static int nsv_read_header(AVFormatContext *s)
 {
     NSVContext *nsv = s->priv_data;
     int i, err;
@@ -533,13 +533,13 @@ static int nsv_read_header(AVFormatContext *s, AVFormatParameters *ap)
         if (nsv_resync(s) < 0)
             return -1;
         if (nsv->state == NSV_FOUND_NSVF) {
-            err = nsv_parse_NSVf_header(s, ap);
+            err = nsv_parse_NSVf_header(s);
             if (err < 0)
                 return err;
         }
             /* we need the first NSVs also... */
         if (nsv->state == NSV_FOUND_NSVS) {
-            err = nsv_parse_NSVs_header(s, ap);
+            err = nsv_parse_NSVs_header(s);
             if (err < 0)
                 return err;
             break; /* we just want the first one */
@@ -566,7 +566,6 @@ static int nsv_read_chunk(AVFormatContext *s, int fill_header)
     uint32_t vsize;
     uint16_t asize;
     uint16_t auxsize;
-    uint32_t av_unused auxtag;
 
     av_dlog(s, "%s(%d)\n", __FUNCTION__, fill_header);
 
@@ -582,7 +581,7 @@ null_chunk_retry:
     if (err < 0)
         return err;
     if (nsv->state == NSV_FOUND_NSVS)
-        err = nsv_parse_NSVs_header(s, NULL);
+        err = nsv_parse_NSVs_header(s);
     if (err < 0)
         return err;
     if (nsv->state != NSV_HAS_READ_NSVS && nsv->state != NSV_FOUND_BEEF)
@@ -596,6 +595,7 @@ null_chunk_retry:
     av_dlog(s, "NSV CHUNK %d aux, %u bytes video, %d bytes audio\n", auxcount, vsize, asize);
     /* skip aux stuff */
     for (i = 0; i < auxcount; i++) {
+        uint32_t av_unused auxtag;
         auxsize = avio_rl16(pb);
         auxtag = avio_rl32(pb);
         av_dlog(s, "NSV aux data: '%c%c%c%c', %d bytes\n",
@@ -655,7 +655,7 @@ null_chunk_retry:
                 }
                 bps /= channels; // ???
                 if (bps == 8)
-                    st[NSV_ST_AUDIO]->codec->codec_id = CODEC_ID_PCM_U8;
+                    st[NSV_ST_AUDIO]->codec->codec_id = AV_CODEC_ID_PCM_U8;
                 samplerate /= 4;/* UGH ??? XXX */
                 channels = 1;
                 st[NSV_ST_AUDIO]->codec->channels = channels;
@@ -720,7 +720,9 @@ static int nsv_read_seek(AVFormatContext *s, int stream_index, int64_t timestamp
     if(index < 0)
         return -1;
 
-    avio_seek(s->pb, st->index_entries[index].pos, SEEK_SET);
+    if (avio_seek(s->pb, st->index_entries[index].pos, SEEK_SET) < 0)
+        return -1;
+
     nst->frame_offset = st->index_entries[index].timestamp;
     nsv->state = NSV_UNSYNC;
     return 0;

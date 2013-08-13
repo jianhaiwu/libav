@@ -24,8 +24,10 @@
  * Delphine Software International CIN audio/video decoders
  */
 
+#include "libavutil/channel_layout.h"
 #include "avcodec.h"
 #include "bytestream.h"
+#include "internal.h"
 #include "mathops.h"
 
 
@@ -93,7 +95,7 @@ static av_cold int cinvideo_decode_init(AVCodecContext *avctx)
     unsigned int i;
 
     cin->avctx = avctx;
-    avctx->pix_fmt = PIX_FMT_PAL8;
+    avctx->pix_fmt = AV_PIX_FMT_PAL8;
 
     cin->frame.data[0] = NULL;
 
@@ -121,7 +123,7 @@ static int cin_decode_huffman(const unsigned char *src, int src_size, unsigned c
     unsigned char *dst_end = dst + dst_size;
     const unsigned char *src_end = src + src_size;
 
-    memcpy(huff_code_table, src, 15); src += 15; src_size -= 15;
+    memcpy(huff_code_table, src, 15); src += 15;
 
     while (src < src_end) {
         huff_code = *src++;
@@ -199,7 +201,7 @@ static void cin_decode_rle(const unsigned char *src, int src_size, unsigned char
 }
 
 static int cinvideo_decode_frame(AVCodecContext *avctx,
-                                 void *data, int *data_size,
+                                 void *data, int *got_frame,
                                  AVPacket *avpkt)
 {
     const uint8_t *buf = avpkt->data;
@@ -295,7 +297,7 @@ static int cinvideo_decode_frame(AVCodecContext *avctx,
 
     FFSWAP(uint8_t *, cin->bitmap_table[CIN_CUR_BMP], cin->bitmap_table[CIN_PRE_BMP]);
 
-    *data_size = sizeof(AVFrame);
+    *got_frame = 1;
     *(AVFrame *)data = cin->frame;
 
     return buf_size;
@@ -319,14 +321,11 @@ static av_cold int cinaudio_decode_init(AVCodecContext *avctx)
 {
     CinAudioContext *cin = avctx->priv_data;
 
-    if (avctx->channels != 1) {
-        av_log_ask_for_sample(avctx, "Number of channels is not supported\n");
-        return AVERROR_PATCHWELCOME;
-    }
-
     cin->initial_decode_frame = 1;
-    cin->delta = 0;
-    avctx->sample_fmt = AV_SAMPLE_FMT_S16;
+    cin->delta                = 0;
+    avctx->sample_fmt         = AV_SAMPLE_FMT_S16;
+    avctx->channels           = 1;
+    avctx->channel_layout     = AV_CH_LAYOUT_MONO;
 
     avcodec_get_frame_defaults(&cin->frame);
     avctx->coded_frame = &cin->frame;
@@ -345,7 +344,7 @@ static int cinaudio_decode_frame(AVCodecContext *avctx, void *data,
 
     /* get output buffer */
     cin->frame.nb_samples = avpkt->size - cin->initial_decode_frame;
-    if ((ret = avctx->get_buffer(avctx, &cin->frame)) < 0) {
+    if ((ret = ff_get_buffer(avctx, &cin->frame)) < 0) {
         av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
         return ret;
     }
@@ -375,22 +374,22 @@ static int cinaudio_decode_frame(AVCodecContext *avctx, void *data,
 AVCodec ff_dsicinvideo_decoder = {
     .name           = "dsicinvideo",
     .type           = AVMEDIA_TYPE_VIDEO,
-    .id             = CODEC_ID_DSICINVIDEO,
+    .id             = AV_CODEC_ID_DSICINVIDEO,
     .priv_data_size = sizeof(CinVideoContext),
     .init           = cinvideo_decode_init,
     .close          = cinvideo_decode_end,
     .decode         = cinvideo_decode_frame,
     .capabilities   = CODEC_CAP_DR1,
-    .long_name = NULL_IF_CONFIG_SMALL("Delphine Software International CIN video"),
+    .long_name      = NULL_IF_CONFIG_SMALL("Delphine Software International CIN video"),
 };
 
 AVCodec ff_dsicinaudio_decoder = {
     .name           = "dsicinaudio",
     .type           = AVMEDIA_TYPE_AUDIO,
-    .id             = CODEC_ID_DSICINAUDIO,
+    .id             = AV_CODEC_ID_DSICINAUDIO,
     .priv_data_size = sizeof(CinAudioContext),
     .init           = cinaudio_decode_init,
     .decode         = cinaudio_decode_frame,
     .capabilities   = CODEC_CAP_DR1,
-    .long_name = NULL_IF_CONFIG_SMALL("Delphine Software International CIN audio"),
+    .long_name      = NULL_IF_CONFIG_SMALL("Delphine Software International CIN audio"),
 };

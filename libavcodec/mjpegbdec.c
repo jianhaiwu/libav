@@ -38,7 +38,7 @@ static uint32_t read_offs(AVCodecContext *avctx, GetBitContext *gb, uint32_t siz
 }
 
 static int mjpegb_decode_frame(AVCodecContext *avctx,
-                              void *data, int *data_size,
+                              void *data, int *got_frame,
                               AVPacket *avpkt)
 {
     const uint8_t *buf = avpkt->data;
@@ -137,7 +137,7 @@ read_header:
     //XXX FIXME factorize, this looks very similar to the EOI code
 
     *picture= *s->picture_ptr;
-    *data_size = sizeof(AVFrame);
+    *got_frame = 1;
 
     if(!s->lossless){
         picture->quality= FFMAX3(s->qscale[0], s->qscale[1], s->qscale[2]);
@@ -155,12 +155,11 @@ read_header:
 AVCodec ff_mjpegb_decoder = {
     .name           = "mjpegb",
     .type           = AVMEDIA_TYPE_VIDEO,
-    .id             = CODEC_ID_MJPEGB,
+    .id             = AV_CODEC_ID_MJPEGB,
     .priv_data_size = sizeof(MJpegDecodeContext),
     .init           = ff_mjpeg_decode_init,
     .close          = ff_mjpeg_decode_end,
     .decode         = mjpegb_decode_frame,
     .capabilities   = CODEC_CAP_DR1,
-    .max_lowres = 3,
-    .long_name = NULL_IF_CONFIG_SMALL("Apple MJPEG-B"),
+    .long_name      = NULL_IF_CONFIG_SMALL("Apple MJPEG-B"),
 };
