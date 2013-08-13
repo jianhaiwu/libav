@@ -1,3 +1,9 @@
+libav (6:9.8-2) unstable; urgency=low
+
+  * Upload to unstable
+
+ -- Reinhard Tartler <siretart@tauware.de>  Tue, 13 Aug 2013 15:10:05 +0200
+
 libav (6:9.8-1) experimental; urgency=low
 
   * New upstream release 9.8, Closes: #716734, #716735
@@ -270,9 +276,188 @@ libav (6:0.8.99-1537-gacb2c79-1) experimental; urgency=low
 
  -- Reinhard Tartler <siretart@tauware.de>  Sat, 12 May 2012 22:02:03 +0200
 
+libav (6:0.8.8-1) unstable; urgency=low
+
+  * Imported Upstream version 0.8.7, new releases fixes a number of
+    security relevant patches.
+  * backport patch from upstream to make samplefmt auto-aling buffers
+    (Closes: #713856)
+
+ -- Reinhard Tartler <siretart@tauware.de>  Fri, 12 Jul 2013 22:00:28 +0200
+
+libav (6:0.8.7-1) unstable; urgency=medium
+
+  * Imported Upstream version 0.8.7, new releases fixes:
+    - wav: Always seek to an even offset, Bug #500, LP: #1174737
+    - A number of further security relevant patches.
+
+ -- Reinhard Tartler <siretart@tauware.de>  Mon, 20 May 2013 11:04:00 +0200
+
+libav (6:0.8.6-1) unstable; urgency=low
+
+  * Imported Upstream version 0.8.6, new releases fixes:
+    - h264: check for luma and chroma bit depth being equal (CVE-2013-2277)
+    - iff: validate CMAP palette size (CVE-2013-2495)
+    - msrledec: convert to bytestream2 API and add proper bounds checking (CVE-2013-2496)
+    - vorbisdec: Error on bark_map_size equal to 0 (CVE-2013-0894)
+    - Thus, closes: #703200
+
+ -- Reinhard Tartler <siretart@tauware.de>  Sun, 24 Mar 2013 07:35:51 +0100
+
+libav (6:0.8.5-1) unstable; urgency=low
+
+  * New upstream security/bugfix release. New releases fixes
+    (bug numbers reference http://bugzilla.libav.org, Closes: #694483)
+    - Indeo 4 (CVE-2012-2791)
+    - VP5/VP6 (CVE-2012-2783)
+    - Indeo 3 (CVE-2012-2804)
+    - MPEG-1/2 (CVE-2012-2803)
+    - MP3 (CVE-2012-2797)
+    - AAC (CVE-2012-5144)
+    - AC-3 (CVE-2012-2802)
+    - AVS (CVE-2012-2801)
+    - DFA (CVE-2012-2798)
+    - ID3v2 (Bug 395)
+    - Serious Memory leaks on broken Ogg files
+  * drop recordshow script. This clearly undermaintained script has
+    unclear copyright status and is unlikely to work properly anyway.
+
+ -- Reinhard Tartler <siretart@tauware.de>  Sun, 13 Jan 2013 11:56:59 +0100
+
+libav (6:0.8.4-1) unstable; urgency=low
+
+  * New upstream security/bugfix release. New release fixes:
+    (bug numbers reference http://bugzilla.libav.org, Closes: #688847)
+    - h264 (Bug 118), vc1dec (CVE-2012-2796), sipr, bmpdec (bug 367), alsdec
+      (CVE-2012-2775), rv34/rv40 (CVE-2012-2772), indeo3/indeo4
+      (CVE-2012-2776, CVE-2012-2779, CVE-2012-2787, CVE-2012-2794,
+      CVE-2012-2800), vorbisenc, vorbisdec (Bug 277), snow, ac3dec
+      (CVE-2012-2802), avsdec (CVE-2012-2801), dfa (CVE-2012-2786,
+      CVE-2012-2798), lagrith (CVE-2012-2793), wmaprodec (CVE-2012-2789 &
+      Bug 327), avidec (CVE-2012-2788, CVE-2012-2790), cavsdec
+      (CVE-2012-2777, CVE-2012-2784), wav (Bug 379), yuff4mpeg (Bug 373),
+      mpegaudio, tiffenc, smacker (Bug 265).
+    - smaller bug fixes in avconv (Bug 352)
+    - fix lt() and lte() in function evaluator
+    - fix segfault in avformat_open_input()
+    - fix segfault in golomb decoder (bug 310)
+    - fix segfault (double free) in libavfilter
+    - convert dfa decoder to bytestream2 API to protect from overreads
+    - bugfix in vf_pad/scale filter (Bug 203 & 245)
+    - lavc: remove stats_out and stats_in from the options table.
+      (Bug 380, Closes: #690726)
+  * Drop patches applied upstream.
+
+ -- Reinhard Tartler <siretart@tauware.de>  Mon, 22 Oct 2012 20:57:08 +0200
+
+libav (6:0.8.3-7) unstable; urgency=low
+
+  [ Fabian Greffrath ]
+  * Fix generation of shlibs file not only for libavcodec*, but for all the
+    other library packages as well. Really closes: #679542
+  * Use xz compression for binary packages, thanks Ansgar Burchardt
+    (Closes: #683895).
+
+  [ Reinhard Tartler ]
+  * use EPOCH macro in SHLIBS_VERSION
+  * Drop the package 'libav-regular-dbg'. It was not included in squeeze.
+
+ -- Reinhard Tartler <siretart@tauware.de>  Sat, 25 Aug 2012 11:08:48 +0200
+
+libav (6:0.8.3-6) unstable; urgency=low
+
+  * Clarify the changes in the 6:0.8.3-5 upload, as discussed in bug
+    #683247.
+  * Make ffmpeg-dbg 'arch: all' for consistency with the libav-extra-dbg
+    package.
+  * Fix generation of shlibs file. (Closes: #679542)
+    Wrong make variables where used for the shlibs generation.
+  
+ -- Reinhard Tartler <siretart@tauware.de>  Sat, 04 Aug 2012 09:03:54 +0200
+
+libav (6:0.8.3-5) unstable; urgency=low
+
+  [ Reinhard Tartler ]
+  * Bug fix: "Multi-Arch: foreign libraries", thanks to Stepan Golosunov.
+    Make the transitional libavfoo-extra-NN packages 'arch: all' and
+    remove the 'Multi-Arch: foreign' fields to avoid that the dependency
+    can be satisfied by packages of other architectures, which would break
+    applications. Closes: #680613
+  * Make libav-extra-dbg 'arch: all'.  As empty, transitional package
+    without strict dependencies, we can safely ship it as arch:all
+    package.
+
+  [ Fabian Greffrath ]
+  * Mention qt-faststart in the long description (Closes: #681491).
+  * Install all debug symbols into libav-dbg (Closes: #680602).
+  * Do not run doxygen if it is not installed. This does not change anything
+    for regular builds, but helps with bootstrapping the package to new
+    architectures that may not have doxygen available yet.
+  * Fix up debian/changelog and tighten dependencies.
+  * Do not declare "ffmpeg" as virtual package (provided by libav-tools).
+    Instead, we provide it as transitional package for libav-tools. Note
+    the next upstream version will no longer provide neither an 'ffmpeg'
+    package, nor a /usr/bin/ffmpeg binary. This means that front-end
+    applications in Debian that previously used this binary needs to be
+    ported to /usr/bin/avconv for jessie.
+
+ -- Reinhard Tartler <siretart@tauware.de>  Sun, 15 Jul 2012 23:13:42 +0200
+
+libav (6:0.8.3-4) unstable; urgency=low
+
+  * Declare a 'Breaks' relationship against mplayer, Closes: #671934
+
+ -- Reinhard Tartler <siretart@tauware.de>  Tue, 26 Jun 2012 08:46:42 +0200
+
+libav (6:0.8.3-3) unstable; urgency=low
+
+  * Install the shared flavor last; the binaries from the optimized flavor(s)
+    would overwrite the ones from the shared baseline flavor causing SIGILL;
+    closes: #657885.
+  * control/Uploaders: update my email address
+
+ -- Loïc Minier <lool@debian.org>  Mon, 25 Jun 2012 21:21:24 +0200
+
+libav (6:0.8.3-2) unstable; urgency=low
+
+  [ Fabian Greffrath ]
+  * Clarify relations between libavcodec53 and libavcodec-extra-53
+    in debian/control.
+  * Use the cond_enable() macro for all additional features in debian/confflags.
+  * Tidy up and sort configuration flags.
+  * Add a debian/README.source file that describes how to rebuild libav
+    with a reduced feature set in order to avoid circular build-dependencies
+    for bootstrapping.
+  * Restrict Build-Depends to "yasm [any-amd64 any-i386]"
+    and explicitly disable it if not found.
+
+  [ Reinhard Tartler ]
+  * add patch from upstream to fix playback of Canon AVHCD movies.
+    (Fixes: LP: #937561)
+  * fix location in ffmpeg.NEWS file
+  * add dependency on libavcodec53 to libav-dbg
+  * add Pre-Depend on dpkg to libav-tools to ensure smooth updates
+  * {ffmpeg,libav-tools}.install: make files to install more explicit
+
+ -- Reinhard Tartler <siretart@tauware.de>  Mon, 25 Jun 2012 19:06:49 +0200
+
+libav (6:0.8.3-1) unstable; urgency=medium
+
+  [ Andres Mejia ]
+  * Update libav-doc doc base. (Closes: #674139)
+
+  [ Reinhard Tartler ]
+  * New upstream release 0.8.3:
+    - Several bugs and crashes have been fixed in the following codecs: PNG,
+      Electronic Arts TQI, H.264 (CVE-2012-0851) and H.263 (CVE-2011-3937)
+  * Raising severity because of security issues.
+
+ -- Reinhard Tartler <siretart@tauware.de>  Sat, 09 Jun 2012 13:25:31 +0200
+
 libav (6:0.8.2-2) unstable; urgency=low
 
-  *
+  * Revert "temporarily disable opencv to work around dependency troubles"
+  * Simplify internal dependencies (Closes: #672791)
 
  -- Reinhard Tartler <siretart@tauware.de>  Mon, 14 May 2012 21:37:59 +0200
 
