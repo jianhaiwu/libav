@@ -1,6 +1,9 @@
 libav (6:9.8-2) unstable; urgency=low
 
   * Upload to unstable
+  * Weaken dependencies on libx264, opencv and frei0r for now to allow
+    compilation. This dependency will be tightened as soon as the
+    libraries have been updated in unstable.
 
  -- Reinhard Tartler <siretart@tauware.de>  Tue, 13 Aug 2013 15:10:05 +0200
 
