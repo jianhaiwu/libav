@@ -1863,8 +1863,13 @@ static void estimate_timings_from_bit_rate(AVFormatContext *ic)
         bit_rate = 0;
         for(i=0;i<ic->nb_streams;i++) {
             st = ic->streams[i];
-            if (st->codec->bit_rate > 0)
-            bit_rate += st->codec->bit_rate;
+            if (st->codec->bit_rate > 0) {
+                if (INT_MAX - st->codec->bit_rate < bit_rate) {
+                    bit_rate = 0;
+                    break;
+                }
+                bit_rate += st->codec->bit_rate;
+            }
         }
         ic->bit_rate = bit_rate;
     }
@@ -2493,6 +2498,9 @@ int avformat_find_stream_info(AVFormatContext *ic, AVDictionary **options)
                 int      best_fps = 0;
                 double best_error = 0.01;
 
+                if (delta_dts     >= INT64_MAX / st->time_base.num ||
+                    delta_packets >= INT64_MAX / st->time_base.den)
+                    continue;
                 av_reduce(&st->avg_frame_rate.num, &st->avg_frame_rate.den,
                           delta_packets*(int64_t)st->time_base.den,
                           delta_dts*(int64_t)st->time_base.num, 60000);
