@@ -1,3 +1,11 @@
+libav (6:9.9-1) UNRELEASED; urgency=low
+
+  * New upstream release 9.9
+  * Too many security related upstream changes to list here, please cf. to
+    upstream changelog. Closes: #717009
+
+ -- Reinhard Tartler <siretart@barriere.debian.org>  Wed, 02 Oct 2013 21:21:52 +0000
+
 libav (6:9.8-2) unstable; urgency=low
 
   * Upload to unstable
