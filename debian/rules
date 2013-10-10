@@ -159,7 +159,7 @@ install-common: build $(DH_INSTALL_FILES)
 	mkdir -p debian/tmp/etc
 	install -m 644 -D doc/avserver.conf debian/tmp/etc/
 	install -m 644 -D debian-shared/tools/qt-faststart debian/tmp/usr/bin/qt-faststart
-	dh_install -a $(addprefix -N,$(LIB_EXTRA_PKGS)) \
+	dh_install $(addprefix -N,$(LIB_EXTRA_PKGS)) \
 		 --fail-missing --sourcedir=debian/tmp
 	env LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(CURDIR)/debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)" \
 	debian/tmp/usr/bin/avconv -formats | tee formats-$(DEB_HOST_ARCH).txt
@@ -171,7 +171,7 @@ install-extra: build $(DH_INSTALL_FILES)
 	dh_testdir
 	dh_testroot
 	$(foreach flavor,$(filter-out static,$(FLAVORS)),$(call install_flavor_extra,$(flavor)))
-	dh_install -a $(addprefix -p,$(LIB_EXTRA_PKGS)) --fail-missing \
+	dh_install $(addprefix -p,$(LIB_EXTRA_PKGS)) --fail-missing \
 		--sourcedir=debian/tmp/extra
 	env LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(CURDIR)/debian/tmp/extra/usr/lib/$(DEB_HOST_MULTIARCH)" \
 	debian/tmp/usr/bin/avconv -codecs | tee codecs.txt
