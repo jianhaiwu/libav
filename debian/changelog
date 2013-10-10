@@ -1,8 +1,10 @@
-libav (6:9.9-2) unstable; urgency=low
+libav (6:9.9-2) unstable; urgency=medium
 
-  * Prepare new upload
+  * Urgency set to medium because new upstream release fixes many security issues.
+  * Do not accidentally overwrite installed binaries from different flavors.
+    Thanks to Fabian Greffrath for the patch (Closes: #725956)
 
- -- Reinhard Tartler <siretart@tauware.de>  Thu, 10 Oct 2013 10:50:41 -0400
+ -- Reinhard Tartler <siretart@tauware.de>  Thu, 10 Oct 2013 10:53:54 -0400
 
 libav (6:9.9-1) experimental; urgency=low
 
