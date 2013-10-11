@@ -1,5 +1,9 @@
-libav (6:9.9-2) unstable; urgency=medium
+libav (6:9.10-1) unstable; urgency=medium
 
+  * New upstream release 9.10
+  * Too many security related upstream changes to list here, please cf. to
+    upstream changelog:
+    http://git.libav.org/?p=libav.git;a=blob;f=Changelog;hb=refs/tags/v9.9
   * Urgency set to medium because new upstream release fixes many security issues.
   * Do not accidentally overwrite installed binaries from different flavors.
     Thanks to Fabian Greffrath for the patch (Closes: #725956)
