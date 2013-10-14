@@ -16,7 +16,7 @@ Homepage: http://libav.org/
 Build-Depends-Indep:
  doxygen
 Build-Depends:
- debhelper (>= 8.1.3~),
+ debhelper (>= 9),
  frei0r-plugins-dev,
  libasound2-dev [linux-any],
  libbz2-dev,
