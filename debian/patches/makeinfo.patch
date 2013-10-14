@@ -41,7 +41,7 @@ Description: Transition from the `texi2html' utility to the `makeinfo' utility f
  doc/%.html: doc/%.texi $(SRC_PATH)/doc/t2h.init $(GENTEXI)
  	$(Q)$(TEXIDEP)
 -	$(M)texi2html -I doc -monolithic --init-file $(SRC_PATH)/doc/t2h.init --output $@ $<
-+	$(M)makeinfo --html -I doc --no-split --css-ref=$(SRC_PATH)/doc/t2h.init --output $@ $<
++	$(M)makeinfo --html -I doc --no-split --css-ref=t2h.init --output $@ $<
  
  doc/%.pod: TAG = POD
  doc/%.pod: doc/%.texi $(GENTEXI)

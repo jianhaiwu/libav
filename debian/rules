@@ -178,7 +178,7 @@ install-extra: build $(DH_INSTALL_FILES)
 	dh_installdocs -plibavcodec-extra-54 codecs.txt
 ifeq ($(DEB_SOURCE), libav)
 	dh_installdocs -a doc/APIchanges
-	install -m 644 -D debian-shared/doc/*.html debian/libav-tools/usr/share/doc/libav-tools
+	install -m 644 -D debian-shared/doc/*.html doc/t2h.init debian/libav-tools/usr/share/doc/libav-tools
 	dh_installexamples -p libavcodec-dev libavcodec/api-example.c
 	dh_installchangelogs -a Changelog
 else
