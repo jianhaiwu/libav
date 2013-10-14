@@ -1,0 +1,47 @@
+Author: Fabian Greffrath <fabian+debian@greffrath.com>
+Description: Transition from the `texi2html' utility to the `makeinfo' utility from
+ the texinfo package, fixes build-depends-on-obsolete-package lintian error and
+ addresses <https://lists.debian.org/debian-devel/2013/05/msg01516.html>.
+
+--- a/configure
++++ b/configure
+@@ -1797,7 +1797,7 @@ avprobe_deps="avcodec avformat"
+ avserver_deps="avformat ffm_muxer fork rtp_protocol rtsp_demuxer !shared"
+ avserver_extralibs='$ldl'
+ 
+-doc_deps="texi2html"
++doc_deps="makeinfo"
+ 
+ # default parameters
+ 
+@@ -3533,7 +3533,7 @@ if check_pkg_config sdl SDL_events.h SDL
+     check_struct SDL.h SDL_VideoInfo current_w $sdl_cflags && enable sdl_video_size
+ fi
+ 
+-texi2html -version > /dev/null 2>&1 && enable texi2html || disable texi2html
++makeinfo --version > /dev/null 2>&1 && enable makeinfo || disable makeinfo
+ 
+ check_header linux/fb.h
+ check_header linux/videodev2.h
+--- a/doc/platform.texi
++++ b/doc/platform.texi
+@@ -251,7 +251,7 @@ llrint() in its C library.
+ Install your Cygwin with all the "Base" packages, plus the
+ following "Devel" ones:
+ @example
+-binutils, gcc4-core, make, git, mingw-runtime, texi2html
++binutils, gcc4-core, make, git, mingw-runtime, texinfo
+ @end example
+ 
+ In order to run FATE you will also need the following "Utils" packages:
+--- a/doc/Makefile
++++ b/doc/Makefile
+@@ -29,7 +29,7 @@ $(GENTEXI): doc/avoptions_%.texi: doc/pr
+ doc/%.html: TAG = HTML
+ doc/%.html: doc/%.texi $(SRC_PATH)/doc/t2h.init $(GENTEXI)
+ 	$(Q)$(TEXIDEP)
+-	$(M)texi2html -I doc -monolithic --init-file $(SRC_PATH)/doc/t2h.init --output $@ $<
++	$(M)makeinfo --html -I doc --no-split --css-ref=$(SRC_PATH)/doc/t2h.init --output $@ $<
+ 
+ doc/%.pod: TAG = POD
+ doc/%.pod: doc/%.texi $(GENTEXI)
