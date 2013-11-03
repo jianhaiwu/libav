@@ -65,6 +65,11 @@ endif
 include debian/confflags
 OPT_FLAVORS := $(filter-out static shared, $(FLAVORS))
 
+info:
+	@echo Packages that do not build -extra variants: $(LIB_PKGS)
+	@echo Packages that do build -extra variatnts: $(LIB_PKGS2)
+	@echo Packages that are the -extra- variants: $(LIB_EXTRA_PKGS)
+
 $(info FLAVORS = $(FLAVORS))
 $(info DEB_BUILD_OPTIONS = $(DEB_BUILD_OPTIONS))
 $(info CFLAGS = $(CFLAGS))
