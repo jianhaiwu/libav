@@ -41,7 +41,7 @@ Build-Depends:
  libsdl1.2-dev,
  libspeex-dev,
  libtheora-dev (>> 0.0.0.alpha4),
- libtiff5-dev | libtiff-dev,
+ libtiff4-dev | libtiff-dev,
  libva-dev [!hurd-any],
  libvdpau-dev,
  libvo-aacenc-dev,
