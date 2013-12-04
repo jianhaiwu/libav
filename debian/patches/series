@@ -1,3 +1,4 @@
 03-disable-configuration-warnings.patch
 makeinfo.patch
 spelling-errors.patch
+freetype-api.patch
