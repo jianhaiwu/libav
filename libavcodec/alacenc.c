@@ -21,7 +21,6 @@
 
 #include "avcodec.h"
 #include "put_bits.h"
-#include "dsputil.h"
 #include "internal.h"
 #include "lpc.h"
 #include "mathops.h"
@@ -580,7 +579,7 @@ static av_cold int alac_encode_init(AVCodecContext *avctx)
         goto error;
     }
 
-    avctx->coded_frame = avcodec_alloc_frame();
+    avctx->coded_frame = av_frame_alloc();
     if (!avctx->coded_frame) {
         ret = AVERROR(ENOMEM);
         goto error;
@@ -644,6 +643,7 @@ static int alac_encode_frame(AVCodecContext *avctx, AVPacket *avpkt,
 
 AVCodec ff_alac_encoder = {
     .name           = "alac",
+    .long_name      = NULL_IF_CONFIG_SMALL("ALAC (Apple Lossless Audio Codec)"),
     .type           = AVMEDIA_TYPE_AUDIO,
     .id             = AV_CODEC_ID_ALAC,
     .priv_data_size = sizeof(AlacEncodeContext),
@@ -655,5 +655,4 @@ AVCodec ff_alac_encoder = {
     .sample_fmts    = (const enum AVSampleFormat[]){ AV_SAMPLE_FMT_S32P,
                                                      AV_SAMPLE_FMT_S16P,
                                                      AV_SAMPLE_FMT_NONE },
-    .long_name      = NULL_IF_CONFIG_SMALL("ALAC (Apple Lossless Audio Codec)"),
 };

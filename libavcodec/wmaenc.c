@@ -19,6 +19,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "libavutil/attributes.h"
 #include "avcodec.h"
 #include "internal.h"
 #include "wma.h"
@@ -27,7 +28,8 @@
 #include <assert.h>
 
 
-static int encode_init(AVCodecContext * avctx){
+static av_cold int encode_init(AVCodecContext *avctx)
+{
     WMACodecContext *s = avctx->priv_data;
     int i, flags1, flags2, block_align;
     uint8_t *extradata;
@@ -88,11 +90,6 @@ static int encode_init(AVCodecContext * avctx){
                          s->frame_len;
     avctx->frame_size = avctx->delay = s->frame_len;
 
-#if FF_API_OLD_ENCODE_AUDIO
-    avctx->coded_frame = &s->frame;
-    avcodec_get_frame_defaults(avctx->coded_frame);
-#endif
-
     return 0;
 }
 
@@ -112,7 +109,7 @@ static void apply_window_and_mdct(AVCodecContext * avctx, const AVFrame *frame)
     for (ch = 0; ch < avctx->channels; ch++) {
         memcpy(s->output, s->frame_out[ch], window_len * sizeof(*s->output));
         s->fdsp.vector_fmul_scalar(s->frame_out[ch], audio[ch], n, len);
-        s->dsp.vector_fmul_reverse(&s->output[window_len], s->frame_out[ch], win, len);
+        s->fdsp.vector_fmul_reverse(&s->output[window_len], s->frame_out[ch], win, len);
         s->fdsp.vector_fmul(s->frame_out[ch], s->frame_out[ch], win, len);
         mdct->mdct_calc(mdct, s->coefs[ch], s->output);
     }
@@ -420,6 +417,7 @@ static int encode_superframe(AVCodecContext *avctx, AVPacket *avpkt,
 
 AVCodec ff_wmav1_encoder = {
     .name           = "wmav1",
+    .long_name      = NULL_IF_CONFIG_SMALL("Windows Media Audio 1"),
     .type           = AVMEDIA_TYPE_AUDIO,
     .id             = AV_CODEC_ID_WMAV1,
     .priv_data_size = sizeof(WMACodecContext),
@@ -428,11 +426,11 @@ AVCodec ff_wmav1_encoder = {
     .close          = ff_wma_end,
     .sample_fmts    = (const enum AVSampleFormat[]){ AV_SAMPLE_FMT_FLTP,
                                                      AV_SAMPLE_FMT_NONE },
-    .long_name      = NULL_IF_CONFIG_SMALL("Windows Media Audio 1"),
 };
 
 AVCodec ff_wmav2_encoder = {
     .name           = "wmav2",
+    .long_name      = NULL_IF_CONFIG_SMALL("Windows Media Audio 2"),
     .type           = AVMEDIA_TYPE_AUDIO,
     .id             = AV_CODEC_ID_WMAV2,
     .priv_data_size = sizeof(WMACodecContext),
@@ -441,5 +439,4 @@ AVCodec ff_wmav2_encoder = {
     .close          = ff_wma_end,
     .sample_fmts    = (const enum AVSampleFormat[]){ AV_SAMPLE_FMT_FLTP,
                                                      AV_SAMPLE_FMT_NONE },
-    .long_name      = NULL_IF_CONFIG_SMALL("Windows Media Audio 2"),
 };

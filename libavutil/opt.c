@@ -61,7 +61,8 @@ static int read_number(const AVOption *o, void *dst, double *num, int *den, int6
 
 static int write_number(void *obj, const AVOption *o, void *dst, double num, int den, int64_t intnum)
 {
-    if (o->max*den < num*intnum || o->min*den > num*intnum) {
+    if (o->type != AV_OPT_TYPE_FLAGS &&
+        (o->max * den < num * intnum || o->min * den > num * intnum)) {
         av_log(obj, AV_LOG_ERROR, "Value %f for parameter '%s' out of range\n",
                num*intnum/den, o->name);
         return AVERROR(ERANGE);
@@ -146,7 +147,7 @@ static int set_string(void *obj, const AVOption *o, const char *val, uint8_t **d
                               opt->type == AV_OPT_TYPE_INT) ? \
                              opt->default_val.i64 : opt->default_val.dbl)
 
-static int set_string_number(void *obj, const AVOption *o, const char *val, void *dst)
+static int set_string_number(void *obj, void *target_obj, const AVOption *o, const char *val, void *dst)
 {
     int ret = 0, notfirst = 0;
     for (;;) {
@@ -169,7 +170,7 @@ static int set_string_number(void *obj, const AVOption *o, const char *val, void
         buf[i] = 0;
 
         {
-            const AVOption *o_named = av_opt_find(obj, buf, o->unit, 0, 0);
+            const AVOption *o_named = av_opt_find(target_obj, buf, o->unit, 0, 0);
             if (o_named && o_named->type == AV_OPT_TYPE_CONST)
                 d = DEFAULT_NUMVAL(o_named);
             else if (!strcmp(buf, "default")) d = DEFAULT_NUMVAL(o);
@@ -224,7 +225,7 @@ int av_opt_set(void *obj, const char *name, const char *val, int search_flags)
     case AV_OPT_TYPE_INT64:
     case AV_OPT_TYPE_FLOAT:
     case AV_OPT_TYPE_DOUBLE:
-    case AV_OPT_TYPE_RATIONAL: return set_string_number(obj, o, val, dst);
+    case AV_OPT_TYPE_RATIONAL: return set_string_number(obj, target_obj, o, val, dst);
     }
 
     av_log(obj, AV_LOG_ERROR, "Invalid option type.\n");
@@ -236,7 +237,7 @@ int av_opt_set(void *obj, const char *name, const char *val, int search_flags)
     {\
         if (!o || o->type != opttype)\
             return AVERROR(EINVAL);\
-        return set_string_number(obj, o, val, name ## _out);\
+        return set_string_number(obj, obj, o, val, name ## _out);\
     }
 
 OPT_EVAL_NUMBER(flags,  AV_OPT_TYPE_FLAGS,    int)
@@ -349,7 +350,7 @@ int av_opt_get(void *obj, const char *name, int search_flags, uint8_t **out_val)
     return 0;
 }
 
-static int get_number(void *obj, const char *name, const AVOption **o_out, double *num, int *den, int64_t *intnum,
+static int get_number(void *obj, const char *name, double *num, int *den, int64_t *intnum,
                       int search_flags)
 {
     void *dst, *target_obj;
@@ -358,8 +359,6 @@ static int get_number(void *obj, const char *name, const AVOption **o_out, doubl
         goto error;
 
     dst = ((uint8_t*)target_obj) + o->offset;
-
-    if (o_out) *o_out= o;
 
     return read_number(o, dst, num, den, intnum);
 
@@ -374,7 +373,7 @@ int av_opt_get_int(void *obj, const char *name, int search_flags, int64_t *out_v
     double     num = 1;
     int   ret, den = 1;
 
-    if ((ret = get_number(obj, name, NULL, &num, &den, &intnum, search_flags)) < 0)
+    if ((ret = get_number(obj, name, &num, &den, &intnum, search_flags)) < 0)
         return ret;
     *out_val = num*intnum/den;
     return 0;
@@ -386,7 +385,7 @@ int av_opt_get_double(void *obj, const char *name, int search_flags, double *out
     double     num = 1;
     int   ret, den = 1;
 
-    if ((ret = get_number(obj, name, NULL, &num, &den, &intnum, search_flags)) < 0)
+    if ((ret = get_number(obj, name, &num, &den, &intnum, search_flags)) < 0)
         return ret;
     *out_val = num*intnum/den;
     return 0;
@@ -398,7 +397,7 @@ int av_opt_get_q(void *obj, const char *name, int search_flags, AVRational *out_
     double     num = 1;
     int   ret, den = 1;
 
-    if ((ret = get_number(obj, name, NULL, &num, &den, &intnum, search_flags)) < 0)
+    if ((ret = get_number(obj, name, &num, &den, &intnum, search_flags)) < 0)
         return ret;
 
     if (num == 1.0 && (int)intnum == intnum)
@@ -564,9 +563,16 @@ static int parse_key_value_pair(void *ctx, const char **buf,
     char *val;
     int ret;
 
+    if (!key)
+        return AVERROR(ENOMEM);
+
     if (*key && strspn(*buf, key_val_sep)) {
         (*buf)++;
         val = av_get_token(buf, pairs_sep);
+        if (!val) {
+            av_freep(&key);
+            return AVERROR(ENOMEM);
+        }
     } else {
         av_log(ctx, AV_LOG_ERROR, "Missing key or no key/value separator found after key '%s'\n", key);
         av_free(key);
@@ -575,7 +581,7 @@ static int parse_key_value_pair(void *ctx, const char **buf,
 
     av_log(ctx, AV_LOG_DEBUG, "Setting value '%s' for key '%s'\n", val, key);
 
-    ret = av_opt_set(ctx, key, val, 0);
+    ret = av_opt_set(ctx, key, val, AV_OPT_SEARCH_CHILDREN);
     if (ret == AVERROR_OPTION_NOT_FOUND)
         av_log(ctx, AV_LOG_ERROR, "Key '%s' not found.\n", key);
 
@@ -644,6 +650,9 @@ const AVOption *av_opt_find2(void *obj, const char *name, const char *unit,
 {
     const AVClass  *c = *(AVClass**)obj;
     const AVOption *o = NULL;
+
+    if (!c)
+        return NULL;
 
     if (search_flags & AV_OPT_SEARCH_CHILDREN) {
         if (search_flags & AV_OPT_SEARCH_FAKE_OBJ) {

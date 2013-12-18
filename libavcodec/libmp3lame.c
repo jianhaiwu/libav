@@ -57,18 +57,14 @@ typedef struct LAMEContext {
 static int realloc_buffer(LAMEContext *s)
 {
     if (!s->buffer || s->buffer_size - s->buffer_index < BUFFER_SIZE) {
-        uint8_t *tmp;
-        int new_size = s->buffer_index + 2 * BUFFER_SIZE;
+        int new_size = s->buffer_index + 2 * BUFFER_SIZE, err;
 
         av_dlog(s->avctx, "resizing output buffer: %d -> %d\n", s->buffer_size,
                 new_size);
-        tmp = av_realloc(s->buffer, new_size);
-        if (!tmp) {
-            av_freep(&s->buffer);
+        if ((err = av_reallocp(&s->buffer, new_size)) < 0) {
             s->buffer_size = s->buffer_index = 0;
-            return AVERROR(ENOMEM);
+            return err;
         }
-        s->buffer      = tmp;
         s->buffer_size = new_size;
     }
     return 0;
@@ -78,9 +74,6 @@ static av_cold int mp3lame_encode_close(AVCodecContext *avctx)
 {
     LAMEContext *s = avctx->priv_data;
 
-#if FF_API_OLD_ENCODE_AUDIO
-    av_freep(&avctx->coded_frame);
-#endif
     av_freep(&s->samples_flt[0]);
     av_freep(&s->samples_flt[1]);
     av_freep(&s->buffer);
@@ -141,14 +134,6 @@ static av_cold int mp3lame_encode_init(AVCodecContext *avctx)
     ff_af_queue_init(avctx, &s->afq);
 
     avctx->frame_size  = lame_get_framesize(s->gfp);
-
-#if FF_API_OLD_ENCODE_AUDIO
-    avctx->coded_frame = avcodec_alloc_frame();
-    if (!avctx->coded_frame) {
-        ret = AVERROR(ENOMEM);
-        goto error;
-    }
-#endif
 
     /* allocate float sample buffers */
     if (avctx->sample_fmt == AV_SAMPLE_FMT_FLTP) {
@@ -296,6 +281,7 @@ static const int libmp3lame_sample_rates[] = {
 
 AVCodec ff_libmp3lame_encoder = {
     .name                  = "libmp3lame",
+    .long_name             = NULL_IF_CONFIG_SMALL("libmp3lame MP3 (MPEG audio layer 3)"),
     .type                  = AVMEDIA_TYPE_AUDIO,
     .id                    = AV_CODEC_ID_MP3,
     .priv_data_size        = sizeof(LAMEContext),
@@ -311,7 +297,6 @@ AVCodec ff_libmp3lame_encoder = {
     .channel_layouts       = (const uint64_t[]) { AV_CH_LAYOUT_MONO,
                                                   AV_CH_LAYOUT_STEREO,
                                                   0 },
-    .long_name             = NULL_IF_CONFIG_SMALL("libmp3lame MP3 (MPEG audio layer 3)"),
     .priv_class            = &libmp3lame_class,
     .defaults              = libmp3lame_defaults,
 };

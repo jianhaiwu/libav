@@ -24,6 +24,7 @@
 
 #include "cavsdsp.h"
 #include "dsputil.h"
+#include "h264chroma.h"
 #include "get_bits.h"
 #include "videodsp.h"
 
@@ -161,6 +162,7 @@ typedef struct AVSFrame {
 typedef struct AVSContext {
     AVCodecContext *avctx;
     DSPContext       dsp;
+    H264ChromaContext h264chroma;
     VideoDSPContext vdsp;
     CAVSDSPContext  cdsp;
     GetBitContext gb;
@@ -208,7 +210,7 @@ typedef struct AVSContext {
        6:    A3  X2  X3   */
     int pred_mode_Y[3*3];
     int *top_pred_Y;
-    int l_stride, c_stride;
+    ptrdiff_t l_stride, c_stride;
     int luma_scan[4];
     int qp;
     int qp_fixed;
@@ -234,7 +236,7 @@ typedef struct AVSContext {
     uint8_t *edge_emu_buffer;
 
     int got_keyframe;
-    DCTELEM *block;
+    int16_t *block;
 } AVSContext;
 
 extern const uint8_t     ff_cavs_partition_flags[30];

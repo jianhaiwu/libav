@@ -275,7 +275,7 @@ static int smacker_read_packet(AVFormatContext *s, AVPacket *pkt)
                 } else if(t & 0x40){ /* copy with offset */
                     off = avio_r8(s->pb);
                     j = (t & 0x3F) + 1;
-                    if (off + j > 0xff) {
+                    if (off + j > 0x100) {
                         av_log(s, AV_LOG_ERROR,
                                "Invalid palette update, offset=%d length=%d extends beyond palette size\n",
                                off, j);
@@ -305,7 +305,7 @@ static int smacker_read_packet(AVFormatContext *s, AVPacket *pkt)
         for(i = 0; i < 7; i++) {
             if(flags & 1) {
                 uint32_t size;
-                uint8_t *tmpbuf;
+                int err;
 
                 size = avio_rl32(s->pb) - 4;
                 if (!size || size > frame_size) {
@@ -315,10 +315,10 @@ static int smacker_read_packet(AVFormatContext *s, AVPacket *pkt)
                 frame_size -= size;
                 frame_size -= 4;
                 smk->curstream++;
-                tmpbuf = av_realloc(smk->bufs[smk->curstream], size);
-                if (!tmpbuf)
-                    return AVERROR(ENOMEM);
-                smk->bufs[smk->curstream] = tmpbuf;
+                if ((err = av_reallocp(&smk->bufs[smk->curstream], size)) < 0) {
+                    smk->buf_sizes[smk->curstream] = 0;
+                    return err;
+                }
                 smk->buf_sizes[smk->curstream] = size;
                 ret = avio_read(s->pb, smk->bufs[smk->curstream], size);
                 if(ret != size)
@@ -339,6 +339,7 @@ static int smacker_read_packet(AVFormatContext *s, AVPacket *pkt)
         if(ret != frame_size)
             return AVERROR(EIO);
         pkt->stream_index = smk->videoindex;
+        pkt->pts          = smk->cur_frame;
         pkt->size = ret + 769;
         smk->cur_frame++;
         smk->nextpos = avio_tell(s->pb);

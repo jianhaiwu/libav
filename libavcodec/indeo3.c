@@ -32,9 +32,9 @@
 #include "libavutil/imgutils.h"
 #include "libavutil/intreadwrite.h"
 #include "avcodec.h"
-#include "dsputil.h"
 #include "bytestream.h"
 #include "get_bits.h"
+#include "hpeldsp.h"
 #include "internal.h"
 
 #include "indeo3data.h"
@@ -81,8 +81,7 @@ typedef struct Cell {
 
 typedef struct Indeo3DecodeContext {
     AVCodecContext *avctx;
-    AVFrame         frame;
-    DSPContext      dsp;
+    HpelDSPContext  hdsp;
 
     GetBitContext   gb;
     int             need_resync;
@@ -252,19 +251,17 @@ static int copy_cell(Indeo3DecodeContext *ctx, Plane *plane, Cell *cell)
         /* copy using 16xH blocks */
         if (!((cell->xpos << 2) & 15) && w >= 4) {
             for (; w >= 4; src += 16, dst += 16, w -= 4)
-                ctx->dsp.put_no_rnd_pixels_tab[0][0](dst, src, plane->pitch, h);
+                ctx->hdsp.put_pixels_tab[0][0](dst, src, plane->pitch, h);
         }
 
         /* copy using 8xH blocks */
         if (!((cell->xpos << 2) & 7) && w >= 2) {
-            ctx->dsp.put_no_rnd_pixels_tab[1][0](dst, src, plane->pitch, h);
+            ctx->hdsp.put_pixels_tab[1][0](dst, src, plane->pitch, h);
             w -= 2;
             src += 8;
             dst += 8;
-        }
-
-        if (w >= 1) {
-            copy_block4(dst, src, plane->pitch, plane->pitch, h);
+        } else if (w >= 1) {
+            ctx->hdsp.put_pixels_tab[2][0](dst, src, plane->pitch, h);
             w--;
             src += 4;
             dst += 4;
@@ -336,7 +333,7 @@ if (*data_ptr >= last_ptr) \
 
 #define RLE_BLOCK_COPY \
     if (cell->mv_ptr || !skip_flag) \
-        copy_block4(dst, ref, row_offset, row_offset, 4 << v_zoom)
+        ctx->hdsp.put_pixels_tab[2][0](dst, ref, row_offset, 4 << v_zoom)
 
 #define RLE_BLOCK_COPY_8 \
     pix64 = AV_RN64(ref);\
@@ -348,7 +345,7 @@ if (*data_ptr >= last_ptr) \
         fill_64(dst, pix64, 8, row_offset)
 
 #define RLE_LINES_COPY \
-    copy_block4(dst, ref, row_offset, row_offset, num_lines << v_zoom)
+    ctx->hdsp.put_pixels_tab[2][0](dst, ref, row_offset, num_lines << v_zoom)
 
 #define RLE_LINES_COPY_M10 \
     pix64 = AV_RN64(ref);\
@@ -416,7 +413,8 @@ if (*data_ptr >= last_ptr) \
     }
 
 
-static int decode_cell_data(Cell *cell, uint8_t *block, uint8_t *ref_block,
+static int decode_cell_data(Indeo3DecodeContext *ctx, Cell *cell,
+                            uint8_t *block, uint8_t *ref_block,
                             int pitch, int h_zoom, int v_zoom, int mode,
                             const vqEntry *delta[2], int swap_quads[2],
                             const uint8_t **data_ptr, const uint8_t *last_ptr)
@@ -661,14 +659,16 @@ static int decode_cell(Indeo3DecodeContext *ctx, AVCodecContext *avctx,
         }
 
         zoom_fac = mode >= 3;
-        error = decode_cell_data(cell, block, ref_block, plane->pitch, 0, zoom_fac,
-                                 mode, delta, swap_quads, &data_ptr, last_ptr);
+        error = decode_cell_data(ctx, cell, block, ref_block, plane->pitch,
+                                 0, zoom_fac, mode, delta, swap_quads,
+                                 &data_ptr, last_ptr);
         break;
     case 10: /*-------------------- MODE 10 (8x8 block processing) ---------------------*/
     case 11: /*----------------- MODE 11 (4x8 INTER block processing) ------------------*/
         if (mode == 10 && !cell->mv_ptr) { /* MODE 10 INTRA processing */
-            error = decode_cell_data(cell, block, ref_block, plane->pitch, 1, 1,
-                                     mode, delta, swap_quads, &data_ptr, last_ptr);
+            error = decode_cell_data(ctx, cell, block, ref_block, plane->pitch,
+                                     1, 1, mode, delta, swap_quads,
+                                     &data_ptr, last_ptr);
         } else { /* mode 10 and 11 INTER processing */
             if (mode == 11 && !cell->mv_ptr) {
                av_log(avctx, AV_LOG_ERROR, "Attempt to use Mode 11 for an INTRA cell!\n");
@@ -676,7 +676,7 @@ static int decode_cell(Indeo3DecodeContext *ctx, AVCodecContext *avctx,
             }
 
             zoom_fac = mode == 10;
-            error = decode_cell_data(cell, block, ref_block, plane->pitch,
+            error = decode_cell_data(ctx, cell, block, ref_block, plane->pitch,
                                      zoom_fac, 1, mode, delta, swap_quads,
                                      &data_ptr, last_ptr);
         }
@@ -944,7 +944,7 @@ static int decode_frame_headers(Indeo3DecodeContext *ctx, AVCodecContext *avctx,
         free_frame_buffers(ctx);
         if ((res = allocate_frame_buffers(ctx, avctx)) < 0)
              return res;
-        avcodec_set_dimensions(avctx, width, height);
+        ff_set_dimensions(avctx, width, height);
     }
 
     y_offset = bytestream2_get_le32(&gb);
@@ -986,12 +986,12 @@ static int decode_frame_headers(Indeo3DecodeContext *ctx, AVCodecContext *avctx,
     }
 
     if (ctx->frame_flags & BS_8BIT_PEL) {
-        av_log_ask_for_sample(avctx, "8-bit pixel format\n");
+        avpriv_request_sample(avctx, "8-bit pixel format");
         return AVERROR_PATCHWELCOME;
     }
 
     if (ctx->frame_flags & BS_MV_X_HALF || ctx->frame_flags & BS_MV_Y_HALF) {
-        av_log_ask_for_sample(avctx, "halfpel motion vectors\n");
+        avpriv_request_sample(avctx, "Halfpel motion vectors");
         return AVERROR_PATCHWELCOME;
     }
 
@@ -1045,7 +1045,7 @@ static av_cold int decode_init(AVCodecContext *avctx)
 
     build_requant_tab();
 
-    ff_dsputil_init(&ctx->dsp, avctx);
+    ff_hpeldsp_init(&ctx->hdsp, avctx->flags);
 
     allocate_frame_buffers(ctx, avctx);
 
@@ -1059,6 +1059,7 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
     Indeo3DecodeContext *ctx = avctx->priv_data;
     const uint8_t *buf = avpkt->data;
     int buf_size       = avpkt->size;
+    AVFrame *frame     = data;
     int res;
 
     res = decode_frame_headers(ctx, avctx, buf, buf_size);
@@ -1095,27 +1096,22 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
     if ((res = decode_plane(ctx, avctx, &ctx->planes[2], ctx->v_data_ptr, ctx->v_data_size, 10)))
         return res;
 
-    if (ctx->frame.data[0])
-        avctx->release_buffer(avctx, &ctx->frame);
-
-    ctx->frame.reference = 0;
-    if ((res = ff_get_buffer(avctx, &ctx->frame)) < 0) {
+    if ((res = ff_get_buffer(avctx, frame, 0)) < 0) {
         av_log(ctx->avctx, AV_LOG_ERROR, "get_buffer() failed\n");
         return res;
     }
 
     output_plane(&ctx->planes[0], ctx->buf_sel,
-                 ctx->frame.data[0], ctx->frame.linesize[0],
+                 frame->data[0], frame->linesize[0],
                  avctx->height);
     output_plane(&ctx->planes[1], ctx->buf_sel,
-                 ctx->frame.data[1], ctx->frame.linesize[1],
+                 frame->data[1], frame->linesize[1],
                  (avctx->height + 3) >> 2);
     output_plane(&ctx->planes[2], ctx->buf_sel,
-                 ctx->frame.data[2], ctx->frame.linesize[2],
+                 frame->data[2], frame->linesize[2],
                  (avctx->height + 3) >> 2);
 
     *got_frame = 1;
-    *(AVFrame*)data = ctx->frame;
 
     return buf_size;
 }
@@ -1123,18 +1119,14 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
 
 static av_cold int decode_close(AVCodecContext *avctx)
 {
-    Indeo3DecodeContext *ctx = avctx->priv_data;
-
     free_frame_buffers(avctx->priv_data);
-
-    if (ctx->frame.data[0])
-        avctx->release_buffer(avctx, &ctx->frame);
 
     return 0;
 }
 
 AVCodec ff_indeo3_decoder = {
     .name           = "indeo3",
+    .long_name      = NULL_IF_CONFIG_SMALL("Intel Indeo 3"),
     .type           = AVMEDIA_TYPE_VIDEO,
     .id             = AV_CODEC_ID_INDEO3,
     .priv_data_size = sizeof(Indeo3DecodeContext),
@@ -1142,5 +1134,4 @@ AVCodec ff_indeo3_decoder = {
     .close          = decode_close,
     .decode         = decode_frame,
     .capabilities   = CODEC_CAP_DR1,
-    .long_name      = NULL_IF_CONFIG_SMALL("Intel Indeo 3"),
 };

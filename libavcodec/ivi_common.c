@@ -35,8 +35,35 @@
 #include "ivi_common.h"
 #include "ivi_dsp.h"
 
-extern const IVIHuffDesc ff_ivi_mb_huff_desc[8];  ///< static macroblock huffman tables
-extern const IVIHuffDesc ff_ivi_blk_huff_desc[8]; ///< static block huffman tables
+/**
+ * These are 2x8 predefined Huffman codebooks for coding macroblock/block
+ * signals. They are specified using "huffman descriptors" in order to
+ * avoid huge static tables. The decoding tables will be generated at
+ * startup from these descriptors.
+ */
+/** static macroblock huffman tables */
+static const IVIHuffDesc ivi_mb_huff_desc[8] = {
+    {8,  {0, 4, 5, 4, 4, 4, 6, 6}},
+    {12, {0, 2, 2, 3, 3, 3, 3, 5, 3, 2, 2, 2}},
+    {12, {0, 2, 3, 4, 3, 3, 3, 3, 4, 3, 2, 2}},
+    {12, {0, 3, 4, 4, 3, 3, 3, 3, 3, 2, 2, 2}},
+    {13, {0, 4, 4, 3, 3, 3, 3, 2, 3, 3, 2, 1, 1}},
+    {9,  {0, 4, 4, 4, 4, 3, 3, 3, 2}},
+    {10, {0, 4, 4, 4, 4, 3, 3, 2, 2, 2}},
+    {12, {0, 4, 4, 4, 3, 3, 2, 3, 2, 2, 2, 2}}
+};
+
+/** static block huffman tables */
+static const IVIHuffDesc ivi_blk_huff_desc[8] = {
+    {10, {1, 2, 3, 4, 4, 7, 5, 5, 4, 1}},
+    {11, {2, 3, 4, 4, 4, 7, 5, 4, 3, 3, 2}},
+    {12, {2, 4, 5, 5, 5, 5, 6, 4, 4, 3, 1, 1}},
+    {13, {3, 3, 4, 4, 5, 6, 6, 4, 4, 3, 2, 1, 1}},
+    {11, {3, 4, 4, 5, 5, 5, 6, 5, 4, 2, 2}},
+    {13, {3, 4, 5, 5, 5, 5, 6, 4, 3, 3, 2, 1, 1}},
+    {13, {3, 4, 5, 5, 5, 6, 5, 4, 3, 3, 2, 1, 1}},
+    {9,  {3, 4, 4, 5, 5, 5, 6, 5, 5}}
+};
 
 static VLC ivi_mb_vlc_tabs [8]; ///< static macroblock Huffman tables
 static VLC ivi_blk_vlc_tabs[8]; ///< static block Huffman tables
@@ -124,7 +151,7 @@ static int ivi_create_huff_from_desc(const IVIHuffDesc *cb, VLC *vlc, int flag)
                     (flag ? INIT_VLC_USE_NEW_STATIC : 0) | INIT_VLC_LE);
 }
 
-void ff_ivi_init_static_vlc(void)
+av_cold void ff_ivi_init_static_vlc(void)
 {
     int i;
     static VLC_TYPE table_data[8192 * 16][2];
@@ -135,11 +162,11 @@ void ff_ivi_init_static_vlc(void)
     for (i = 0; i < 8; i++) {
         ivi_mb_vlc_tabs[i].table = table_data + i * 2 * 8192;
         ivi_mb_vlc_tabs[i].table_allocated = 8192;
-        ivi_create_huff_from_desc(&ff_ivi_mb_huff_desc[i],
+        ivi_create_huff_from_desc(&ivi_mb_huff_desc[i],
                                   &ivi_mb_vlc_tabs[i], 1);
         ivi_blk_vlc_tabs[i].table = table_data + (i * 2 + 1) * 8192;
         ivi_blk_vlc_tabs[i].table_allocated = 8192;
-        ivi_create_huff_from_desc(&ff_ivi_blk_huff_desc[i],
+        ivi_create_huff_from_desc(&ivi_blk_huff_desc[i],
                                   &ivi_blk_vlc_tabs[i], 1);
     }
     initialized_vlcs = 1;
@@ -570,7 +597,11 @@ static int ivi_decode_blocks(GetBitContext *gb, IVIBandDesc *band,
         cbp      = mb->cbp;
         buf_offs = mb->buf_offs;
 
-        quant = av_clip(band->glob_quant + mb->q_delta, 0, 23);
+        quant = band->glob_quant + mb->q_delta;
+        if (avctx->codec_id == AV_CODEC_ID_INDEO4)
+            quant = av_clip(quant, 0, 31);
+        else
+            quant = av_clip(quant, 0, 23);
 
         scale_tab = is_intra ? band->intra_scale : band->inter_scale;
         if (scale_tab)
@@ -917,6 +948,7 @@ int ff_ivi_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
 {
     IVI45DecContext *ctx = avctx->priv_data;
     const uint8_t   *buf = avpkt->data;
+    AVFrame       *frame = data;
     int             buf_size = avpkt->size;
     int             result, p, b;
 
@@ -934,7 +966,7 @@ int ff_ivi_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
         return AVERROR_INVALIDDATA;
 
     if (ctx->gop_flags & IVI5_IS_PROTECTED) {
-        av_log(avctx, AV_LOG_ERROR, "Password-protected clip!\n");
+        avpriv_report_missing_feature(avctx, "Password-protected clip!\n");
         return AVERROR_PATCHWELCOME;
     }
 
@@ -983,30 +1015,28 @@ int ff_ivi_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
             av_log(avctx, AV_LOG_ERROR, "Buffer contains IP frames!\n");
     }
 
-    if (ctx->frame.data[0])
-        avctx->release_buffer(avctx, &ctx->frame);
+    result = ff_set_dimensions(avctx, ctx->planes[0].width, ctx->planes[0].height);
+    if (result < 0)
+        return result;
 
-    ctx->frame.reference = 0;
-    avcodec_set_dimensions(avctx, ctx->planes[0].width, ctx->planes[0].height);
-    if ((result = ff_get_buffer(avctx, &ctx->frame)) < 0) {
+    if ((result = ff_get_buffer(avctx, frame, 0)) < 0) {
         av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
         return result;
     }
 
     if (ctx->is_scalable) {
         if (avctx->codec_id == AV_CODEC_ID_INDEO4)
-            ff_ivi_recompose_haar(&ctx->planes[0], ctx->frame.data[0], ctx->frame.linesize[0]);
+            ff_ivi_recompose_haar(&ctx->planes[0], frame->data[0], frame->linesize[0]);
         else
-            ff_ivi_recompose53   (&ctx->planes[0], ctx->frame.data[0], ctx->frame.linesize[0]);
+            ff_ivi_recompose53   (&ctx->planes[0], frame->data[0], frame->linesize[0]);
     } else {
-        ivi_output_plane(&ctx->planes[0], ctx->frame.data[0], ctx->frame.linesize[0]);
+        ivi_output_plane(&ctx->planes[0], frame->data[0], frame->linesize[0]);
     }
 
-    ivi_output_plane(&ctx->planes[2], ctx->frame.data[1], ctx->frame.linesize[1]);
-    ivi_output_plane(&ctx->planes[1], ctx->frame.data[2], ctx->frame.linesize[2]);
+    ivi_output_plane(&ctx->planes[2], frame->data[1], frame->linesize[1]);
+    ivi_output_plane(&ctx->planes[1], frame->data[2], frame->linesize[2]);
 
     *got_frame = 1;
-    *(AVFrame*)data = ctx->frame;
 
     return buf_size;
 }
@@ -1022,9 +1052,6 @@ av_cold int ff_ivi_decode_close(AVCodecContext *avctx)
 
     if (ctx->mb_vlc.cust_tab.table)
         ff_free_vlc(&ctx->mb_vlc.cust_tab);
-
-    if (ctx->frame.data[0])
-        avctx->release_buffer(avctx, &ctx->frame);
 
 #if IVI4_STREAM_ANALYSER
     if (avctx->codec_id == AV_CODEC_ID_INDEO4) {
@@ -1045,35 +1072,6 @@ av_cold int ff_ivi_decode_close(AVCodecContext *avctx)
 
     return 0;
 }
-
-
-/**
- * These are 2x8 predefined Huffman codebooks for coding macroblock/block
- * signals. They are specified using "huffman descriptors" in order to
- * avoid huge static tables. The decoding tables will be generated at
- * startup from these descriptors.
- */
-const IVIHuffDesc ff_ivi_mb_huff_desc[8] = {
-    {8,  {0, 4, 5, 4, 4, 4, 6, 6}},
-    {12, {0, 2, 2, 3, 3, 3, 3, 5, 3, 2, 2, 2}},
-    {12, {0, 2, 3, 4, 3, 3, 3, 3, 4, 3, 2, 2}},
-    {12, {0, 3, 4, 4, 3, 3, 3, 3, 3, 2, 2, 2}},
-    {13, {0, 4, 4, 3, 3, 3, 3, 2, 3, 3, 2, 1, 1}},
-    {9,  {0, 4, 4, 4, 4, 3, 3, 3, 2}},
-    {10, {0, 4, 4, 4, 4, 3, 3, 2, 2, 2}},
-    {12, {0, 4, 4, 4, 3, 3, 2, 3, 2, 2, 2, 2}}
-};
-
-const IVIHuffDesc ff_ivi_blk_huff_desc[8] = {
-    {10, {1, 2, 3, 4, 4, 7, 5, 5, 4, 1}},
-    {11, {2, 3, 4, 4, 4, 7, 5, 4, 3, 3, 2}},
-    {12, {2, 4, 5, 5, 5, 5, 6, 4, 4, 3, 1, 1}},
-    {13, {3, 3, 4, 4, 5, 6, 6, 4, 4, 3, 2, 1, 1}},
-    {11, {3, 4, 4, 5, 5, 5, 6, 5, 4, 2, 2}},
-    {13, {3, 4, 5, 5, 5, 5, 6, 4, 3, 3, 2, 1, 1}},
-    {13, {3, 4, 5, 5, 5, 6, 5, 4, 3, 3, 2, 1, 1}},
-    {9,  {3, 4, 4, 5, 5, 5, 6, 5, 5}}
-};
 
 
 /**

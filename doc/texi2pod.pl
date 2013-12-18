@@ -1,4 +1,4 @@
-#! /usr/bin/perl -w
+#!/usr/bin/env perl
 
 #   Copyright (C) 1999, 2000, 2001 Free Software Foundation, Inc.
 
@@ -22,6 +22,8 @@
 # This does trivial (and I mean _trivial_) conversion of Texinfo
 # markup to Perl POD format.  It's intended to be used to extract
 # something suitable for a manpage from a Texinfo document.
+
+use warnings;
 
 $output = 0;
 $skipping = 0;
@@ -161,7 +163,7 @@ INF: while(<$inf>) {
         } elsif ($ended =~ /^(?:example|smallexample|display)$/) {
             $shift = "";
             $_ = "";        # need a paragraph break
-        } elsif ($ended =~ /^(?:itemize|enumerate|[fv]?table)$/) {
+        } elsif ($ended =~ /^(?:itemize|enumerate|(?:multi|[fv])?table)$/) {
             $_ = "\n=back\n";
             $ic = pop @icstack;
         } else {
@@ -262,7 +264,7 @@ INF: while(<$inf>) {
         $endw = "enumerate";
     };
 
-    /^\@([fv]?table)\s+(\@[a-z]+)/ and do {
+    /^\@((?:multi|[fv])?table)\s+(\@[a-z]+)/ and do {
         push @endwstack, $endw;
         push @icstack, $ic;
         $endw = $1;
@@ -271,6 +273,7 @@ INF: while(<$inf>) {
         $ic =~ s/\@(?:code|kbd)/C/;
         $ic =~ s/\@(?:dfn|var|emph|cite|i)/I/;
         $ic =~ s/\@(?:file)/F/;
+        $ic =~ s/\@(?:columnfractions)//;
         $_ = "\n=over 4\n";
     };
 
@@ -279,6 +282,21 @@ INF: while(<$inf>) {
         $endw = $1;
         $shift = "\t";
         $_ = "";        # need a paragraph break
+    };
+
+    /^\@item\s+(.*\S)\s*$/ and $endw eq "multitable" and do {
+        my $columns = $1;
+        $columns =~ s/\@tab/ : /;
+
+        $_ = "\n=item B&LT;". $columns ."&GT;\n";
+    };
+
+    /^\@tab\s+(.*\S)\s*$/ and $endw eq "multitable" and do {
+        my $columns = $1;
+        $columns =~ s/\@tab/ : /;
+
+        $_ = " : ". $columns;
+        $section =~ s/\n+\s+$//;
     };
 
     /^\@itemx?\s*(.+)?$/ and do {

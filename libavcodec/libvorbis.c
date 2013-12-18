@@ -162,9 +162,6 @@ static av_cold int oggvorbis_encode_close(AVCodecContext *avctx)
 
     av_fifo_free(s->pkt_fifo);
     ff_af_queue_close(&s->afq);
-#if FF_API_OLD_ENCODE_AUDIO
-    av_freep(&avctx->coded_frame);
-#endif
     av_freep(&avctx->extradata);
 
     return 0;
@@ -240,14 +237,6 @@ static av_cold int oggvorbis_encode_init(AVCodecContext *avctx)
         ret = AVERROR(ENOMEM);
         goto error;
     }
-
-#if FF_API_OLD_ENCODE_AUDIO
-    avctx->coded_frame = avcodec_alloc_frame();
-    if (!avctx->coded_frame) {
-        ret = AVERROR(ENOMEM);
-        goto error;
-    }
-#endif
 
     return 0;
 error:
@@ -348,6 +337,7 @@ static int oggvorbis_encode_frame(AVCodecContext *avctx, AVPacket *avpkt,
 
 AVCodec ff_libvorbis_encoder = {
     .name           = "libvorbis",
+    .long_name      = NULL_IF_CONFIG_SMALL("libvorbis Vorbis"),
     .type           = AVMEDIA_TYPE_AUDIO,
     .id             = AV_CODEC_ID_VORBIS,
     .priv_data_size = sizeof(OggVorbisContext),
@@ -357,7 +347,6 @@ AVCodec ff_libvorbis_encoder = {
     .capabilities   = CODEC_CAP_DELAY,
     .sample_fmts    = (const enum AVSampleFormat[]) { AV_SAMPLE_FMT_FLTP,
                                                       AV_SAMPLE_FMT_NONE },
-    .long_name      = NULL_IF_CONFIG_SMALL("libvorbis Vorbis"),
     .priv_class     = &class,
     .defaults       = defaults,
 };
