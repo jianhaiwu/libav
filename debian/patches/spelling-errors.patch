@@ -3,7 +3,7 @@ Description: Fix some spelling errors detected by lintian.
 
 --- a/doc/filters.texi
 +++ b/doc/filters.texi
-@@ -52,7 +52,7 @@ terminated when the next special charact
+@@ -69,7 +69,7 @@ terminated when the next special charact
  
  The name and arguments of the filter are optionally preceded and
  followed by a list of link labels.
@@ -12,7 +12,7 @@ Description: Fix some spelling errors detected by lintian.
  or input pad. The preceding labels @var{in_link_1}
  ... @var{in_link_N}, are associated to the filter input pads,
  the following labels @var{out_link_1} ... @var{out_link_M}, are
-@@ -2294,7 +2294,7 @@ value is "-1".
+@@ -2671,7 +2671,7 @@ value is "-1".
  
  @end table
  
@@ -34,7 +34,7 @@ Description: Fix some spelling errors detected by lintian.
  @example
 --- a/doc/protocols.texi
 +++ b/doc/protocols.texi
-@@ -536,7 +536,7 @@ avplay sap://[ff0e::2:7ffe]
+@@ -549,7 +549,7 @@ avplay sap://[ff0e::2:7ffe]
  
  @section tcp
  
