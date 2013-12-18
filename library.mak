@@ -1,9 +1,8 @@
-SRC_DIR := $(SRC_PATH)/lib$(NAME)
-
 include $(SRC_PATH)/common.mak
 
 LIBVERSION := $(lib$(NAME)_VERSION)
 LIBMAJOR   := $(lib$(NAME)_VERSION_MAJOR)
+LIBMINOR   := $(lib$(NAME)_VERSION_MINOR)
 INCINSTDIR := $(INCDIR)/lib$(NAME)
 
 INSTHEADERS := $(INSTHEADERS) $(HEADERS:%=$(SUBDIR)%)
@@ -26,6 +25,7 @@ $(SUBDIR)%-test.i: $(SUBDIR)%.c
 $(SUBDIR)x86/%.o: $(SUBDIR)x86/%.asm
 	$(DEPYASM) $(YASMFLAGS) -I $(<D)/ -M -o $@ $< > $(@:.o=.d)
 	$(YASM) $(YASMFLAGS) -I $(<D)/ -o $@ $<
+	-$(STRIP) $(STRIPFLAGS) $@
 
 LIBOBJS := $(OBJS) $(SUBDIR)%.h.o $(TESTOBJS)
 $(LIBOBJS) $(LIBOBJS:.o=.i):   CPPFLAGS += -DHAVE_AV_CONFIG_H

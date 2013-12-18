@@ -82,7 +82,7 @@ static int select_channel_layout(AVCodec *codec)
 {
     const uint64_t *p;
     uint64_t best_ch_layout = 0;
-    int best_nb_channells   = 0;
+    int best_nb_channels   = 0;
 
     if (!codec->channel_layouts)
         return AV_CH_LAYOUT_STEREO;
@@ -91,9 +91,9 @@ static int select_channel_layout(AVCodec *codec)
     while (*p) {
         int nb_channels = av_get_channel_layout_nb_channels(*p);
 
-        if (nb_channels > best_nb_channells) {
+        if (nb_channels > best_nb_channels) {
             best_ch_layout    = *p;
-            best_nb_channells = nb_channels;
+            best_nb_channels = nb_channels;
         }
         p++;
     }
@@ -155,7 +155,7 @@ static void audio_encode_example(const char *filename)
     }
 
     /* frame containing input raw audio */
-    frame = avcodec_alloc_frame();
+    frame = av_frame_alloc();
     if (!frame) {
         fprintf(stderr, "could not allocate audio frame\n");
         exit(1);
@@ -212,7 +212,7 @@ static void audio_encode_example(const char *filename)
     fclose(f);
 
     av_freep(&samples);
-    avcodec_free_frame(&frame);
+    av_frame_free(&frame);
     avcodec_close(c);
     av_free(c);
 }
@@ -268,12 +268,11 @@ static void audio_decode_example(const char *outfilename, const char *filename)
         int got_frame = 0;
 
         if (!decoded_frame) {
-            if (!(decoded_frame = avcodec_alloc_frame())) {
+            if (!(decoded_frame = av_frame_alloc())) {
                 fprintf(stderr, "out of memory\n");
                 exit(1);
             }
-        } else
-            avcodec_get_frame_defaults(decoded_frame);
+        }
 
         len = avcodec_decode_audio4(c, decoded_frame, &got_frame, &avpkt);
         if (len < 0) {
@@ -308,7 +307,7 @@ static void audio_decode_example(const char *outfilename, const char *filename)
 
     avcodec_close(c);
     av_free(c);
-    avcodec_free_frame(&decoded_frame);
+    av_frame_free(&decoded_frame);
 }
 
 /*
@@ -334,7 +333,7 @@ static void video_encode_example(const char *filename)
     }
 
     c = avcodec_alloc_context3(codec);
-    picture= avcodec_alloc_frame();
+    picture = av_frame_alloc();
 
     /* put sample parameters */
     c->bit_rate = 400000;
@@ -432,7 +431,7 @@ static void video_encode_example(const char *filename)
     avcodec_close(c);
     av_free(c);
     av_freep(&picture->data[0]);
-    avcodec_free_frame(&picture);
+    av_frame_free(&picture);
     printf("\n");
 }
 
@@ -479,7 +478,7 @@ static void video_decode_example(const char *outfilename, const char *filename)
     }
 
     c = avcodec_alloc_context3(codec);
-    picture= avcodec_alloc_frame();
+    picture = av_frame_alloc();
 
     if(codec->capabilities&CODEC_CAP_TRUNCATED)
         c->flags|= CODEC_FLAG_TRUNCATED; /* we do not send complete frames */
@@ -568,7 +567,7 @@ static void video_decode_example(const char *outfilename, const char *filename)
 
     avcodec_close(c);
     av_free(c);
-    avcodec_free_frame(&picture);
+    av_frame_free(&picture);
     printf("\n");
 }
 

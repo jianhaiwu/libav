@@ -25,11 +25,11 @@
  * FF Video Codec 1 (a lossless codec)
  */
 
+#include "libavutil/attributes.h"
 #include "libavutil/avassert.h"
 #include "avcodec.h"
 #include "get_bits.h"
 #include "put_bits.h"
-#include "dsputil.h"
 #include "rangecoder.h"
 #include "golomb.h"
 #include "mathops.h"
@@ -131,7 +131,7 @@ const uint8_t ffv1_ver2_state[256] = {
 };
 
 
-int ffv1_common_init(AVCodecContext *avctx)
+av_cold int ffv1_common_init(AVCodecContext *avctx)
 {
     FFV1Context *s = avctx->priv_data;
 
@@ -140,8 +140,6 @@ int ffv1_common_init(AVCodecContext *avctx)
 
     if (!avctx->width || !avctx->height)
         return AVERROR_INVALIDDATA;
-
-    avcodec_get_frame_defaults(&s->picture);
 
     ff_dsputil_init(&s->dsp, avctx);
 
@@ -270,11 +268,6 @@ av_cold int ffv1_close(AVCodecContext *avctx)
 {
     FFV1Context *s = avctx->priv_data;
     int i, j;
-
-    if (avctx->codec->decode && s->picture.data[0])
-        avctx->release_buffer(avctx, &s->picture);
-    if (avctx->codec->decode && s->last_picture.data[0])
-        avctx->release_buffer(avctx, &s->last_picture);
 
     for (j = 0; j < s->slice_count; j++) {
         FFV1Context *fs = s->slice_context[j];

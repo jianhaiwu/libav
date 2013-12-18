@@ -131,19 +131,11 @@ static int parse_strk(AVFormatContext *s,
         return AVERROR_INVALIDDATA;
 
     track = AV_RL32(buf + 8);
-
-    if ((unsigned)track >= UINT_MAX / sizeof(AudioTrack) - 1) {
-        av_log(s, AV_LOG_ERROR, "current_track too large\n");
-        return AVERROR_INVALIDDATA;
-    }
     if (track < 0)
         return AVERROR_INVALIDDATA;
     if (track + 1 > fourxm->track_count) {
-        AudioTrack *tmp = av_realloc(fourxm->tracks,
-                                     (track + 1) * sizeof(AudioTrack));
-        if (!tmp)
+        if (av_reallocp_array(&fourxm->tracks, track + 1, sizeof(AudioTrack)))
             return AVERROR(ENOMEM);
-        fourxm->tracks = tmp;
         memset(&fourxm->tracks[fourxm->track_count], 0,
                sizeof(AudioTrack) * (track + 1 - fourxm->track_count));
         fourxm->track_count = track + 1;

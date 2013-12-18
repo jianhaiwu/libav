@@ -24,7 +24,10 @@
  * internal API functions
  */
 
+#include "libavutil/internal.h"
 #include "avfilter.h"
+#include "thread.h"
+#include "version.h"
 
 #if !FF_API_AVFILTERPAD_PUBLIC
 /**
@@ -44,32 +47,12 @@ struct AVFilterPad {
     enum AVMediaType type;
 
     /**
-     * Minimum required permissions on incoming buffers. Any buffer with
-     * insufficient permissions will be automatically copied by the filter
-     * system to a new buffer which provides the needed access permissions.
-     *
-     * Input pads only.
-     */
-    int min_perms;
-
-    /**
-     * Permissions which are not accepted on incoming buffers. Any buffer
-     * which has any of these permissions set will be automatically copied
-     * by the filter system to a new buffer which does not have those
-     * permissions. This can be used to easily disallow buffers with
-     * AV_PERM_REUSE.
-     *
-     * Input pads only.
-     */
-    int rej_perms;
-
-    /**
      * Callback function to get a video buffer. If NULL, the filter system will
      * use avfilter_default_get_video_buffer().
      *
      * Input video pads only.
      */
-    AVFilterBufferRef *(*get_video_buffer)(AVFilterLink *link, int perms, int w, int h);
+    AVFrame *(*get_video_buffer)(AVFilterLink *link, int w, int h);
 
     /**
      * Callback function to get an audio buffer. If NULL, the filter system will
@@ -77,8 +60,7 @@ struct AVFilterPad {
      *
      * Input audio pads only.
      */
-    AVFilterBufferRef *(*get_audio_buffer)(AVFilterLink *link, int perms,
-                                           int nb_samples);
+    AVFrame *(*get_audio_buffer)(AVFilterLink *link, int nb_samples);
 
     /**
      * Filtering callback. This is where a filter receives a frame with
@@ -90,7 +72,7 @@ struct AVFilterPad {
      * must ensure that samplesref is properly unreferenced on error if it
      * hasn't been passed on to another filter.
      */
-    int (*filter_frame)(AVFilterLink *link, AVFilterBufferRef *frame);
+    int (*filter_frame)(AVFilterLink *link, AVFrame *frame);
 
     /**
      * Frame poll callback. This returns the number of immediately available
@@ -138,8 +120,19 @@ struct AVFilterPad {
 };
 #endif
 
+struct AVFilterGraphInternal {
+    void *thread;
+    avfilter_execute_func *thread_execute;
+};
+
+struct AVFilterInternal {
+    avfilter_execute_func *execute;
+};
+
+#if FF_API_AVFILTERBUFFER
 /** default handler for freeing audio/video buffer when there are no references left */
 void ff_avfilter_default_free_buffer(AVFilterBuffer *buf);
+#endif
 
 /** Tell is a format is contained in the provided list terminated by -1. */
 int ff_fmt_is_in(int fmt, const int *fmts);
@@ -172,7 +165,9 @@ static inline void ff_insert_inpad(AVFilterContext *f, unsigned index,
     ff_insert_pad(index, &f->nb_inputs, offsetof(AVFilterLink, dstpad),
                   &f->input_pads, &f->inputs, p);
 #if FF_API_FOO_COUNT
+FF_DISABLE_DEPRECATION_WARNINGS
     f->input_count = f->nb_inputs;
+FF_ENABLE_DEPRECATION_WARNINGS
 #endif
 }
 
@@ -183,7 +178,9 @@ static inline void ff_insert_outpad(AVFilterContext *f, unsigned index,
     ff_insert_pad(index, &f->nb_outputs, offsetof(AVFilterLink, srcpad),
                   &f->output_pads, &f->outputs, p);
 #if FF_API_FOO_COUNT
+FF_DISABLE_DEPRECATION_WARNINGS
     f->output_count = f->nb_outputs;
+FF_ENABLE_DEPRECATION_WARNINGS
 #endif
 }
 
@@ -215,6 +212,21 @@ int ff_request_frame(AVFilterLink *link);
  * @return >= 0 on success, a negative AVERROR on error. The receiving filter
  * is responsible for unreferencing frame in case of error.
  */
-int ff_filter_frame(AVFilterLink *link, AVFilterBufferRef *frame);
+int ff_filter_frame(AVFilterLink *link, AVFrame *frame);
+
+/**
+ * Allocate a new filter context and return it.
+ *
+ * @param filter what filter to create an instance of
+ * @param inst_name name to give to the new filter context
+ *
+ * @return newly created filter context or NULL on failure
+ */
+AVFilterContext *ff_filter_alloc(const AVFilter *filter, const char *inst_name);
+
+/**
+ * Remove a filter from a graph;
+ */
+void ff_filter_graph_remove_filter(AVFilterGraph *graph, AVFilterContext *filter);
 
 #endif /* AVFILTER_INTERNAL_H */

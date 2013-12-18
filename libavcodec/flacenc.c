@@ -394,12 +394,6 @@ static av_cold int flac_encode_init(AVCodecContext *avctx)
     s->frame_count   = 0;
     s->min_framesize = s->max_framesize;
 
-#if FF_API_OLD_ENCODE_AUDIO
-    avctx->coded_frame = avcodec_alloc_frame();
-    if (!avctx->coded_frame)
-        return AVERROR(ENOMEM);
-#endif
-
     ret = ff_lpc_init(&s->lpc_ctx, avctx->frame_size,
                       s->options.max_prediction_order, FF_LPC_TYPE_LEVINSON);
 
@@ -1238,7 +1232,7 @@ static int flac_encode_frame(AVCodecContext *avctx, AVPacket *avpkt,
 
     frame_bytes = encode_frame(s);
 
-    /* fallback to verbatim mode if the compressed frame is larger than it
+    /* Fall back on verbatim mode if the compressed frame is larger than it
        would be if encoded uncompressed. */
     if (frame_bytes < 0 || frame_bytes > s->max_framesize) {
         s->frame.verbatim_only = 1;
@@ -1285,9 +1279,6 @@ static av_cold int flac_encode_close(AVCodecContext *avctx)
     }
     av_freep(&avctx->extradata);
     avctx->extradata_size = 0;
-#if FF_API_OLD_ENCODE_AUDIO
-    av_freep(&avctx->coded_frame);
-#endif
     return 0;
 }
 
@@ -1327,6 +1318,7 @@ static const AVClass flac_encoder_class = {
 
 AVCodec ff_flac_encoder = {
     .name           = "flac",
+    .long_name      = NULL_IF_CONFIG_SMALL("FLAC (Free Lossless Audio Codec)"),
     .type           = AVMEDIA_TYPE_AUDIO,
     .id             = AV_CODEC_ID_FLAC,
     .priv_data_size = sizeof(FlacEncodeContext),
@@ -1337,6 +1329,5 @@ AVCodec ff_flac_encoder = {
     .sample_fmts    = (const enum AVSampleFormat[]){ AV_SAMPLE_FMT_S16,
                                                      AV_SAMPLE_FMT_S32,
                                                      AV_SAMPLE_FMT_NONE },
-    .long_name      = NULL_IF_CONFIG_SMALL("FLAC (Free Lossless Audio Codec)"),
     .priv_class     = &flac_encoder_class,
 };

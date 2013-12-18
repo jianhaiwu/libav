@@ -24,6 +24,7 @@
  */
 
 #include "libavutil/avassert.h"
+#include "error_resilience.h"
 #include "internal.h"
 #include "msmpeg4data.h"
 #include "vc1.h"
@@ -33,8 +34,7 @@
 typedef struct MSS2Context {
     VC1Context     v;
     int            split_position;
-    AVFrame        pic;
-    AVFrame        last_pic;
+    AVFrame       *last_pic;
     MSS12Context   c;
     MSS2DSPContext dsp;
     SliceContext   sc[2];
@@ -163,7 +163,7 @@ static int decode_pal_v2(MSS12Context *ctx, const uint8_t *buf, int buf_size)
 
     ncol = *buf++;
     if (ncol > ctx->free_colours || buf_size < 2 + ncol * 3)
-        return -1;
+        return AVERROR_INVALIDDATA;
     for (i = 0; i < ncol; i++)
         *pal++ = AV_RB24(buf + 3 * i);
 
@@ -189,7 +189,7 @@ static int decode_555(GetByteContext *gB, uint16_t *dst, int stride,
         READ_PAIR(y, endy)
 
         if (endx >= w || endy >= h || x > endx || y > endy)
-            return -1;
+            return AVERROR_INVALIDDATA;
         dst += x + stride * y;
         w    = endx - x + 1;
         h    = endy - y + 1;
@@ -373,21 +373,15 @@ static int decode_wmv9(AVCodecContext *avctx, const uint8_t *buf, int buf_size,
     VC1Context *v     = avctx->priv_data;
     MpegEncContext *s = &v->s;
     AVFrame *f;
+    int ret;
 
     ff_mpeg_flush(avctx);
-
-    if (s->current_picture_ptr == NULL || s->current_picture_ptr->f.data[0]) {
-        int i = ff_find_unused_picture(s, 0);
-        if (i < 0)
-            return -1;
-        s->current_picture_ptr = &s->picture[i];
-    }
 
     init_get_bits(&s->gb, buf, buf_size * 8);
 
     s->loop_filter = avctx->skip_loop_filter < AVDISCARD_ALL;
 
-    if (ff_vc1_parse_frame_header(v, &s->gb) == -1) {
+    if (ff_vc1_parse_frame_header(v, &s->gb) < 0) {
         av_log(v->s.avctx, AV_LOG_ERROR, "header error\n");
         return AVERROR_INVALIDDATA;
     }
@@ -399,13 +393,13 @@ static int decode_wmv9(AVCodecContext *avctx, const uint8_t *buf, int buf_size,
 
     avctx->pix_fmt = AV_PIX_FMT_YUV420P;
 
-    if (ff_MPV_frame_start(s, avctx) < 0) {
+    if ((ret = ff_MPV_frame_start(s, avctx)) < 0) {
         av_log(v->s.avctx, AV_LOG_ERROR, "ff_MPV_frame_start error\n");
         avctx->pix_fmt = AV_PIX_FMT_RGB24;
-        return -1;
+        return ret;
     }
 
-    ff_er_frame_start(s);
+    ff_mpeg_er_frame_start(s);
 
     v->bits = buf_size * 8;
 
@@ -418,7 +412,7 @@ static int decode_wmv9(AVCodecContext *avctx, const uint8_t *buf, int buf_size,
 
     ff_vc1_decode_blocks(v);
 
-    ff_er_frame_end(s);
+    ff_er_frame_end(&s->er);
 
     ff_MPV_frame_end(s);
 
@@ -429,8 +423,8 @@ static int decode_wmv9(AVCodecContext *avctx, const uint8_t *buf, int buf_size,
         ctx->dsp.upsample_plane(f->data[1], f->linesize[1], w >> 1, h >> 1);
         ctx->dsp.upsample_plane(f->data[2], f->linesize[2], w >> 1, h >> 1);
     } else if (v->respic)
-        av_log_ask_for_sample(v->s.avctx,
-                              "Asymmetric WMV9 rectangle subsampling\n");
+        avpriv_request_sample(v->s.avctx,
+                              "Asymmetric WMV9 rectangle subsampling");
 
     av_assert0(f->linesize[1] == f->linesize[2]);
 
@@ -468,6 +462,7 @@ static int mss2_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
     int buf_size       = avpkt->size;
     MSS2Context *ctx = avctx->priv_data;
     MSS12Context *c  = &ctx->c;
+    AVFrame *frame   = data;
     GetBitContext gb;
     GetByteContext gB;
     ArithCoder acoder;
@@ -521,8 +516,8 @@ static int mss2_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
         return AVERROR_INVALIDDATA;
 
     avctx->pix_fmt = is_555 ? AV_PIX_FMT_RGB555 : AV_PIX_FMT_RGB24;
-    if (ctx->pic.data[0] && ctx->pic.format != avctx->pix_fmt)
-        avctx->release_buffer(avctx, &ctx->pic);
+    if (ctx->last_pic->format != avctx->pix_fmt)
+        av_frame_unref(ctx->last_pic);
 
     if (has_wmv9) {
         bytestream2_init(&gB, buf, buf_size + ARITH2_PADDING);
@@ -594,54 +589,37 @@ static int mss2_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
     }
 
     if (c->mvX < 0 || c->mvY < 0) {
-        FFSWAP(AVFrame, ctx->pic, ctx->last_pic);
         FFSWAP(uint8_t *, c->pal_pic, c->last_pal_pic);
 
-        if (ctx->pic.data[0])
-            avctx->release_buffer(avctx, &ctx->pic);
-
-        ctx->pic.reference    = 3;
-        ctx->pic.buffer_hints = FF_BUFFER_HINTS_VALID    |
-                                FF_BUFFER_HINTS_READABLE |
-                                FF_BUFFER_HINTS_PRESERVE |
-                                FF_BUFFER_HINTS_REUSABLE;
-
-        if ((ret = ff_get_buffer(avctx, &ctx->pic)) < 0) {
+        if ((ret = ff_get_buffer(avctx, frame, AV_GET_BUFFER_FLAG_REF)) < 0) {
             av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
             return ret;
         }
 
-        if (ctx->last_pic.data[0]) {
-            av_assert0(ctx->pic.linesize[0] == ctx->last_pic.linesize[0]);
-            c->last_rgb_pic = ctx->last_pic.data[0] +
-                              ctx->last_pic.linesize[0] * (avctx->height - 1);
+        if (ctx->last_pic->data[0]) {
+            av_assert0(frame->linesize[0] == ctx->last_pic->linesize[0]);
+            c->last_rgb_pic = ctx->last_pic->data[0] +
+                              ctx->last_pic->linesize[0] * (avctx->height - 1);
         } else {
             av_log(avctx, AV_LOG_ERROR, "Missing keyframe\n");
-            return -1;
+            return AVERROR_INVALIDDATA;
         }
     } else {
-        if (ctx->last_pic.data[0])
-            avctx->release_buffer(avctx, &ctx->last_pic);
-
-        ctx->pic.reference    = 3;
-        ctx->pic.buffer_hints = FF_BUFFER_HINTS_VALID    |
-                                FF_BUFFER_HINTS_READABLE |
-                                FF_BUFFER_HINTS_PRESERVE |
-                                FF_BUFFER_HINTS_REUSABLE;
-
-        if ((ret = avctx->reget_buffer(avctx, &ctx->pic)) < 0) {
+        if ((ret = ff_reget_buffer(avctx, ctx->last_pic)) < 0) {
             av_log(avctx, AV_LOG_ERROR, "reget_buffer() failed\n");
             return ret;
         }
+        if ((ret = av_frame_ref(frame, ctx->last_pic)) < 0)
+            return ret;
 
         c->last_rgb_pic = NULL;
     }
-    c->rgb_pic    = ctx->pic.data[0] +
-                    ctx->pic.linesize[0] * (avctx->height - 1);
-    c->rgb_stride = -ctx->pic.linesize[0];
+    c->rgb_pic    = frame->data[0] +
+                    frame->linesize[0] * (avctx->height - 1);
+    c->rgb_stride = -frame->linesize[0];
 
-    ctx->pic.key_frame = keyframe;
-    ctx->pic.pict_type = keyframe ? AV_PICTURE_TYPE_I : AV_PICTURE_TYPE_P;
+    frame->key_frame = keyframe;
+    frame->pict_type = keyframe ? AV_PICTURE_TYPE_I : AV_PICTURE_TYPE_P;
 
     if (is_555) {
         bytestream2_init(&gB, buf, buf_size);
@@ -744,8 +722,14 @@ static int mss2_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
     if (buf_size)
         av_log(avctx, AV_LOG_WARNING, "buffer not fully consumed\n");
 
+    if (c->mvX < 0 || c->mvY < 0) {
+        av_frame_unref(ctx->last_pic);
+        ret = av_frame_ref(ctx->last_pic, frame);
+        if (ret < 0)
+            return ret;
+    }
+
     *got_frame       = 1;
-    *(AVFrame *)data = ctx->pic;
 
     return avpkt->size;
 }
@@ -753,16 +737,14 @@ static int mss2_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
 static av_cold int wmv9_init(AVCodecContext *avctx)
 {
     VC1Context *v = avctx->priv_data;
+    int ret;
 
     v->s.avctx    = avctx;
     avctx->flags |= CODEC_FLAG_EMU_EDGE;
     v->s.flags   |= CODEC_FLAG_EMU_EDGE;
 
-    if (avctx->idct_algo == FF_IDCT_AUTO)
-        avctx->idct_algo = FF_IDCT_WMV2;
-
-    if (ff_vc1_init_common(v) < 0)
-        return -1;
+    if ((ret = ff_vc1_init_common(v)) < 0)
+        return ret;
     ff_vc1dsp_init(&v->vc1dsp);
 
     v->profile = PROFILE_MAIN;
@@ -790,7 +772,7 @@ static av_cold int wmv9_init(AVCodecContext *avctx)
 
     v->overlap         = 0;
 
-    v->s.resync_marker = 0;
+    v->resync_marker   = 0;
     v->rangered        = 0;
 
     v->s.max_b_frames = avctx->max_b_frames = 0;
@@ -802,9 +784,9 @@ static av_cold int wmv9_init(AVCodecContext *avctx)
 
     ff_vc1_init_transposed_scantables(v);
 
-    if (ff_msmpeg4_decode_init(avctx) < 0 ||
-        ff_vc1_decode_init_alloc_tables(v) < 0)
-        return -1;
+    if ((ret = ff_msmpeg4_decode_init(avctx)) < 0 ||
+        (ret = ff_vc1_decode_init_alloc_tables(v)) < 0)
+        return ret;
 
     /* error concealment */
     v->s.me.qpel_put = v->s.dsp.put_qpel_pixels_tab;
@@ -817,10 +799,7 @@ static av_cold int mss2_decode_end(AVCodecContext *avctx)
 {
     MSS2Context *const ctx = avctx->priv_data;
 
-    if (ctx->pic.data[0])
-        avctx->release_buffer(avctx, &ctx->pic);
-    if (ctx->last_pic.data[0])
-        avctx->release_buffer(avctx, &ctx->last_pic);
+    av_frame_free(&ctx->last_pic);
 
     ff_mss12_decode_end(&ctx->c);
     av_freep(&ctx->c.pal_pic);
@@ -836,7 +815,6 @@ static av_cold int mss2_decode_init(AVCodecContext *avctx)
     MSS12Context *c = &ctx->c;
     int ret;
     c->avctx = avctx;
-    avctx->coded_frame = &ctx->pic;
     if (ret = ff_mss12_decode_init(c, 1, &ctx->sc[0], &ctx->sc[1]))
         return ret;
     c->pal_stride   = c->mask_stride;
@@ -855,11 +833,18 @@ static av_cold int mss2_decode_init(AVCodecContext *avctx)
     avctx->pix_fmt = c->free_colours == 127 ? AV_PIX_FMT_RGB555
                                             : AV_PIX_FMT_RGB24;
 
+    ctx->last_pic = av_frame_alloc();
+    if (!ctx->last_pic) {
+        mss2_decode_end(avctx);
+        return AVERROR(ENOMEM);
+    }
+
     return 0;
 }
 
 AVCodec ff_mss2_decoder = {
     .name           = "mss2",
+    .long_name      = NULL_IF_CONFIG_SMALL("MS Windows Media Video V9 Screen"),
     .type           = AVMEDIA_TYPE_VIDEO,
     .id             = AV_CODEC_ID_MSS2,
     .priv_data_size = sizeof(MSS2Context),
@@ -867,5 +852,4 @@ AVCodec ff_mss2_decoder = {
     .close          = mss2_decode_end,
     .decode         = mss2_decode_frame,
     .capabilities   = CODEC_CAP_DR1,
-    .long_name      = NULL_IF_CONFIG_SMALL("MS Windows Media Video V9 Screen"),
 };

@@ -26,11 +26,13 @@
  * see http://joe.hotchkiss.com/programming/eval/eval.html
  */
 
+#include "attributes.h"
 #include "avutil.h"
 #include "common.h"
 #include "eval.h"
 #include "log.h"
 #include "mathematics.h"
+#include "avstring.h"
 
 typedef struct Parser {
     const AVClass *class;
@@ -349,7 +351,7 @@ static int parse_dB(AVExpr **e, Parser *p, int *sign)
        for example, -3dB is not the same as -(3dB) */
     if (*p->s == '-') {
         char *next;
-        strtod(p->s, &next);
+        double av_unused ignored = strtod(p->s, &next);
         if (next != p->s && next[0] == 'd' && next[1] == 'B') {
             *sign = 0;
             return parse_primary(e, p);
@@ -503,7 +505,7 @@ int av_expr_parse(AVExpr **expr, const char *s,
         return AVERROR(ENOMEM);
 
     while (*s)
-        if (!isspace(*s++)) *wp++ = s[-1];
+        if (!av_isspace(*s++)) *wp++ = s[-1];
     *wp++ = 0;
 
     p.class      = &class;

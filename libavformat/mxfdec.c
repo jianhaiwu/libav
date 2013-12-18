@@ -43,7 +43,7 @@
  * Only tracks with associated descriptors will be decoded. "Highly Desirable" SMPTE 377M D.1
  */
 
-//#define DEBUG
+#include <stdint.h>
 
 #include "libavutil/aes.h"
 #include "libavutil/mathematics.h"
@@ -396,8 +396,7 @@ static int mxf_read_primer_pack(void *arg, AVIOContext *pb, int tag, int size, U
     int item_len = avio_rb32(pb);
 
     if (item_len != 18) {
-        av_log_ask_for_sample(pb, "unsupported primer pack item length %d\n",
-                              item_len);
+        avpriv_request_sample(pb, "Primer pack item length %d", item_len);
         return AVERROR_PATCHWELCOME;
     }
     if (item_num > UINT_MAX / item_len)
@@ -413,18 +412,20 @@ static int mxf_read_primer_pack(void *arg, AVIOContext *pb, int tag, int size, U
 static int mxf_read_partition_pack(void *arg, AVIOContext *pb, int tag, int size, UID uid, int64_t klv_offset)
 {
     MXFContext *mxf = arg;
-    MXFPartition *partition, *tmp_part;
+    MXFPartition *partition;
     UID op;
     uint64_t footer_partition;
     uint32_t nb_essence_containers;
+    int err;
 
     if (mxf->partitions_count+1 >= UINT_MAX / sizeof(*mxf->partitions))
         return AVERROR(ENOMEM);
 
-    tmp_part = av_realloc(mxf->partitions, (mxf->partitions_count + 1) * sizeof(*mxf->partitions));
-    if (!tmp_part)
-        return AVERROR(ENOMEM);
-    mxf->partitions = tmp_part;
+    if ((err = av_reallocp_array(&mxf->partitions, mxf->partitions_count + 1,
+                                 sizeof(*mxf->partitions))) < 0) {
+        mxf->partitions_count = 0;
+        return err;
+    }
 
     if (mxf->parsing_backward) {
         /* insert the new partition pack in the middle
@@ -549,13 +550,15 @@ static int mxf_read_partition_pack(void *arg, AVIOContext *pb, int tag, int size
 
 static int mxf_add_metadata_set(MXFContext *mxf, void *metadata_set)
 {
-    MXFMetadataSet **tmp;
+    int err;
+
     if (mxf->metadata_sets_count+1 >= UINT_MAX / sizeof(*mxf->metadata_sets))
         return AVERROR(ENOMEM);
-    tmp = av_realloc(mxf->metadata_sets, (mxf->metadata_sets_count + 1) * sizeof(*mxf->metadata_sets));
-    if (!tmp)
-        return AVERROR(ENOMEM);
-    mxf->metadata_sets = tmp;
+    if ((err = av_reallocp_array(&mxf->metadata_sets, mxf->metadata_sets_count + 1,
+                                 sizeof(*mxf->metadata_sets))) < 0) {
+        mxf->metadata_sets_count = 0;
+        return err;
+    }
     mxf->metadata_sets[mxf->metadata_sets_count] = metadata_set;
     mxf->metadata_sets_count++;
     return 0;
@@ -927,6 +930,7 @@ static const MXFCodecUL mxf_intra_only_essence_container_uls[] = {
 /* intra-only PictureEssenceCoding ULs, where no corresponding EC UL exists */
 static const MXFCodecUL mxf_intra_only_picture_essence_coding_uls[] = {
     { { 0x06,0x0E,0x2B,0x34,0x04,0x01,0x01,0x0A,0x04,0x01,0x02,0x02,0x01,0x32,0x00,0x00 }, 14,       AV_CODEC_ID_H264 }, /* H.264/MPEG-4 AVC Intra Profiles */
+    { { 0x06,0x0E,0x2B,0x34,0x04,0x01,0x01,0x07,0x04,0x01,0x02,0x02,0x03,0x01,0x01,0x00 }, 14,   AV_CODEC_ID_JPEG2000 }, /* JPEG2000 Codestream */
     { { 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00 },  0,       AV_CODEC_ID_NONE },
 };
 
@@ -1464,10 +1468,7 @@ static int mxf_parse_structural_metadata(MXFContext *mxf)
         /* TODO: drop PictureEssenceCoding and SoundEssenceCompression, only check EssenceContainer */
         codec_ul = mxf_get_codec_ul(ff_mxf_codec_uls, &descriptor->essence_codec_ul);
         st->codec->codec_id = codec_ul->id;
-        if (descriptor->extradata) {
-            st->codec->extradata = descriptor->extradata;
-            st->codec->extradata_size = descriptor->extradata_size;
-        }
+
         if (st->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
             source_track->intra_only = mxf_is_intra_only(descriptor);
             container_ul = mxf_get_codec_ul(mxf_picture_essence_container_uls, essence_container_ul);
@@ -1552,6 +1553,17 @@ static int mxf_parse_structural_metadata(MXFContext *mxf)
             } else if (st->codec->codec_id == AV_CODEC_ID_MP2) {
                 st->need_parsing = AVSTREAM_PARSE_FULL;
             }
+        }
+        if (descriptor->extradata) {
+            st->codec->extradata = av_mallocz(descriptor->extradata_size + FF_INPUT_BUFFER_PADDING_SIZE);
+            if (st->codec->extradata) {
+                memcpy(st->codec->extradata, descriptor->extradata, descriptor->extradata_size);
+                st->codec->extradata_size = descriptor->extradata_size;
+            }
+        } else if (st->codec->codec_id == AV_CODEC_ID_H264) {
+            ret = ff_generate_avci_extradata(st);
+            if (ret < 0)
+                return ret;
         }
         if (st->codec->codec_type != AVMEDIA_TYPE_DATA && (*essence_container_ul)[15] > 0x01) {
             /* TODO: decode timestamps */
@@ -2035,10 +2047,10 @@ static int mxf_read_packet_old(AVFormatContext *s, AVPacket *pkt)
                 /* if this check is hit then it's possible OPAtom was treated
                  * as OP1a truncate the packet since it's probably very large
                  * (>2 GiB is common) */
-                av_log_ask_for_sample(s,
-                                      "KLV for edit unit %i extends into next "
-                                      "edit unit - OPAtom misinterpreted as "
-                                      "OP1a?\n",
+                avpriv_request_sample(s,
+                                      "OPAtom misinterpreted as OP1a?"
+                                      "KLV for edit unit %i extending into "
+                                      "next edit unit",
                                       mxf->current_edit_unit);
                 klv.length = next_ofs - avio_tell(s->pb);
             }
@@ -2228,6 +2240,7 @@ static int mxf_read_seek(AVFormatContext *s, int stream_index, int64_t sample_ti
     if ((ret = avio_seek(s->pb, (s->bit_rate * seconds) >> 3, SEEK_SET)) < 0)
         return ret;
     ff_update_cur_dts(s, st, sample_time);
+    mxf->current_edit_unit = sample_time;
     } else {
         t = &mxf->index_tables[0];
 

@@ -171,6 +171,12 @@ avconv -i in.avi -f image2 -frames:v 1 img.jpeg
 @table @option
 @item -start_number @var{number}
 Start the sequence from @var{number}.
+
+@item -update @var{number}
+If @var{number} is nonzero, the filename will always be interpreted as just a
+filename, not a pattern, and this file will be continuously overwritten with new
+images.
+
 @end table
 
 @section MOV/MP4/ISMV
@@ -233,6 +239,10 @@ more efficient), but with this option set, the muxer writes one moof/mdat
 pair for each track, making it easier to separate tracks.
 
 This option is implicitly set when writing ismv (Smooth Streaming) files.
+@item -movflags faststart
+Run a second pass moving the index (moov atom) to the beginning of the file.
+This operation can take a while, and will not work in various situations such
+as fragmented output, thus it is not enabled by default.
 @end table
 
 Smooth Streaming content can be pushed in real time to a publishing
@@ -367,6 +377,27 @@ For example a 3D WebM clip can be created using the following command line:
 avconv -i sample_left_right_clip.mpg -an -c:v libvpx -metadata STEREO_MODE=left_right -y stereo_clip.webm
 @end example
 
+This muxer supports the following options:
+
+@table @option
+
+@item reserve_index_space
+By default, this muxer writes the index for seeking (called cues in Matroska
+terms) at the end of the file, because it cannot know in advance how much space
+to leave for the index at the beginning of the file. However for some use cases
+-- e.g.  streaming where seeking is possible but slow -- it is useful to put the
+index at the beginning of the file.
+
+If this option is set to a non-zero value, the muxer will reserve a given amount
+of space in the file header and then try to write the cues there when the muxing
+finishes. If the available space does not suffice, muxing will fail. A safe size
+for most use cases should be about 50kB per hour of video.
+
+Note that cues are only written if the output is seekable and this option will
+have no effect if it is not.
+
+@end table
+
 @section segment
 
 Basic stream segmenter.
@@ -433,5 +464,20 @@ Attach a picture to an mp3:
 avconv -i input.mp3 -i cover.png -c copy -metadata:s:v title="Album cover"
 -metadata:s:v comment="Cover (Front)" out.mp3
 @end example
+
+@section ogg
+
+Ogg container muxer.
+
+@table @option
+@item -page_duration @var{duration}
+Preferred page duration, in microseconds. The muxer will attempt to create
+pages that are approximately @var{duration} microseconds long. This allows the
+user to compromise between seek granularity and container overhead. The default
+is 1 second. A value of 0 will fill all segments, making pages as large as
+possible. A value of 1 will effectively use 1 packet-per-page in most
+situations, giving a small seek granularity at the cost of additional container
+overhead.
+@end table
 
 @c man end MUXERS
