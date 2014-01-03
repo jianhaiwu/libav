@@ -16,7 +16,7 @@ libav (6:9.10-2) unstable; urgency=low
   * compile against libtiff5-dev
   * Drop some special code paths for building the ubuntu flavor
     (no longer necessary over there)
-  
+
  -- Reinhard Tartler <siretart@tauware.de>  Sun, 03 Nov 2013 08:35:04 -0500
 
 libav (6:9.10-1) unstable; urgency=medium
