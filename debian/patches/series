@@ -2,3 +2,4 @@
 makeinfo.patch
 spelling-errors.patch
 freetype-api.patch
+support-opus-in-ogg.patch
