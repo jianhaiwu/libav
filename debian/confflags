@@ -116,7 +116,8 @@ endif
 # Additional features
 confflags += $(call cond_enable,/usr/include/bzlib.h,bzlib)
 confflags += $(call cond_enable,/usr/include/dc1394/dc1394.h,libdc1394)
-confflags += $(call cond_enable,/usr/include/freetype2/ft2build.h,libfreetype)
+# disabled to avoid ftbfs
+#confflags += $(call cond_enable,/usr/include/freetype2/ft2build.h,libfreetype)
 confflags += $(call cond_enable,/usr/include/frei0r.h,frei0r)
 confflags += $(call cond_enable,/usr/include/gnutls/gnutls.h,gnutls)
 confflags += $(call cond_enable,/usr/include/gsm/gsm.h,libgsm)
