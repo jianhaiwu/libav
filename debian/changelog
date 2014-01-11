@@ -1,7 +1,13 @@
 libav (6:10~alpha1-1) experimental; urgency=low
 
-  * New Upstream releases. Many SONAME bumps, fixes, etc.
-  * XXX Provide better changelog
+  * New Upstream release 10_alpha1. This upstream git snapshot has too many
+    changes to list here, cf. to the upstream Changelog:
+    http://git.libav.org/?p=libav.git;a=blob;f=Changelog;hb=refs/tags/v10_alpha1
+    - Opus in Ogg demuxing Closes: #733884, #720563, LP: #1265196
+    - avprobe output is now standard INI or JSON. Closes: #715467
+    - Properly working defaults in libx264 wrapper, Closes: #687048
+    - avconv -t option can now be used for inputs, to limit the duration of
+      data read from an input file, Closes: #722003
 
  -- Reinhard Tartler <siretart@tauware.de>  Wed, 18 Dec 2013 15:16:03 +0000
 
