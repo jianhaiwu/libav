@@ -13,6 +13,16 @@ libavutil:     2013-12-xx
 
 API changes, most recent first:
 
+2013-12-xx - xxxxxxx - lavu 53.2.0 - frame.h
+  Add AV_FRAME_DATA_MATRIXENCODING value to the AVFrameSideDataType enum, which
+  identifies AVMatrixEncoding data.
+
+2013-12-xx - xxxxxxx - lavu 53.1.0 - channel_layout.h
+  Add values for various Dolby flags to the AVMatrixEncoding enum.
+
+2013-12-xx - xxxxxxx - lavc 55.30.0 - avcodec.h
+  Add HEVC profiles
+
 2013-12-xx - xxxxxxx - lavc 55.28.1 - avcodec.h
   av_frame_alloc(), av_frame_unref() and av_frame_free() now can and should be
   used instead of avcodec_alloc_frame(), avcodec_get_frame_defaults() and

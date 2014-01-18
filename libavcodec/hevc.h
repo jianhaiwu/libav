@@ -33,6 +33,7 @@
 #include "cabac.h"
 #include "dsputil.h"
 #include "get_bits.h"
+#include "hevcdsp.h"
 #include "internal.h"
 #include "thread.h"
 #include "videodsp.h"
@@ -69,6 +70,8 @@
 #define EPEL_EXTRA_BEFORE 1
 #define EPEL_EXTRA_AFTER  2
 #define EPEL_EXTRA        3
+
+#define EDGE_EMU_BUFFER_STRIDE 80
 
 /**
  * Value of the luma sample at position (x, y) in the 2D array tab.
@@ -328,21 +331,24 @@ typedef struct VUI {
     int log2_max_mv_length_vertical;
 } VUI;
 
+typedef struct PTLCommon {
+    uint8_t profile_space;
+    uint8_t tier_flag;
+    uint8_t profile_idc;
+    uint8_t profile_compatibility_flag[32];
+    uint8_t level_idc;
+    uint8_t progressive_source_flag;
+    uint8_t interlaced_source_flag;
+    uint8_t non_packed_constraint_flag;
+    uint8_t frame_only_constraint_flag;
+} PTLCommon;
+
 typedef struct PTL {
-    int general_profile_space;
-    uint8_t general_tier_flag;
-    int general_profile_idc;
-    int general_profile_compatibility_flag[32];
-    int general_level_idc;
+    PTLCommon general_ptl;
+    PTLCommon sub_layer_ptl[MAX_SUB_LAYERS];
 
     uint8_t sub_layer_profile_present_flag[MAX_SUB_LAYERS];
     uint8_t sub_layer_level_present_flag[MAX_SUB_LAYERS];
-
-    int sub_layer_profile_space[MAX_SUB_LAYERS];
-    uint8_t sub_layer_tier_flag[MAX_SUB_LAYERS];
-    int sub_layer_profile_idc[MAX_SUB_LAYERS];
-    uint8_t sub_layer_profile_compatibility_flags[MAX_SUB_LAYERS][32];
-    int sub_layer_level_idc[MAX_SUB_LAYERS];
 } PTL;
 
 typedef struct HEVCVPS {
@@ -416,6 +422,7 @@ typedef struct HEVCSPS {
 
     struct {
         uint8_t bit_depth;
+        uint8_t bit_depth_chroma;
         unsigned int log2_min_pcm_cb_size;
         unsigned int log2_max_pcm_cb_size;
         uint8_t loop_filter_disable_flag;
@@ -654,19 +661,6 @@ typedef struct TransformUnit {
     uint8_t is_cu_qp_delta_coded;
 } TransformUnit;
 
-typedef struct SAOParams {
-    int offset_abs[3][4];   ///< sao_offset_abs
-    int offset_sign[3][4];  ///< sao_offset_sign
-
-    int band_position[3];   ///< sao_band_position
-
-    int eo_class[3];        ///< sao_eo_class
-
-    int offset_val[3][5];   ///<SaoOffsetVal
-
-    uint8_t type_idx[3];    ///< sao_type_idx
-} SAOParams;
-
 typedef struct DBParams {
     int beta_offset;
     int tc_offset;
@@ -712,70 +706,6 @@ typedef struct HEVCNAL {
     const uint8_t *data;
 } HEVCNAL;
 
-typedef struct HEVCDSPContext {
-    void (*put_pcm)(uint8_t *dst, ptrdiff_t stride, int size,
-                    GetBitContext *gb, int pcm_bit_depth);
-
-    void (*transquant_bypass[4])(uint8_t *dst, int16_t *coeffs,
-                                 ptrdiff_t stride);
-
-    void (*transform_skip)(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride);
-    void (*transform_4x4_luma_add)(uint8_t *dst, int16_t *coeffs,
-                                   ptrdiff_t stride);
-    void (*transform_add[4])(uint8_t *dst, int16_t *coeffs, ptrdiff_t stride);
-
-    void (*sao_band_filter[4])(uint8_t *dst, uint8_t *src, ptrdiff_t stride,
-                               struct SAOParams *sao, int *borders,
-                               int width, int height, int c_idx);
-    void (*sao_edge_filter[4])(uint8_t *dst, uint8_t *src, ptrdiff_t stride,
-                               struct SAOParams *sao, int *borders, int width,
-                               int height, int c_idx, uint8_t vert_edge,
-                               uint8_t horiz_edge, uint8_t diag_edge);
-
-    void (*put_hevc_qpel[4][4])(int16_t *dst, ptrdiff_t dststride, uint8_t *src,
-                                ptrdiff_t srcstride, int width, int height,
-                                int16_t *mcbuffer);
-    void (*put_hevc_epel[2][2])(int16_t *dst, ptrdiff_t dststride, uint8_t *src,
-                                ptrdiff_t srcstride, int width, int height,
-                                int mx, int my, int16_t *mcbuffer);
-
-    void (*put_unweighted_pred)(uint8_t *dst, ptrdiff_t dststride, int16_t *src,
-                                ptrdiff_t srcstride, int width, int height);
-    void (*put_weighted_pred_avg)(uint8_t *dst, ptrdiff_t dststride,
-                                  int16_t *src1, int16_t *src2,
-                                  ptrdiff_t srcstride, int width, int height);
-    void (*weighted_pred)(uint8_t denom, int16_t wlxFlag, int16_t olxFlag,
-                          uint8_t *dst, ptrdiff_t dststride, int16_t *src,
-                          ptrdiff_t srcstride, int width, int height);
-    void (*weighted_pred_avg)(uint8_t denom, int16_t wl0Flag, int16_t wl1Flag,
-                              int16_t ol0Flag, int16_t ol1Flag, uint8_t *dst,
-                              ptrdiff_t dststride, int16_t *src1, int16_t *src2,
-                              ptrdiff_t srcstride, int width, int height);
-
-    void (*hevc_h_loop_filter_luma)(uint8_t *pix, ptrdiff_t stride,
-                                    int *beta, int *tc,
-                                    uint8_t *no_p, uint8_t *no_q);
-    void (*hevc_v_loop_filter_luma)(uint8_t *pix, ptrdiff_t stride,
-                                    int *beta, int *tc,
-                                    uint8_t *no_p, uint8_t *no_q);
-    void (*hevc_h_loop_filter_chroma)(uint8_t *pix, ptrdiff_t stride,
-                                      int *tc, uint8_t *no_p, uint8_t *no_q);
-    void (*hevc_v_loop_filter_chroma)(uint8_t *pix, ptrdiff_t stride,
-                                      int *tc, uint8_t *no_p, uint8_t *no_q);
-    void (*hevc_h_loop_filter_luma_c)(uint8_t *pix, ptrdiff_t stride,
-                                      int *beta, int *tc,
-                                      uint8_t *no_p, uint8_t *no_q);
-    void (*hevc_v_loop_filter_luma_c)(uint8_t *pix, ptrdiff_t stride,
-                                      int *beta, int *tc,
-                                      uint8_t *no_p, uint8_t *no_q);
-    void (*hevc_h_loop_filter_chroma_c)(uint8_t *pix, ptrdiff_t stride,
-                                        int *tc, uint8_t *no_p,
-                                        uint8_t *no_q);
-    void (*hevc_v_loop_filter_chroma_c)(uint8_t *pix, ptrdiff_t stride,
-                                        int *tc, uint8_t *no_p,
-                                        uint8_t *no_q);
-} HEVCDSPContext;
-
 struct HEVCContext;
 
 typedef struct HEVCPredContext {
@@ -813,8 +743,8 @@ typedef struct HEVCLocalContext {
     int     start_of_tiles_x;
     int     end_of_tiles_x;
     int     end_of_tiles_y;
-    uint8_t *edge_emu_buffer;
-    int      edge_emu_buffer_size;
+    /* +7 is for subpixel interpolation, *2 for high bit depths */
+    DECLARE_ALIGNED(32, uint8_t, edge_emu_buffer)[(MAX_PB_SIZE + 7) * EDGE_EMU_BUFFER_STRIDE * 2];
     CodingTree ct;
     CodingUnit cu;
     PredictionUnit pu;
@@ -1055,10 +985,6 @@ void ff_hevc_hls_filters(HEVCContext *s, int x_ctb, int y_ctb, int ctb_size);
 void ff_hevc_pps_free(HEVCPPS **ppps);
 
 void ff_hevc_pred_init(HEVCPredContext *hpc, int bit_depth);
-
-void ff_hevc_dsp_init(HEVCDSPContext *hpc, int bit_depth);
-
-extern const int8_t ff_hevc_epel_filters[7][16];
 
 extern const uint8_t ff_hevc_qpel_extra_before[4];
 extern const uint8_t ff_hevc_qpel_extra_after[4];
