@@ -19,7 +19,24 @@
 #ifndef AVUTIL_VERSION_H
 #define AVUTIL_VERSION_H
 
-#include "avutil.h"
+#include "macros.h"
+
+/**
+ * @defgroup version_utils Library Version Macros
+ *
+ * Useful to check and match library version in order to maintain
+ * backward compatibility.
+ *
+ * @{
+ */
+
+#define AV_VERSION_INT(a, b, c) (a<<16 | b<<8 | c)
+#define AV_VERSION_DOT(a, b, c) a ##.## b ##.## c
+#define AV_VERSION(a, b, c) AV_VERSION_DOT(a, b, c)
+
+/**
+ * @}
+ */
 
 /**
  * @file
@@ -37,7 +54,7 @@
  */
 
 #define LIBAVUTIL_VERSION_MAJOR 53
-#define LIBAVUTIL_VERSION_MINOR  0
+#define LIBAVUTIL_VERSION_MINOR  2
 #define LIBAVUTIL_VERSION_MICRO  0
 
 #define LIBAVUTIL_VERSION_INT   AV_VERSION_INT(LIBAVUTIL_VERSION_MAJOR, \

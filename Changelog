@@ -52,6 +52,9 @@ version 10:
 - remove mp3_header_(de)compress bitstream filters
 - stereoscopic 3d metadata handling
 - png standalone parser
+- WebP encoding via libwebp
+- ATRAC3+ decoder
+- framepack filter
 
 
 version 9:

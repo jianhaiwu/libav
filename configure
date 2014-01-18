@@ -202,6 +202,7 @@ External library support:
   --enable-libvorbis       enable Vorbis encoding via libvorbis [no]
   --enable-libvpx          enable VP8 and VP9 de/encoding via libvpx [no]
   --enable-libwavpack      enable wavpack encoding via libwavpack [no]
+  --enable-libwebp         enable WebP encoding via libwebp [no]
   --enable-libx264         enable H.264 encoding via x264 [no]
   --enable-libxavs         enable AVS encoding via xavs [no]
   --enable-libxvid         enable Xvid encoding via xvidcore,
@@ -286,6 +287,8 @@ Developer options (useful when working on Libav itself):
   --enable-extra-warnings  enable more compiler warnings
   --samples=PATH           location of test samples for FATE, if not set use
                            \$LIBAV_SAMPLES at make invocation time.
+  --enable-neon-clobber-test check NEON registers for clobbering (should be
+                           used only for debugging purposes)
   --enable-xmm-clobber-test check XMM registers for clobbering (Win64-only;
                            should be used only for debugging purposes)
   --enable-random          randomly enable/disable components
@@ -762,6 +765,13 @@ check_ld(){
     check_cmd $ld $LDFLAGS $flags $(ld_o $TMPE) $TMPO $libs $extralibs
 }
 
+print_include(){
+    hdr=$1
+    test "${hdr%.h}" = "${hdr}" &&
+        echo "#include $hdr"    ||
+        echo "#include <$hdr>"
+}
+
 check_code(){
     log check_code "$@"
     check=$1
@@ -770,7 +780,7 @@ check_code(){
     shift 3
     {
         for hdr in $headers; do
-            echo "#include <$hdr>"
+            print_include $hdr
         done
         echo "int main(void) { $code; return 0; }"
     } | check_$check "$@"
@@ -865,7 +875,7 @@ check_func_headers(){
     shift 2
     {
         for hdr in $headers; do
-            echo "#include <$hdr>"
+            print_include $hdr
         done
         for func in $funcs; do
             echo "long check_$func(void) { return (long) $func; }"
@@ -1116,6 +1126,7 @@ EXTERNAL_LIBRARY_LIST="
     libvorbis
     libvpx
     libwavpack
+    libwebp
     libx264
     libxavs
     libxvid
@@ -1165,6 +1176,7 @@ CONFIG_LIST="
     lzo
     mdct
     memalign_hack
+    neon_clobber_test
     network
     nonfree
     pod2man
@@ -1443,6 +1455,7 @@ CONFIG_EXTRA="
     h264qpel
     hpeldsp
     huffman
+    intrax8
     lgplv3
     lpc
     mpegaudio
@@ -1531,8 +1544,8 @@ CMDLINE_APPEND="
 armv5te_deps="arm"
 armv6_deps="arm"
 armv6t2_deps="arm"
-neon_deps="arm"
-vfp_deps="arm"
+neon_deps_any="aarch64 arm"
+vfp_deps_any="aarch64 arm"
 vfpv3_deps="vfp"
 
 map 'eval ${v}_inline_deps=inline_asm' $ARCH_EXT_LIST_ARM
@@ -1571,10 +1584,10 @@ for ext in $(filter_out mmx $ARCH_EXT_LIST_X86); do
     eval ${ext}_suggest='"${ext}_external ${ext}_inline"'
 done
 
-aligned_stack_if_any="ppc x86"
-fast_64bit_if_any="alpha ia64 mips64 parisc64 ppc64 sparc64 x86_64"
-fast_clz_if_any="alpha avr32 mips ppc x86"
-fast_unaligned_if_any="ppc x86"
+aligned_stack_if_any="aarch64 ppc x86"
+fast_64bit_if_any="aarch64 alpha ia64 mips64 parisc64 ppc64 sparc64 x86_64"
+fast_clz_if_any="aarch64 alpha avr32 mips ppc x86"
+fast_unaligned_if_any="aarch64 ppc x86"
 
 need_memalign="altivec neon sse"
 
@@ -1582,6 +1595,13 @@ need_memalign="altivec neon sse"
 log2_deps="!libc_msvcrt"
 
 symver_if_any="symver_asm_label symver_gnu_asm"
+
+# threading support
+atomics_gcc_if="sync_val_compare_and_swap"
+atomics_suncc_if="atomic_cas_ptr machine_rw_barrier"
+atomics_win32_if="MemoryBarrier"
+atomics_native_if_any="$ATOMICS_LIST"
+threads_if_any="$THREADS_LIST"
 
 # subsystems
 dct_select="rdft"
@@ -1614,6 +1634,7 @@ asv2_decoder_select="dsputil"
 asv2_encoder_select="dsputil"
 atrac1_decoder_select="mdct sinewin"
 atrac3_decoder_select="mdct"
+atrac3p_decoder_select="mdct sinewin"
 bink_decoder_select="dsputil hpeldsp"
 binkaudio_dct_decoder_select="mdct rdft dct sinewin"
 binkaudio_rdft_decoder_select="mdct rdft sinewin"
@@ -1744,7 +1765,7 @@ twinvq_decoder_select="mdct lsp sinewin"
 utvideo_decoder_select="dsputil"
 utvideo_encoder_select="dsputil huffman"
 vble_decoder_select="dsputil"
-vc1_decoder_select="error_resilience h263_decoder h264chroma h264qpel"
+vc1_decoder_select="error_resilience h263_decoder h264chroma h264qpel intrax8"
 vc1image_decoder_select="vc1_decoder"
 vorbis_decoder_select="mdct"
 vorbis_encoder_select="mdct"
@@ -1764,7 +1785,7 @@ wmav2_encoder_select="mdct sinewin"
 wmavoice_decoder_select="lsp rdft dct mdct sinewin"
 wmv1_decoder_select="h263_decoder"
 wmv1_encoder_select="h263_encoder"
-wmv2_decoder_select="h263_decoder videodsp"
+wmv2_decoder_select="h263_decoder intrax8 videodsp"
 wmv2_encoder_select="h263_encoder"
 wmv3_decoder_select="vc1_decoder"
 wmv3image_decoder_select="wmv3_decoder"
@@ -1860,6 +1881,7 @@ libvpx_vp8_encoder_deps="libvpx"
 libvpx_vp9_decoder_deps="libvpx"
 libvpx_vp9_encoder_deps="libvpx"
 libwavpack_encoder_deps="libwavpack"
+libwebp_encoder_deps="libwebp"
 libx264_encoder_deps="libx264"
 libxavs_encoder_deps="libxavs"
 libxvid_encoder_deps="libxvid"
@@ -1991,7 +2013,6 @@ interlace_filter_deps="gpl"
 resample_filter_deps="avresample"
 ocv_filter_deps="libopencv"
 scale_filter_deps="swscale"
-yadif_filter_deps="gpl"
 
 # examples
 output_example_deps="avcodec avformat avutil swscale"
@@ -3576,7 +3597,14 @@ od -t x1 $TMPO | grep -q '42 *49 *47 *45' && enable bigendian
 
 check_inline_asm inline_asm_labels '"1:\n"'
 
-if enabled alpha; then
+if enabled aarch64; then
+    # internal assembler in clang 3.3 does not support this instruction
+    enabled neon && check_insn neon 'ext   v0.8B, v0.8B, v1.8B, #1'
+    enabled vfp  && check_insn vfp  'fmadd d0,    d0,    d1,    d2'
+
+    map 'enabled_any ${v}_external ${v}_inline || disable $v' $ARCH_EXT_LIST_ARM
+
+elif enabled alpha; then
 
     check_cflags -mieee
 
@@ -3759,7 +3787,7 @@ if ! disabled network; then
         check_func_headers winsock2.h closesocket -lws2 &&
             network_extralibs="-lws2" ||
         { check_func_headers winsock2.h closesocket -lws2_32 &&
-            network_extralibs="-lws2_32"; }
+            network_extralibs="-lws2_32"; } || disable winsock2_h network
         check_func_headers ws2tcpip.h getaddrinfo $network_extralibs
         check_type ws2tcpip.h socklen_t
         check_type ws2tcpip.h "struct addrinfo"
@@ -3840,7 +3868,8 @@ check_header windows.h
 check_header X11/extensions/XvMClib.h
 
 if ! disabled w32threads && ! enabled pthreads; then
-    check_func_headers "windows.h process.h" _beginthreadex && enable w32threads
+    check_func_headers "windows.h process.h" _beginthreadex &&
+        enable w32threads || disable w32threads
 fi
 
 # check for some common methods of building with pthread support
@@ -3873,10 +3902,6 @@ done
 disabled  zlib || check_lib   zlib.h      zlibVersion -lz   || disable  zlib
 disabled bzlib || check_lib2 bzlib.h BZ2_bzlibVersion -lbz2 || disable bzlib
 
-enabled sync_val_compare_and_swap && enable atomics_gcc
-enabled_all atomic_cas_ptr machine_rw_barrier && enable atomics_suncc
-enabled MemoryBarrier && enable atomics_win32
-
 check_lib math.h sin -lm && LIBM="-lm"
 enabled vaapi && require vaapi va/va.h vaInitialize -lva
 
@@ -3896,7 +3921,7 @@ enabled frei0r            && { check_header frei0r.h || die "ERROR: frei0r.h hea
 enabled gnutls            && require_pkg_config gnutls gnutls/gnutls.h gnutls_global_init
 enabled libfaac           && require2 libfaac "stdint.h faac.h" faacEncGetVersion -lfaac
 enabled libfdk_aac        && require libfdk_aac fdk-aac/aacenc_lib.h aacEncOpen -lfdk-aac
-enabled libfreetype       && require_pkg_config freetype2 "ft2build.h freetype/freetype.h" FT_Init_FreeType
+enabled libfreetype       && require_pkg_config freetype2 "ft2build.h FT_FREETYPE_H" FT_Init_FreeType
 enabled libgsm            && { for gsm_hdr in "gsm.h" "gsm/gsm.h"; do
                                    check_lib "${gsm_hdr}" gsm_create -lgsm && break;
                                done || die "ERROR: libgsm not found"; }
@@ -3923,6 +3948,7 @@ enabled libvpx            && {
     enabled libvpx_vp9_decoder && { check_lib2 "vpx/vpx_decoder.h vpx/vp8dx.h" "vpx_codec_vp9_dx" -lvpx || disable libvpx_vp9_decoder; }
     enabled libvpx_vp9_encoder && { check_lib2 "vpx/vpx_encoder.h vpx/vp8cx.h" "vpx_codec_vp9_cx" -lvpx || disable libvpx_vp9_encoder; } }
 enabled libwavpack        && require libwavpack wavpack/wavpack.h WavpackOpenFileOutput  -lwavpack
+enabled libwebp           && require_pkg_config libwebp webp/encode.h WebPGetEncoderVersion
 enabled libx264           && require libx264 x264.h x264_encoder_encode -lx264 &&
                              { check_cpp_condition x264.h "X264_BUILD >= 118" ||
                                die "ERROR: libx264 version must be >= 0.118."; }
@@ -4043,6 +4069,17 @@ test_ldflags -Wl,-Bsymbolic && append SHFLAGS -Wl,-Bsymbolic
 # -wN '..@*' is more selective than -x, but not available everywhere.
 check_stripflags -wN \'..@*\' || check_stripflags -x || strip='true'
 
+enabled neon_clobber_test &&
+    check_ldflags -Wl,--wrap,avcodec_open2              \
+                  -Wl,--wrap,avcodec_decode_audio4      \
+                  -Wl,--wrap,avcodec_decode_video2      \
+                  -Wl,--wrap,avcodec_decode_subtitle2   \
+                  -Wl,--wrap,avcodec_encode_audio2      \
+                  -Wl,--wrap,avcodec_encode_video2      \
+                  -Wl,--wrap,avcodec_encode_subtitle    \
+                  -Wl,--wrap,avresample_convert ||
+    disable neon_clobber_test
+
 enabled xmm_clobber_test &&
     check_ldflags -Wl,--wrap,avcodec_open2              \
                   -Wl,--wrap,avcodec_decode_audio4      \
@@ -4051,6 +4088,7 @@ enabled xmm_clobber_test &&
                   -Wl,--wrap,avcodec_encode_audio2      \
                   -Wl,--wrap,avcodec_encode_video2      \
                   -Wl,--wrap,avcodec_encode_subtitle    \
+                  -Wl,--wrap,avresample_convert         \
                   -Wl,--wrap,sws_scale ||
     disable xmm_clobber_test
 
@@ -4178,9 +4216,6 @@ case $target_os in
     ;;
 esac
 
-enabled_any $THREADS_LIST      && enable threads
-enabled_any $ATOMICS_LIST      && enable atomics_native
-
 enabled asm || { arch=c; disable $ARCH_LIST $ARCH_EXT_LIST; }
 
 check_deps $CONFIG_LIST       \
@@ -4222,6 +4257,10 @@ if enabled x86; then
     echo "CMOV is fast              ${fast_cmov-no}"
     echo "EBX available             ${ebx_available-no}"
     echo "EBP available             ${ebp_available-no}"
+fi
+if enabled aarch64; then
+    echo "NEON enabled              ${neon-no}"
+    echo "VFP enabled               ${vfp-no}"
 fi
 if enabled arm; then
     echo "ARMv5TE enabled           ${armv5te-no}"
