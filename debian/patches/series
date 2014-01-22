@@ -3,3 +3,4 @@ makeinfo.patch
 spelling-errors.patch
 freetype-api.patch
 support-opus-in-ogg.patch
+mathematics-remove-asserts-from-av_rescale_rnd.patch
