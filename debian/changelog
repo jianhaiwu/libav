@@ -1,8 +1,12 @@
-libav (6:9.10-3) UNRELEASED; urgency=low
+libav (6:9.10-3) unstable; urgency=low
 
-  * 
-
- -- Reinhard Tartler <siretart@tauware.de>  Sun, 05 Jan 2014 19:30:55 +0000
+  * Add upstream patch: mathematics: remove asserts from av_rescale_rnd
+    Closes: #718805
+  * Remove the makeinfo patch, it just disables generation of the html
+    equivalents of the manpages
+  * No longer build-depend on libtiff4-dev. Closes: #736020
+  
+ -- Reinhard Tartler <siretart@tauware.de>  Wed, 22 Jan 2014 08:13:40 -0500
 
 libav (6:9.10-2) unstable; urgency=low
 
