@@ -54,7 +54,7 @@ Build-Depends:
  libxfixes-dev,
  libxvidcore-dev,
  libxvmc-dev,
- texinfo,
+ texi2html,
  yasm [any-amd64 any-i386],
  zlib1g-dev
 
