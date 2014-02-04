@@ -31,7 +31,6 @@ Build-Depends:
  libmp3lame-dev,
  libopencore-amrnb-dev,
  libopencore-amrwb-dev,
- libopencv-dev,
  libopenjpeg-dev,
  libopus-dev (>= 1.0.1),
  libpulse-dev,
