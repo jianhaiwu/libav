@@ -1,7 +1,8 @@
 libav (6:9.11-1) unstable; urgency=low
 
   * Imported Upstream version 9.11
-    - drop patch mathematics-remove-asserts-from-av_rescale_rnd.patch, merged upstream
+    - drop patch mathematics-remove-asserts-from-av_rescale_rnd.patch,
+      merged upstream
     - mathematics: remove asserts from av_rescale_rnd, (Closes: #718805)
   * Support Opus in Ogg containers (Closes: #733884, 720563)
   * Refactor conffile moving
@@ -9,7 +10,7 @@ libav (6:9.11-1) unstable; urgency=low
   * Disable opencv filter because of #737584
   * Check upstream OpenPGP signatures (Closes: #723692)
 
- -- Reinhard Tartler <siretart@debian-build>  Wed, 05 Feb 2014 00:24:42 +0000
+ -- Reinhard Tartler <siretart@tauware.de>  Wed, 05 Feb 2014 00:24:42 +0000
 
 libav (6:9.10-3) unstable; urgency=low
 
