@@ -60,9 +60,15 @@ static const uint8_t div6[QP_MAX_NUM + 1] = {
 };
 
 static const enum AVPixelFormat hwaccel_pixfmt_list_h264_jpeg_420[] = {
+#if CONFIG_H264_DXVA2_HWACCEL
     AV_PIX_FMT_DXVA2_VLD,
+#endif
+#if CONFIG_H264_VAAPI_HWACCEL
     AV_PIX_FMT_VAAPI_VLD,
+#endif
+#if CONFIG_H264_VDA_HWACCEL
     AV_PIX_FMT_VDA_VLD,
+#endif
     AV_PIX_FMT_YUVJ420P,
     AV_PIX_FMT_NONE
 };
@@ -2648,6 +2654,12 @@ static int decode_slice_header(H264Context *h, H264Context *h0)
     }
     h->slice_type     = slice_type;
     h->slice_type_nos = slice_type & 3;
+
+    if (h->nal_unit_type  == NAL_IDR_SLICE &&
+        h->slice_type_nos != AV_PICTURE_TYPE_I) {
+        av_log(h->s.avctx, AV_LOG_ERROR, "A non-intra slice in an IDR NAL unit.\n");
+        return AVERROR_INVALIDDATA;
+    }
 
     // to make a few old functions happy, it's wrong though
     s->pict_type = h->slice_type;
