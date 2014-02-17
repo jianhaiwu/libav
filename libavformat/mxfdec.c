@@ -134,6 +134,9 @@ typedef struct {
     int width;
     int height; /* Field height, not frame height */
     int frame_layout; /* See MXFFrameLayout enum */
+#define MXF_TFF 1
+#define MXF_BFF 2
+    int field_dominance;
     int channels;
     int bits_per_sample;
     unsigned int component_depth;
@@ -830,6 +833,9 @@ static int mxf_read_generic_descriptor(void *arg, AVIOContext *pb, int tag, int 
         descriptor->aspect_ratio.num = avio_rb32(pb);
         descriptor->aspect_ratio.den = avio_rb32(pb);
         break;
+    case 0x3212:
+        descriptor->field_dominance = avio_r8(pb);
+        break;
     case 0x3301:
         descriptor->component_depth = avio_rb32(pb);
         break;
@@ -1422,6 +1428,15 @@ static int mxf_parse_structural_metadata(MXFContext *mxf)
         if (st->duration == -1)
             st->duration = AV_NOPTS_VALUE;
         st->start_time = component->start_position;
+        if (material_track->edit_rate.num <= 0 ||
+            material_track->edit_rate.den <= 0) {
+            av_log(mxf->fc, AV_LOG_WARNING,
+                   "Invalid edit rate (%d/%d) found on stream #%d, "
+                   "defaulting to 25/1\n",
+                   material_track->edit_rate.num,
+                   material_track->edit_rate.den, st->index);
+            material_track->edit_rate = (AVRational){25, 1};
+        }
         avpriv_set_pts_info(st, 64, material_track->edit_rate.den, material_track->edit_rate.num);
 
         PRINT_KEY(mxf->fc, "data definition   ul", source_track->sequence->data_definition_ul);
@@ -1498,6 +1513,19 @@ static int mxf_parse_structural_metadata(MXFContext *mxf)
                      * It's also for compatibility with the old behavior. */
                 case SeparateFields:
                 case MixedFields:
+                    switch (descriptor->field_dominance) {
+                    case MXF_TFF:
+                        st->codec->field_order = AV_FIELD_TT;
+                        break;
+                    case MXF_BFF:
+                        st->codec->field_order = AV_FIELD_BB;
+                        break;
+                    default:
+                        avpriv_request_sample(mxf->fc,
+                                              "Field dominance %d support",
+                                              descriptor->field_dominance);
+                        break;
+                    }
                     /* Turn field height into frame height. */
                     st->codec->height *= 2;
                 default:
@@ -2172,6 +2200,9 @@ static int mxf_read_close(AVFormatContext *s)
 
     for (i = 0; i < mxf->metadata_sets_count; i++) {
         switch (mxf->metadata_sets[i]->type) {
+        case Descriptor:
+            av_freep(&((MXFDescriptor *)mxf->metadata_sets[i])->extradata);
+            break;
         case MultipleDescriptor:
             av_freep(&((MXFDescriptor *)mxf->metadata_sets[i])->sub_descriptors_refs);
             break;

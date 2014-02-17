@@ -127,10 +127,12 @@ av_cold void avcodec_register(AVCodec *codec)
         codec->init_static_data(codec);
 }
 
+#if FF_API_EMU_EDGE
 unsigned avcodec_get_edge_width(void)
 {
     return EDGE_WIDTH;
 }
+#endif
 
 #if FF_API_SET_DIMENSIONS
 void avcodec_set_dimensions(AVCodecContext *s, int width, int height)
@@ -572,12 +574,16 @@ FF_ENABLE_DEPRECATION_WARNINGS
 
 int ff_get_buffer(AVCodecContext *avctx, AVFrame *frame, int flags)
 {
+    int override_dimensions = 1;
     int ret;
 
     switch (avctx->codec_type) {
     case AVMEDIA_TYPE_VIDEO:
-        frame->width  = FFMAX(avctx->width, avctx->coded_width);
-        frame->height = FFMAX(avctx->height, avctx->coded_height);
+        if (frame->width <= 0 || frame->height <= 0) {
+            frame->width  = FFMAX(avctx->width, avctx->coded_width);
+            frame->height = FFMAX(avctx->height, avctx->coded_height);
+            override_dimensions = 0;
+        }
         if (frame->format < 0)
             frame->format              = avctx->pix_fmt;
         if (!frame->sample_aspect_ratio.num)
@@ -738,7 +744,7 @@ FF_ENABLE_DEPRECATION_WARNINGS
 
     ret = avctx->get_buffer2(avctx, frame, flags);
 
-    if (avctx->codec_type == AVMEDIA_TYPE_VIDEO) {
+    if (avctx->codec_type == AVMEDIA_TYPE_VIDEO && !override_dimensions) {
         frame->width  = avctx->width;
         frame->height = avctx->height;
     }
@@ -756,8 +762,11 @@ int ff_reget_buffer(AVCodecContext *avctx, AVFrame *frame)
     if (!frame->data[0])
         return ff_get_buffer(avctx, frame, AV_GET_BUFFER_FLAG_REF);
 
-    if (av_frame_is_writable(frame))
+    if (av_frame_is_writable(frame)) {
+        frame->pkt_pts = avctx->internal->pkt ? avctx->internal->pkt->pts : AV_NOPTS_VALUE;
+        frame->reordered_opaque = avctx->reordered_opaque;
         return 0;
+    }
 
     av_frame_move_ref(&tmp, frame);
 
@@ -847,7 +856,9 @@ AVFrame *avcodec_alloc_frame(void)
     if (frame == NULL)
         return NULL;
 
+FF_DISABLE_DEPRECATION_WARNINGS
     avcodec_get_frame_defaults(frame);
+FF_ENABLE_DEPRECATION_WARNINGS
 
     return frame;
 }

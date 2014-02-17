@@ -140,6 +140,7 @@ OBJS-$(CONFIG_H264_DEMUXER)              += h264dec.o rawdec.o
 OBJS-$(CONFIG_H264_MUXER)                += rawenc.o
 OBJS-$(CONFIG_HDS_MUXER)                 += hdsenc.o
 OBJS-$(CONFIG_HEVC_DEMUXER)              += hevcdec.o rawdec.o
+OBJS-$(CONFIG_HEVC_MUXER)                += rawenc.o
 OBJS-$(CONFIG_HLS_DEMUXER)               += hls.o
 OBJS-$(CONFIG_HLS_MUXER)                 += hlsenc.o
 OBJS-$(CONFIG_HNM_DEMUXER)               += hnm.o
@@ -390,8 +391,6 @@ OBJS-$(HAVE_LIBC_MSVCRT)                 += file_open.o
 
 SKIPHEADERS-$(CONFIG_FFRTMPCRYPT_PROTOCOL) += rtmpdh.h
 SKIPHEADERS-$(CONFIG_NETWORK)            += network.h rtsp.h
-
-EXAMPLES  = metadata                                                    \
 
 TESTPROGS = seek                                                        \
             srtp                                                        \

@@ -147,6 +147,9 @@ Seek backward/forward 10 seconds.
 @item down/up
 Seek backward/forward 1 minute.
 
+@item PGDOWN/PGUP
+Seek to the previous/next chapter.
+
 @item mouse click
 Seek to percentage in file corresponding to fraction of width.
 
@@ -155,6 +158,7 @@ Seek to percentage in file corresponding to fraction of width.
 @c man end
 
 @include eval.texi
+@include decoders.texi
 @include demuxers.texi
 @include muxers.texi
 @include indevs.texi
