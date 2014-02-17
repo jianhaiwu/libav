@@ -338,7 +338,7 @@ static int decode_lt_rps(HEVCContext *s, LongTermRPS *rps, GetBitContext *gb)
     const HEVCSPS *sps = s->sps;
     int max_poc_lsb    = 1 << sps->log2_max_poc_lsb;
     int prev_delta_msb = 0;
-    int nb_sps = 0, nb_sh;
+    unsigned int nb_sps = 0, nb_sh;
     int i;
 
     rps->nb_refs = 0;
@@ -703,6 +703,7 @@ static int hls_slice_header(HEVCContext *s)
         }
 
         sh->slice_qp_delta = get_se_golomb(gb);
+
         if (s->pps->pic_slice_level_chroma_qp_offsets_present_flag) {
             sh->slice_cb_qp_offset = get_se_golomb(gb);
             sh->slice_cr_qp_offset = get_se_golomb(gb);
@@ -759,20 +760,35 @@ static int hls_slice_header(HEVCContext *s)
     }
 
     if (s->pps->slice_header_extension_present_flag) {
-        int length = get_ue_golomb_long(gb);
+        unsigned int length = get_ue_golomb_long(gb);
         for (i = 0; i < length; i++)
             skip_bits(gb, 8);  // slice_header_extension_data_byte
     }
 
     // Inferred parameters
-    sh->slice_qp          = 26 + s->pps->pic_init_qp_minus26 + sh->slice_qp_delta;
+    sh->slice_qp = 26 + s->pps->pic_init_qp_minus26 + sh->slice_qp_delta;
+    if (sh->slice_qp > 51 ||
+        sh->slice_qp < -s->sps->qp_bd_offset) {
+        av_log(s->avctx, AV_LOG_ERROR,
+               "The slice_qp %d is outside the valid range "
+               "[%d, 51].\n",
+               sh->slice_qp,
+               -s->sps->qp_bd_offset);
+        return AVERROR_INVALIDDATA;
+    }
+
     sh->slice_ctb_addr_rs = sh->slice_segment_addr;
+
+    if (!s->sh.slice_ctb_addr_rs && s->sh.dependent_slice_segment_flag) {
+        av_log(s->avctx, AV_LOG_ERROR, "Impossible slice segment.\n");
+        return AVERROR_INVALIDDATA;
+    }
 
     s->HEVClc.first_qp_group = !s->sh.dependent_slice_segment_flag;
 
     if (!s->pps->cu_qp_delta_enabled_flag)
-        s->HEVClc.qp_y = ((s->sh.slice_qp + 52 + 2 * s->sps->qp_bd_offset) %
-                          (52 + s->sps->qp_bd_offset)) - s->sps->qp_bd_offset;
+        s->HEVClc.qp_y = FFUMOD(s->sh.slice_qp + 52 + 2 * s->sps->qp_bd_offset,
+                                52 + s->sps->qp_bd_offset) - s->sps->qp_bd_offset;
 
     s->slice_initialized = 1;
 
@@ -1213,10 +1229,10 @@ static void hls_residual_coding(HEVCContext *s, int x0, int y0,
     }
 }
 
-static void hls_transform_unit(HEVCContext *s, int x0, int y0,
-                               int xBase, int yBase, int cb_xBase, int cb_yBase,
-                               int log2_cb_size, int log2_trafo_size,
-                               int trafo_depth, int blk_idx)
+static int hls_transform_unit(HEVCContext *s, int x0, int y0,
+                              int xBase, int yBase, int cb_xBase, int cb_yBase,
+                              int log2_cb_size, int log2_trafo_size,
+                              int trafo_depth, int blk_idx)
 {
     HEVCLocalContext *lc = &s->HEVClc;
 
@@ -1251,6 +1267,18 @@ static void hls_transform_unit(HEVCContext *s, int x0, int y0,
                 if (ff_hevc_cu_qp_delta_sign_flag(s) == 1)
                     lc->tu.cu_qp_delta = -lc->tu.cu_qp_delta;
             lc->tu.is_cu_qp_delta_coded = 1;
+
+            if (lc->tu.cu_qp_delta < -(26 + s->sps->qp_bd_offset / 2) ||
+                lc->tu.cu_qp_delta >  (25 + s->sps->qp_bd_offset / 2)) {
+                av_log(s->avctx, AV_LOG_ERROR,
+                       "The cu_qp_delta %d is outside the valid range "
+                       "[%d, %d].\n",
+                       lc->tu.cu_qp_delta,
+                       -(26 + s->sps->qp_bd_offset / 2),
+                        (25 + s->sps->qp_bd_offset / 2));
+                return AVERROR_INVALIDDATA;
+            }
+
             ff_hevc_set_qPy(s, x0, y0, cb_xBase, cb_yBase, log2_cb_size);
         }
 
@@ -1286,6 +1314,7 @@ static void hls_transform_unit(HEVCContext *s, int x0, int y0,
                 hls_residual_coding(s, xBase, yBase, log2_trafo_size, scan_idx_c, 2);
         }
     }
+    return 0;
 }
 
 static void set_deblocking_bypass(HEVCContext *s, int x0, int y0, int log2_cb_size)
@@ -1303,13 +1332,14 @@ static void set_deblocking_bypass(HEVCContext *s, int x0, int y0, int log2_cb_si
             s->is_pcm[i + j * min_pu_width] = 2;
 }
 
-static void hls_transform_tree(HEVCContext *s, int x0, int y0,
-                               int xBase, int yBase, int cb_xBase, int cb_yBase,
-                               int log2_cb_size, int log2_trafo_size,
-                               int trafo_depth, int blk_idx)
+static int hls_transform_tree(HEVCContext *s, int x0, int y0,
+                              int xBase, int yBase, int cb_xBase, int cb_yBase,
+                              int log2_cb_size, int log2_trafo_size,
+                              int trafo_depth, int blk_idx)
 {
     HEVCLocalContext *lc = &s->HEVClc;
     uint8_t split_transform_flag;
+    int ret;
 
     if (trafo_depth > 0 && log2_trafo_size == 2) {
         SAMPLE_CBF(lc->tt.cbf_cb[trafo_depth], x0, y0) =
@@ -1364,14 +1394,26 @@ static void hls_transform_tree(HEVCContext *s, int x0, int y0,
         int x1 = x0 + ((1 << log2_trafo_size) >> 1);
         int y1 = y0 + ((1 << log2_trafo_size) >> 1);
 
-        hls_transform_tree(s, x0, y0, x0, y0, cb_xBase, cb_yBase, log2_cb_size,
-                           log2_trafo_size - 1, trafo_depth + 1, 0);
-        hls_transform_tree(s, x1, y0, x0, y0, cb_xBase, cb_yBase, log2_cb_size,
-                           log2_trafo_size - 1, trafo_depth + 1, 1);
-        hls_transform_tree(s, x0, y1, x0, y0, cb_xBase, cb_yBase, log2_cb_size,
-                           log2_trafo_size - 1, trafo_depth + 1, 2);
-        hls_transform_tree(s, x1, y1, x0, y0, cb_xBase, cb_yBase, log2_cb_size,
-                           log2_trafo_size - 1, trafo_depth + 1, 3);
+        ret = hls_transform_tree(s, x0, y0, x0, y0, cb_xBase, cb_yBase,
+                                 log2_cb_size, log2_trafo_size - 1,
+                                 trafo_depth + 1, 0);
+        if (ret < 0)
+            return ret;
+        ret = hls_transform_tree(s, x1, y0, x0, y0, cb_xBase, cb_yBase,
+                                 log2_cb_size, log2_trafo_size - 1,
+                                 trafo_depth + 1, 1);
+        if (ret < 0)
+            return ret;
+        ret = hls_transform_tree(s, x0, y1, x0, y0, cb_xBase, cb_yBase,
+                                 log2_cb_size, log2_trafo_size - 1,
+                                 trafo_depth + 1, 2);
+        if (ret < 0)
+            return ret;
+        ret = hls_transform_tree(s, x1, y1, x0, y0, cb_xBase, cb_yBase,
+                                 log2_cb_size, log2_trafo_size - 1,
+                                 trafo_depth + 1, 3);
+        if (ret < 0)
+            return ret;
     } else {
         int min_tu_size      = 1 << s->sps->log2_min_tb_size;
         int log2_min_tu_size = s->sps->log2_min_tb_size;
@@ -1383,9 +1425,11 @@ static void hls_transform_tree(HEVCContext *s, int x0, int y0,
             lc->tt.cbf_luma = ff_hevc_cbf_luma_decode(s, trafo_depth);
         }
 
-        hls_transform_unit(s, x0, y0, xBase, yBase, cb_xBase, cb_yBase,
-                           log2_cb_size, log2_trafo_size, trafo_depth, blk_idx);
-
+        ret = hls_transform_unit(s, x0, y0, xBase, yBase, cb_xBase, cb_yBase,
+                                 log2_cb_size, log2_trafo_size, trafo_depth,
+                                 blk_idx);
+        if (ret < 0)
+            return ret;
         // TODO: store cbf_luma somewhere else
         if (lc->tt.cbf_luma) {
             int i, j;
@@ -1405,6 +1449,7 @@ static void hls_transform_tree(HEVCContext *s, int x0, int y0,
                 set_deblocking_bypass(s, x0, y0, log2_trafo_size);
         }
     }
+    return 0;
 }
 
 static int hls_pcm_sample(HEVCContext *s, int x0, int y0, int log2_cb_size)
@@ -2037,7 +2082,7 @@ static int hls_coding_unit(HEVCContext *s, int x0, int y0, int log2_cb_size)
     int min_cb_width     = s->sps->min_cb_width;
     int x_cb             = x0 >> log2_min_cb_size;
     int y_cb             = y0 >> log2_min_cb_size;
-    int x, y;
+    int x, y, ret;
 
     lc->cu.x                = x0;
     lc->cu.y                = y0;
@@ -2094,7 +2139,6 @@ static int hls_coding_unit(HEVCContext *s, int x0, int y0, int log2_cb_size)
                 lc->cu.pcm_flag = ff_hevc_pcm_flag_decode(s);
             }
             if (lc->cu.pcm_flag) {
-                int ret;
                 intra_prediction_unit_default_value(s, x0, y0, log2_cb_size);
                 ret = hls_pcm_sample(s, x0, y0, log2_cb_size);
                 if (s->sps->pcm.loop_filter_disable_flag)
@@ -2153,8 +2197,11 @@ static int hls_coding_unit(HEVCContext *s, int x0, int y0, int log2_cb_size)
                 lc->cu.max_trafo_depth = lc->cu.pred_mode == MODE_INTRA ?
                                          s->sps->max_transform_hierarchy_depth_intra + lc->cu.intra_split_flag :
                                          s->sps->max_transform_hierarchy_depth_inter;
-                hls_transform_tree(s, x0, y0, x0, y0, x0, y0, log2_cb_size,
-                                   log2_cb_size, 0, 0);
+                ret = hls_transform_tree(s, x0, y0, x0, y0, x0, y0,
+                                         log2_cb_size,
+                                         log2_cb_size, 0, 0);
+                if (ret < 0)
+                    return ret;
             } else {
                 if (!s->sh.disable_deblocking_filter_flag)
                     ff_hevc_deblocking_boundary_strengths(s, x0, y0, log2_cb_size,
@@ -2424,6 +2471,7 @@ static int hevc_frame_start(HEVCContext *s)
 
     lc->start_of_tiles_x = 0;
     s->is_decoded        = 0;
+    s->first_nal_type    = s->nal_unit_type;
 
     if (s->pps->tiles_enabled_flag)
         lc->end_of_tiles_x = s->pps->column_width[0] << s->sps->log2_ctb_size;
@@ -2545,6 +2593,13 @@ static int decode_nal_unit(HEVCContext *s, const uint8_t *nal, int length)
                 return ret;
         } else if (!s->ref) {
             av_log(s->avctx, AV_LOG_ERROR, "First slice in a frame missing.\n");
+            return AVERROR_INVALIDDATA;
+        }
+
+        if (s->nal_unit_type != s->first_nal_type) {
+            av_log(s->avctx, AV_LOG_ERROR,
+                   "Non-matching NAL types of the VCL NALUs: %d %d\n",
+                   s->first_nal_type, s->nal_unit_type);
             return AVERROR_INVALIDDATA;
         }
 

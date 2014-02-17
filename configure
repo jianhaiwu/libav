@@ -204,6 +204,7 @@ External library support:
   --enable-libwavpack      enable wavpack encoding via libwavpack [no]
   --enable-libwebp         enable WebP encoding via libwebp [no]
   --enable-libx264         enable H.264 encoding via x264 [no]
+  --enable-libx265         enable HEVC encoding via x265 [no]
   --enable-libxavs         enable AVS encoding via xavs [no]
   --enable-libxvid         enable Xvid encoding via xvidcore,
                            native MPEG-4/Xvid encoder exists [no]
@@ -1094,6 +1095,8 @@ COMPONENT_LIST="
 "
 
 EXAMPLE_LIST="
+    avcodec_example
+    metadata_example
     output_example
     transcode_aac_example
 "
@@ -1128,6 +1131,7 @@ EXTERNAL_LIBRARY_LIST="
     libwavpack
     libwebp
     libx264
+    libx265
     libxavs
     libxvid
     openssl
@@ -1561,6 +1565,7 @@ x86_64_suggest="fast_cmov"
 
 amd3dnow_deps="mmx"
 amd3dnowext_deps="amd3dnow"
+i686_deps="x86"
 mmx_deps="x86"
 mmxext_deps="mmx"
 sse_deps="mmxext"
@@ -1659,6 +1664,7 @@ ffv1_decoder_select="dsputil golomb rangecoder"
 ffv1_encoder_select="dsputil rangecoder"
 ffvhuff_decoder_select="dsputil"
 ffvhuff_encoder_select="dsputil huffman"
+fic_decoder_select="dsputil golomb"
 flac_decoder_select="golomb"
 flac_encoder_select="dsputil golomb lpc"
 flashsv_decoder_deps="zlib"
@@ -1883,6 +1889,7 @@ libvpx_vp9_encoder_deps="libvpx"
 libwavpack_encoder_deps="libwavpack"
 libwebp_encoder_deps="libwebp"
 libx264_encoder_deps="libx264"
+libx265_encoder_deps="libx265"
 libxavs_encoder_deps="libxavs"
 libxvid_encoder_deps="libxvid"
 
@@ -2015,6 +2022,8 @@ ocv_filter_deps="libopencv"
 scale_filter_deps="swscale"
 
 # examples
+avcodec_example_deps="avcodec avutil"
+metadata_example_deps="avformat avutil"
 output_example_deps="avcodec avformat avutil swscale"
 transcode_aac_example_deps="avcodec avformat avresample"
 
@@ -2032,11 +2041,11 @@ avconv_select="aformat_filter anull_filter asyncts_filter atrim_filter format_fi
                fps_filter null_filter resample_filter scale_filter
                setpts_filter trim_filter"
 avplay_deps="avcodec avformat avresample swscale sdl"
+avplay_libs='$sdl_libs'
 avplay_select="rdft"
 avprobe_deps="avcodec avformat"
 avserver_deps="avformat fork !shared"
 avserver_select="ffm_muxer rtp_protocol rtsp_demuxer"
-avserver_extralibs='$ldl'
 
 # documentation
 pod2man_deps="doc"
@@ -2125,8 +2134,6 @@ HOSTCC_E='-E -o $@'
 HOSTCC_O='-o $@'
 HOSTLD_O='-o $@'
 
-host_cflags='-O3'
-host_cppflags='-D_ISOC99_SOURCE'
 host_libs='-lm'
 host_cflags_filter=echo
 host_ldflags_filter=echo
@@ -2703,7 +2710,7 @@ probe_cc(){
     elif $_cc -v 2>&1 | grep -q clang; then
         _type=clang
         _ident=$($_cc --version | head -n1)
-        _depflags='-MMD'
+        _depflags='-MMD -MF $(@:.o=.d) -MT $@'
         _cflags_speed='-O3'
         _cflags_size='-Os'
     elif $_cc -V 2>&1 | grep -q Sun; then
@@ -3167,8 +3174,10 @@ check_cc -D_LARGEFILE_SOURCE <<EOF && add_cppflags -D_LARGEFILE_SOURCE
 #include <stdlib.h>
 EOF
 
+add_host_cppflags -D_ISOC99_SOURCE
 check_host_cflags -std=c99
 check_host_cflags -Wall
+check_host_cflags -O3
 
 check_64bit(){
     arch32=$1
@@ -3528,6 +3537,7 @@ die_license_disabled() {
 
 die_license_disabled gpl libcdio
 die_license_disabled gpl libx264
+die_license_disabled gpl libx265
 die_license_disabled gpl libxavs
 die_license_disabled gpl libxvid
 die_license_disabled gpl x11grab
@@ -3952,6 +3962,9 @@ enabled libwebp           && require_pkg_config libwebp webp/encode.h WebPGetEnc
 enabled libx264           && require libx264 x264.h x264_encoder_encode -lx264 &&
                              { check_cpp_condition x264.h "X264_BUILD >= 118" ||
                                die "ERROR: libx264 version must be >= 0.118."; }
+enabled libx265           && require_pkg_config x265 x265.h x265_encoder_encode &&
+                             { check_cpp_condition x265.h "X265_BUILD >= 5" ||
+                               die "ERROR: libx265 version must be >= 5."; }
 enabled libxavs           && require libxavs xavs.h xavs_encoder_encode -lxavs
 enabled libxvid           && require libxvid xvid.h xvid_global -lxvidcore
 enabled openssl           && { check_lib openssl/ssl.h SSL_library_init -lssl -lcrypto ||
@@ -4031,7 +4044,8 @@ enabled vdpau &&
     disable vdpau
 
 enabled vdpau && enabled xlib &&
-    check_lib2 "vdpau/vdpau.h vdpau/vdpau_x11.h" vdp_device_create_x11 -lvdpau &&
+    check_func_headers "vdpau/vdpau.h vdpau/vdpau_x11.h" vdp_device_create_x11 -lvdpau &&
+    prepend avconv_libs $($ldflags_filter "-lvdpau") &&
     enable vdpau_x11
 
 enabled debug && add_cflags -g"$debuglevel" && add_asflags -g"$debuglevel"
@@ -4206,6 +4220,18 @@ elif enabled_any msvc icl; then
         disable inline_asm
     fi
 fi
+
+case $as_type in
+    clang)
+        add_asflags -Qunused-arguments
+    ;;
+esac
+
+case $ld_type in
+    clang)
+        check_ldflags -Qunused-arguments
+    ;;
+esac
 
 case $target_os in
     osf1)
@@ -4399,7 +4425,6 @@ HOSTLD_O=$HOSTLD_O
 TARGET_EXEC=$target_exec $target_exec_args
 TARGET_PATH=$target_path
 TARGET_SAMPLES=${target_samples:-\$(SAMPLES)}
-LIBS-avplay=$sdl_libs
 CFLAGS-avplay=$sdl_cflags
 ZLIB=$($ldflags_filter -lz)
 LIB_INSTALL_EXTRA_CMD=$LIB_INSTALL_EXTRA_CMD
@@ -4432,6 +4457,13 @@ get_version(){
 }
 
 map 'get_version $v' $LIBRARY_LIST
+
+print_program_libs(){
+    eval "program_libs=\$${1}_libs"
+    eval echo "LIBS-${1}=${program_libs}" >> config.mak
+}
+
+map 'print_program_libs $v' $PROGRAM_LIST
 
 cat > $TMPH <<EOF
 /* Automatically generated by configure - do not modify! */

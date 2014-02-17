@@ -104,6 +104,14 @@ typedef enum AC3DolbyHeadphoneMode {
     AC3_DHEADPHONMOD_RESERVED
 } AC3DolbyHeadphoneMode;
 
+/** Preferred Stereo Downmix mode */
+typedef enum AC3PreferredStereoDownmixMode {
+    AC3_DMIXMOD_NOTINDICATED = 0,
+    AC3_DMIXMOD_LTRT,
+    AC3_DMIXMOD_LORO,
+    AC3_DMIXMOD_DPLII // reserved value in A/52, but used by encoders to indicate DPL2
+} AC3PreferredStereoDownmixMode;
+
 typedef struct AC3BitAllocParameters {
     int sr_code;
     int sr_shift;

@@ -34,6 +34,7 @@
 #include "libavutil/mathematics.h"
 #include "libavutil/pixdesc.h"
 #include "libavutil/opt.h"
+#include "libavutil/timer.h"
 #include "avcodec.h"
 #include "dct.h"
 #include "dsputil.h"
@@ -708,7 +709,8 @@ av_cold int ff_MPV_encode_init(AVCodecContext *avctx)
                           2 * 64 * sizeof(uint16_t), fail);
     }
 
-    ff_h263dsp_init(&s->h263dsp);
+    if (CONFIG_H263_ENCODER)
+        ff_h263dsp_init(&s->h263dsp);
     if (!s->dct_quantize)
         s->dct_quantize = ff_dct_quantize_c;
     if (!s->denoise_dct)
