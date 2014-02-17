@@ -140,7 +140,7 @@ install: build $(DH_INSTALL_FILES)
 	dh_installdocs -plibavcodec54 codecs.txt
 	dh_installdocs -a doc/APIchanges
 	install -m 644 -D debian-shared/doc/*.html doc/t2h.init debian/libav-tools/usr/share/doc/libav-tools
-	dh_installexamples -p libavcodec-dev libavcodec/api-example.c
+	dh_installexamples -a
 	dh_installchangelogs -a Changelog
 	$(foreach flavor,$(filter-out static,$(FLAVORS)),$(call install_flavor_extra,$(flavor)))
 	env LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(CURDIR)/debian/tmp/extra/usr/lib/$(DEB_HOST_MULTIARCH)" \
