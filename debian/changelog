@@ -1,3 +1,14 @@
+libav (6:10~beta1-2) experimental; urgency=low
+
+  * New Upstream release 10_beta1. This upstream git snapshot has too many
+    changes to list here, cf. to the upstream Changelog:
+    http://git.libav.org/?p=libav.git;a=blob;f=Changelog;hb=refs/tags/v10_beta1
+    - works with H.264 that has different bit depth between chroma and luma,
+      Closes: #738599
+  * Bump shlibs
+
+ -- Reinhard Tartler <siretart@tauware.de>  Mon, 17 Feb 2014 22:07:03 +0000
+
 libav (6:10~alpha2-1) experimental; urgency=low
 
   * New Upstream release 10_alpha2. This upstream git snapshot has too many
