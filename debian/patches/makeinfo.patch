@@ -5,7 +5,7 @@ Description: Transition from the `texi2html' utility to the `makeinfo' utility f
 
 --- a/configure
 +++ b/configure
-@@ -1177,7 +1177,7 @@ CONFIG_LIST="
+@@ -1193,7 +1193,7 @@ CONFIG_LIST="
      sram
      static
      swscale_alpha
@@ -14,7 +14,7 @@ Description: Transition from the `texi2html' utility to the `makeinfo' utility f
      thumb
      version3
      xmm_clobber_test
-@@ -2019,7 +2019,7 @@ avserver_extralibs='$ldl'
+@@ -2049,7 +2049,7 @@ avserver_select="ffm_muxer rtp_protocol
  
  # documentation
  pod2man_deps="doc"
@@ -23,7 +23,7 @@ Description: Transition from the `texi2html' utility to the `makeinfo' utility f
  
  # default parameters
  
-@@ -3954,7 +3954,7 @@ if check_pkg_config sdl SDL_events.h SDL
+@@ -3993,7 +3993,7 @@ if check_pkg_config sdl SDL_events.h SDL
  fi
  
  pod2man --help     > /dev/null 2>&1 && enable pod2man   || disable pod2man
@@ -53,8 +53,8 @@ Description: Transition from the `texi2html' utility to the `makeinfo' utility f
 +DOCS-$(CONFIG_MAKEINFO)                        += $(HTMLPAGES)
  DOCS = $(DOCS-yes)
  
- DOC_EXAMPLES-$(CONFIG_OUTPUT_EXAMPLE)           += output
-@@ -42,7 +42,7 @@ $(GENTEXI): doc/avoptions_%.texi: doc/pr
+ DOC_EXAMPLES-$(CONFIG_AVCODEC_EXAMPLE)          += avcodec
+@@ -44,7 +44,7 @@ $(GENTEXI): doc/avoptions_%.texi: doc/pr
  doc/%.html: TAG = HTML
  doc/%.html: doc/%.texi $(SRC_PATH)/doc/t2h.init $(GENTEXI)
  	$(Q)$(TEXIDEP)
@@ -63,8 +63,8 @@ Description: Transition from the `texi2html' utility to the `makeinfo' utility f
  
  doc/%.pod: TAG = POD
  doc/%.pod: doc/%.texi $(SRC_PATH)/doc/texi2pod.pl $(GENTEXI)
-@@ -61,7 +61,7 @@ doc/doxy/html: $(SRC_PATH)/doc/Doxyfile
- 	$(M)$(SRC_PATH)/doc/doxy-wrapper.sh $(SRC_PATH) $^
+@@ -67,7 +67,7 @@ doc/doxy/html: $(SRC_PATH)/doc/Doxyfile
+ 	$(M)$(SRC_PATH)/doc/doxy-wrapper.sh $(SRC_PATH) $< $(DOXY_INPUT)
  
  install-progs-$(CONFIG_POD2MAN): install-man
 -install-progs-$(CONFIG_TEXI2HTML): install-doc

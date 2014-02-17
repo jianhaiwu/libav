@@ -12,7 +12,7 @@ Description: Fix some spelling errors detected by lintian.
  or input pad. The preceding labels @var{in_link_1}
  ... @var{in_link_N}, are associated to the filter input pads,
  the following labels @var{out_link_1} ... @var{out_link_M}, are
-@@ -2671,7 +2671,7 @@ value is "-1".
+@@ -2735,7 +2735,7 @@ value is "-1".
  
  @end table
  
