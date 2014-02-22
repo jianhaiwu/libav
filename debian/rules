@@ -121,6 +121,15 @@ define install_flavor_extra
 
 endef
 
+# usage $(call call_and_install_avconv_dump,$package,$parameter), paramter like "codecs" or "formats"
+define call_and_install_avconv_dump
+	mkdir -p debian/$(1)/usr/share/doc/$(1)
+	env LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(CURDIR)/debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)" \
+	debian/tmp/usr/bin/avconv -$(2) > debian/$(1)/usr/share/doc/$(1)/$(2)-$(DEB_HOST_ARCH).txt
+	cat debian/$(1)/usr/share/doc/$(1)/$(2)-$(DEB_HOST_ARCH).txt
+
+endef
+
 # installs arch-dependent files only
 install: install-common install-extra
 install-common: build $(DH_INSTALL_FILES)
@@ -133,21 +142,15 @@ install-common: build $(DH_INSTALL_FILES)
 	install -m 755 -D debian-shared/tools/qt-faststart debian/tmp/usr/bin/qt-faststart
 	dh_install $(addprefix -N,$(LIB_EXTRA_PKGS)) \
 		 --fail-missing --sourcedir=debian/tmp
-	env LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(CURDIR)/debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)" \
-	debian/tmp/usr/bin/avconv -formats > debian/libavformat54/usr/share/doc/libavformat54/formats-$(DEB_HOST_ARCH).txt
-	cat debian/libavformat54/usr/share/doc/libavformat54/formats-$(DEB_HOST_ARCH).txt
-	env LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(CURDIR)/debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)" \
-	debian/tmp/usr/bin/avconv -codecs > debian/libavcodec54/usr/share/doc/libavcodec54/codecs-$(DEB_HOST_ARCH).txt
-	cat debian/libavcodec54/usr/share/doc/libavcodec54/codecs-$(DEB_HOST_ARCH).txt
+	$(call call_and_install_avconv_dump,libavformat54,formats)
+	$(call call_and_install_avconv_dump,libavcodec54,codecs)
 install-extra: build $(DH_INSTALL_FILES)
 	dh_testdir
 	dh_testroot
 	$(foreach flavor,$(filter-out static,$(FLAVORS)),$(call install_flavor_extra,$(flavor)))
 	dh_install $(addprefix -p,$(LIB_EXTRA_PKGS)) --fail-missing \
 		--sourcedir=debian/tmp/extra
-	env LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(CURDIR)/debian/tmp/extra/usr/lib/$(DEB_HOST_MULTIARCH)" \
-	debian/tmp/usr/bin/avconv -codecs > debian/libavcodec-extra-54/usr/share/doc/libavcodec-extra-54/codecs-$(DEB_HOST_ARCH).txt
-	cat debian/libavcodec-extra-54/usr/share/doc/libavcodec-extra-54/codecs-$(DEB_HOST_ARCH).txt
+	$(call call_and_install_avconv_dump,libavcodec-extra-54,codecs)
 ifeq ($(DEB_SOURCE), libav)
 	dh_installdocs -a doc/APIchanges
 	install -m 644 -D debian-shared/doc/*.html doc/t2h.init debian/libav-tools/usr/share/doc/libav-tools
