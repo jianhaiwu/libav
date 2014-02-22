@@ -121,6 +121,15 @@ define install_flavor_extra
 
 endef
 
+# usage $(call call_and_install_avconv_dump,$package,$parameter), paramter like "codecs" or "formats"
+define call_and_install_avconv_dump
+	mkdir -p debian/$(1)/usr/share/doc/$(1)
+	env LD_LIBRARY_PATH="$(CURDIR)/debian/$(1)/usr/lib/$(DEB_HOST_MULTIARCH):$(CURDIR)/debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH):$(LD_LIBRARY_PATH)" \
+	debian/tmp/usr/bin/avconv -$(2) > debian/$(1)/usr/share/doc/$(1)/$(2)-$(DEB_HOST_ARCH).txt
+	cat debian/$(1)/usr/share/doc/$(1)/$(2)-$(DEB_HOST_ARCH).txt
+
+endef
+
 # installs arch-dependent files only
 install: build $(DH_INSTALL_FILES)
 	dh_testdir
@@ -132,22 +141,16 @@ install: build $(DH_INSTALL_FILES)
 	install -m 755 -D debian-shared/tools/qt-faststart debian/tmp/usr/bin/qt-faststart
 	dh_install $(addprefix -N,$(LIB_EXTRA_PKGS)) \
 		 --fail-missing --sourcedir=debian/tmp
-	env LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(CURDIR)/debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)" \
-	debian/tmp/usr/bin/avconv -formats | tee formats-$(DEB_HOST_ARCH).txt
-	env LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(CURDIR)/debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)" \
-	debian/tmp/usr/bin/avconv -codecs | tee codecs.txt
-	dh_installdocs -plibavformat54 formats-$(DEB_HOST_ARCH).txt
-	dh_installdocs -plibavcodec54 codecs.txt
 	dh_installdocs -a doc/APIchanges
 	install -m 644 -D debian-shared/doc/*.html doc/t2h.init debian/libav-tools/usr/share/doc/libav-tools
 	dh_installexamples -a
 	dh_installchangelogs -a Changelog
 	$(foreach flavor,$(filter-out static,$(FLAVORS)),$(call install_flavor_extra,$(flavor)))
-	env LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(CURDIR)/debian/tmp/extra/usr/lib/$(DEB_HOST_MULTIARCH)" \
-	debian/tmp/usr/bin/avconv -codecs | tee codecs.txt
-	dh_installdocs -plibavcodec-extra-54 codecs.txt
 	dh_install $(addprefix -p,$(LIB_EXTRA_PKGS)) --fail-missing \
 		--sourcedir=debian/tmp/extra
+	$(call call_and_install_avconv_dump,libavformat55,formats)
+	$(call call_and_install_avconv_dump,libavcodec55,codecs)
+	$(call call_and_install_avconv_dump,libavcodec-extra-55,codecs)
 
 binary-indep:
 	dh_testdir
