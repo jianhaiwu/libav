@@ -1,3 +1,12 @@
+libav (6:9.11-2) unstable; urgency=low
+
+  * Avoid the use of pipes to not cover segfaulting libavcodecs (cf. #726733)
+  * refactor call_and_install_avconv_dump functionality
+  * Rebuild against libfreetype 2.5.1 (closes: #731307)
+  * i386 shared builds must be optimized for 586, (closes: 728928, #688384)
+
+ -- Reinhard Tartler <siretart@tauware.de>  Sat, 22 Feb 2014 14:34:54 +0000
+
 libav (6:9.11-1) unstable; urgency=low
 
   * Imported Upstream version 9.11
