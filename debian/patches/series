@@ -2,3 +2,4 @@
 spelling-errors.patch
 freetype-api.patch
 support-opus-in-ogg.patch
+s390x-pic.patch
