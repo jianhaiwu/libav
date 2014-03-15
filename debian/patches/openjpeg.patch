@@ -1,0 +1,23 @@
+From aa807425395caa17a85ed2833133278e8bd44a76 Mon Sep 17 00:00:00 2001
+From: Luca Barbato <lu_zero@gentoo.org>
+Date: Wed, 12 Mar 2014 09:30:07 +0000
+Subject: [PATCH] configure: Support older version of openjpeg1
+
+It should work best for debian stable and people not installing the .pc
+file.
+---
+ configure |    3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+--- a/configure
++++ b/configure
+@@ -3938,7 +3938,8 @@ enabled libmp3lame        && require "li
+ enabled libopencore_amrnb && require libopencore_amrnb opencore-amrnb/interf_dec.h Decoder_Interface_init -lopencore-amrnb
+ enabled libopencore_amrwb && require libopencore_amrwb opencore-amrwb/dec_if.h D_IF_init -lopencore-amrwb
+ enabled libopencv         && require_pkg_config opencv opencv/cv.h cvCreateImageHeader
+-enabled libopenjpeg       && require_pkg_config libopenjpeg1 openjpeg.h opj_version
++enabled libopenjpeg       && { { check_header openjpeg.h && check_lib2 openjpeg.h opj_version -lopenjpeg; } ||
++                               { require_pkg_config libopenjpeg1 openjpeg.h opj_version; } }
+ enabled libopus           && require_pkg_config opus opus_multistream.h opus_multistream_decoder_create
+ enabled libpulse          && require_pkg_config libpulse-simple pulse/simple.h pa_simple_new
+ enabled librtmp           && require_pkg_config librtmp librtmp/rtmp.h RTMP_Socket
