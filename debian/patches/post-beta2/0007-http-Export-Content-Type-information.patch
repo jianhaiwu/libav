@@ -1,0 +1,61 @@
+From 40de74d0eb8c1898e2184a1484fe246aed5b295d Mon Sep 17 00:00:00 2001
+From: Michael Niedermayer <michaelni@gmx.at>
+Date: Thu, 6 Mar 2014 18:39:58 +0100
+Subject: [PATCH 07/14] http: Export Content-Type information
+
+Bug-Id: https://bugs.debian.org/740421
+
+Signed-off-by: Luca Barbato <lu_zero@gentoo.org>
+(cherry picked from commit e58c85b0686892960042232e51c77168b264838a)
+---
+ doc/protocols.texi |    3 +++
+ libavformat/http.c |    5 +++++
+ 2 files changed, 8 insertions(+)
+
+diff --git a/doc/protocols.texi b/doc/protocols.texi
+index 5d7a1a6..b16234b 100644
+--- a/doc/protocols.texi
++++ b/doc/protocols.texi
+@@ -92,6 +92,9 @@ HTTP (Hyper Text Transfer Protocol).
+ This protocol accepts the following options:
+ 
+ @table @option
++@item mime_type
++Export the MIME type.
++
+ @item icy
+ If set to 1 request ICY (SHOUTcast) metadata from the server. If the server
+ supports this, the metadata has to be retrieved by the application by reading
+diff --git a/libavformat/http.c b/libavformat/http.c
+index 565cdbd..fcee847 100644
+--- a/libavformat/http.c
++++ b/libavformat/http.c
+@@ -56,6 +56,7 @@ typedef struct {
+     HTTPAuthState auth_state;
+     HTTPAuthState proxy_auth_state;
+     char *headers;
++    char *mime_type;
+     /* Set if the server correctly handles Connection: close and will close
+      * the connection after feeding us the content. */
+     int willclose;
+@@ -92,6 +93,7 @@ static const AVOption options[] = {
+ {"headers", "custom HTTP headers, can override built in default headers", OFFSET(headers), AV_OPT_TYPE_STRING, { 0 }, 0, 0, D|E },
+ {"multiple_requests", "use persistent connections", OFFSET(multiple_requests), AV_OPT_TYPE_INT, {.i64 = 0}, 0, 1, D|E },
+ {"post_data", "custom HTTP post data", OFFSET(post_data), AV_OPT_TYPE_BINARY, .flags = D|E },
++{"mime_type", "export the MIME type", OFFSET(mime_type), AV_OPT_TYPE_STRING, {0}, 0, 0, 0  },
+ {"icy", "request ICY metadata", OFFSET(icy), AV_OPT_TYPE_INT, {.i64 = 0}, 0, 1, D },
+ {"icy_metadata_headers", "return ICY metadata headers", OFFSET(icy_metadata_headers), AV_OPT_TYPE_STRING, {0}, 0, 0, 0 },
+ {"icy_metadata_packet", "return current ICY metadata packet", OFFSET(icy_metadata_packet), AV_OPT_TYPE_STRING, {0}, 0, 0, 0 },
+@@ -468,6 +470,9 @@ static int process_line(URLContext *h, char *line, int line_count,
+         } else if (!av_strcasecmp(tag, "Connection")) {
+             if (!strcmp(p, "close"))
+                 s->willclose = 1;
++        } else if (!av_strcasecmp (tag, "Content-Type")) {
++            av_free(s->mime_type);
++            s->mime_type = av_strdup(p);
+         } else if (!av_strcasecmp (tag, "Icy-MetaInt")) {
+             s->icy_metaint = strtoll(p, NULL, 10);
+         } else if (!av_strncasecmp(tag, "Icy-", 4)) {
+-- 
+1.7.10.4
+

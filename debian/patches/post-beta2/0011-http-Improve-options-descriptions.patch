@@ -1,0 +1,62 @@
+From 82a3e469c6584e6d9e56a3fc38eb001d0650defa Mon Sep 17 00:00:00 2001
+From: Reinhard Tartler <siretart@tauware.de>
+Date: Sat, 15 Mar 2014 09:51:57 -0400
+Subject: [PATCH 11/14] http: Improve options descriptions
+
+Add documentation where missing.
+
+Signed-off-by: Luca Barbato <lu_zero@gentoo.org>
+(cherry picked from commit fe568b3d27ca2c5cca3878b2a7a3a968e605aec4)
+
+Conflicts:
+	libavformat/http.c
+---
+ doc/protocols.texi |   13 +++++++++++++
+ libavformat/http.c |    4 ++--
+ 2 files changed, 15 insertions(+), 2 deletions(-)
+
+diff --git a/doc/protocols.texi b/doc/protocols.texi
+index 406a431..597693a 100644
+--- a/doc/protocols.texi
++++ b/doc/protocols.texi
+@@ -92,6 +92,19 @@ HTTP (Hyper Text Transfer Protocol).
+ This protocol accepts the following options:
+ 
+ @table @option
++@item chunked_post
++If set to 1 use chunked Transfer-Encoding for posts, default is 1.
++
++@item headers
++Set custom HTTP headers, can override built in default headers. The
++value must be a string encoding the headers.
++
++@item multiple_requests
++Use persistent connections if set to 1, default is 0.
++
++@item post_data
++Set custom HTTP post data.
++
+ @item user_agent
+ Override the User-Agent header. If not specified a string of the form
+ "Lavf/<version>" will be used.
+diff --git a/libavformat/http.c b/libavformat/http.c
+index 2656595..b008581 100644
+--- a/libavformat/http.c
++++ b/libavformat/http.c
+@@ -92,11 +92,11 @@ typedef struct {
+ #define DEFAULT_USER_AGENT "Lavf/" AV_STRINGIFY(LIBAVFORMAT_VERSION)
+ static const AVOption options[] = {
+ {"chunked_post", "use chunked transfer-encoding for posts", OFFSET(chunked_post), AV_OPT_TYPE_INT, {.i64 = 1}, 0, 1, E },
+-{"headers", "custom HTTP headers, can override built in default headers", OFFSET(headers), AV_OPT_TYPE_STRING, { 0 }, 0, 0, D|E },
++{"headers", "set custom HTTP headers, can override built in default headers", OFFSET(headers), AV_OPT_TYPE_STRING, { 0 }, 0, 0, D|E },
+ {"user_agent", "override User-Agent header", OFFSET(user_agent), AV_OPT_TYPE_STRING, {.str = DEFAULT_USER_AGENT}, 0, 0, D },
+ {"user-agent", "override User-Agent header, for compatibility with ffmpeg", OFFSET(user_agent), AV_OPT_TYPE_STRING, {.str = DEFAULT_USER_AGENT}, 0, 0, D },
+ {"multiple_requests", "use persistent connections", OFFSET(multiple_requests), AV_OPT_TYPE_INT, {.i64 = 0}, 0, 1, D|E },
+-{"post_data", "custom HTTP post data", OFFSET(post_data), AV_OPT_TYPE_BINARY, .flags = D|E },
++{"post_data", "set custom HTTP post data", OFFSET(post_data), AV_OPT_TYPE_BINARY, .flags = D|E },
+ {"mime_type", "export the MIME type", OFFSET(mime_type), AV_OPT_TYPE_STRING, {0}, 0, 0, 0  },
+ {"icy", "request ICY metadata", OFFSET(icy), AV_OPT_TYPE_INT, {.i64 = 0}, 0, 1, D },
+ {"icy_metadata_headers", "return ICY metadata headers", OFFSET(icy_metadata_headers), AV_OPT_TYPE_STRING, {0}, 0, 0, 0 },
+-- 
+1.7.10.4
+

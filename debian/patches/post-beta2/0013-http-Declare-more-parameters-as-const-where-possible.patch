@@ -1,0 +1,39 @@
+From 10379d50be18325a07ef297bd2120d85a58ec78b Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Martin=20Storsj=C3=B6?= <martin@martin.st>
+Date: Wed, 12 Mar 2014 09:40:05 +0200
+Subject: [PATCH 13/14] http: Declare more parameters as const where possible
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Signed-off-by: Martin Storsjö <martin@martin.st>
+(cherry picked from commit e77a2ea9505863e50bf013706f66bf8b7325e524)
+---
+ libavformat/http.c |    4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/libavformat/http.c b/libavformat/http.c
+index 7e3af5a..c553d8e 100644
+--- a/libavformat/http.c
++++ b/libavformat/http.c
+@@ -353,7 +353,7 @@ static int parse_location(HTTPContext *s, const char *p)
+ }
+ 
+ /* "bytes $from-$to/$document_size" */
+-static void parse_content_range(URLContext *h, char *p)
++static void parse_content_range(URLContext *h, const char *p)
+ {
+     HTTPContext *s = h->priv_data;
+     const char *slash;
+@@ -367,7 +367,7 @@ static void parse_content_range(URLContext *h, char *p)
+     h->is_streamed = 0; /* we _can_ in fact seek */
+ }
+ 
+-static int parse_content_encoding(URLContext *h, char *p)
++static int parse_content_encoding(URLContext *h, const char *p)
+ {
+     HTTPContext *s = h->priv_data;
+ 
+-- 
+1.7.10.4
+
