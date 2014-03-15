@@ -204,7 +204,6 @@ External library support:
   --enable-libwavpack      enable wavpack encoding via libwavpack [no]
   --enable-libwebp         enable WebP encoding via libwebp [no]
   --enable-libx264         enable H.264 encoding via x264 [no]
-  --enable-libx265         enable HEVC encoding via x265 [no]
   --enable-libxavs         enable AVS encoding via xavs [no]
   --enable-libxvid         enable Xvid encoding via xvidcore,
                            native MPEG-4/Xvid encoder exists [no]
@@ -1131,7 +1130,6 @@ EXTERNAL_LIBRARY_LIST="
     libwavpack
     libwebp
     libx264
-    libx265
     libxavs
     libxvid
     openssl
@@ -1406,7 +1404,6 @@ HAVE_LIST="
     soundcard_h
     strerror_r
     strptime
-    strtok_r
     struct_addrinfo
     struct_group_source_req
     struct_ip_mreq_source
@@ -1844,7 +1841,7 @@ wmv3_vdpau_hwaccel_select="vc1_vdpau_hwaccel"
 
 # parsers
 h264_parser_select="golomb h264chroma h264dsp h264pred h264qpel videodsp"
-mpeg4video_parser_select="error_resilience mpegvideo"
+mpeg4video_parser_select="error_resilience h263dsp mpegvideo"
 mpegvideo_parser_select="error_resilience mpegvideo"
 vc1_parser_select="mpegvideo"
 
@@ -1889,7 +1886,6 @@ libvpx_vp9_encoder_deps="libvpx"
 libwavpack_encoder_deps="libwavpack"
 libwebp_encoder_deps="libwebp"
 libx264_encoder_deps="libx264"
-libx265_encoder_deps="libx265"
 libxavs_encoder_deps="libxavs"
 libxvid_encoder_deps="libxvid"
 
@@ -2011,9 +2007,9 @@ boxblur_filter_deps="gpl"
 cropdetect_filter_deps="gpl"
 delogo_filter_deps="gpl"
 drawtext_filter_deps="libfreetype"
-frei0r_filter_deps="frei0r dlopen strtok_r"
+frei0r_filter_deps="frei0r dlopen"
 frei0r_filter_extralibs='$ldl'
-frei0r_src_filter_deps="frei0r dlopen strtok_r"
+frei0r_src_filter_deps="frei0r dlopen"
 frei0r_src_filter_extralibs='$ldl'
 hqdn3d_filter_deps="gpl"
 interlace_filter_deps="gpl"
@@ -3203,6 +3199,10 @@ case "$arch" in
         check_64bit ppc ppc64 'sizeof(void *) > 4'
         spic=$shared
     ;;
+    s390)
+        check_64bit s390 s390x 'sizeof(void *) > 4'
+        spic=$shared
+    ;;
     sparc)
         check_64bit sparc sparc64 'sizeof(void *) > 4'
         spic=$shared
@@ -3537,7 +3537,6 @@ die_license_disabled() {
 
 die_license_disabled gpl libcdio
 die_license_disabled gpl libx264
-die_license_disabled gpl libx265
 die_license_disabled gpl libxavs
 die_license_disabled gpl libxvid
 die_license_disabled gpl x11grab
@@ -3836,7 +3835,6 @@ check_func_headers malloc.h _aligned_malloc     && enable aligned_malloc
 check_func  setrlimit
 check_func  strerror_r
 check_func  strptime
-check_func  strtok_r
 check_func  sched_getaffinity
 check_builtin sync_val_compare_and_swap "" "int *ptr; int oldval, newval; __sync_val_compare_and_swap(ptr, oldval, newval)"
 check_builtin machine_rw_barrier mbarrier.h "__machine_rw_barrier()"
@@ -3940,7 +3938,7 @@ enabled libmp3lame        && require "libmp3lame >= 3.98.3" lame/lame.h lame_set
 enabled libopencore_amrnb && require libopencore_amrnb opencore-amrnb/interf_dec.h Decoder_Interface_init -lopencore-amrnb
 enabled libopencore_amrwb && require libopencore_amrwb opencore-amrwb/dec_if.h D_IF_init -lopencore-amrwb
 enabled libopencv         && require_pkg_config opencv opencv/cv.h cvCreateImageHeader
-enabled libopenjpeg       && require libopenjpeg openjpeg.h opj_version -lopenjpeg
+enabled libopenjpeg       && require_pkg_config libopenjpeg1 openjpeg.h opj_version
 enabled libopus           && require_pkg_config opus opus_multistream.h opus_multistream_decoder_create
 enabled libpulse          && require_pkg_config libpulse-simple pulse/simple.h pa_simple_new
 enabled librtmp           && require_pkg_config librtmp librtmp/rtmp.h RTMP_Socket
@@ -3962,9 +3960,6 @@ enabled libwebp           && require_pkg_config libwebp webp/encode.h WebPGetEnc
 enabled libx264           && require libx264 x264.h x264_encoder_encode -lx264 &&
                              { check_cpp_condition x264.h "X264_BUILD >= 118" ||
                                die "ERROR: libx264 version must be >= 0.118."; }
-enabled libx265           && require_pkg_config x265 x265.h x265_encoder_encode &&
-                             { check_cpp_condition x265.h "X265_BUILD >= 5" ||
-                               die "ERROR: libx265 version must be >= 5."; }
 enabled libxavs           && require libxavs xavs.h xavs_encoder_encode -lxavs
 enabled libxvid           && require libxvid xvid.h xvid_global -lxvidcore
 enabled openssl           && { check_lib openssl/ssl.h SSL_library_init -lssl -lcrypto ||
