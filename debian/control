@@ -83,6 +83,9 @@ Description: Multimedia player, server, encoder and transcoder
  OGG, Matroska, ASF...) and encoding formats (MPEG, DivX, MPEG4, AC3,
  DV...). Additionally, it contains the qt-faststart utility which
  rearranges Quicktime files to facilitate network streaming.
+ .
+ This package replaces the 'ffmpeg' command-line tool that was provided
+ in earlier distroreleases.
 
 Package: libav-dbg
 Section: debug
