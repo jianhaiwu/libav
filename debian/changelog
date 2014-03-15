@@ -1,3 +1,11 @@
+libav (6:10~beta2-1) experimental; urgency=low
+
+  * New Upstream release 10_beta2. This upstream git snapshot has too many
+    changes to list here, cf. to the upstream Changelog:
+    http://git.libav.org/?p=libav.git;a=blob;f=Changelog;hb=refs/tags/v10_beta2
+
+ -- Reinhard Tartler <siretart@tauware.de>  Sat, 15 Mar 2014 00:34:08 +0000
+
 libav (6:10~beta1-2) experimental; urgency=low
 
   * New Upstream release 10_beta1. This upstream git snapshot has too many
