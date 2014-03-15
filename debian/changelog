@@ -1,3 +1,14 @@
+libav (6:10~beta2-2) experimental; urgency=low
+
+  * Drop unnecessary packages: libavformat-extra-, libavutil-extra,
+    libavfilter-extra and libavdevice-extra.
+  * Incorporate post-beta2 patches, including the icy header detection
+    patches (Closes: #740421)
+  * Add a note about 'ffmpeg' in libav-tools's package description
+    (Closes: #729469)
+
+ -- Reinhard Tartler <siretart@tauware.de>  Sat, 15 Mar 2014 14:46:20 +0000
+
 libav (6:10~beta2-1) experimental; urgency=low
 
   * New Upstream release 10_beta2. This upstream git snapshot has too many
