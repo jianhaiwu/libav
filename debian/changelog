@@ -1,3 +1,10 @@
+libav (6:10-1) experimental; urgency=low
+
+  * New upstream release 10. Full changelog avaialble at:
+    http://git.libav.org/?p=libav.git;a=blob;f=Changelog;hb=refs/tags/v10_beta2
+
+ -- Reinhard Tartler <siretart@tauware.de>  Sun, 23 Mar 2014 14:23:55 -0400
+
 libav (6:10~beta2-2) experimental; urgency=low
 
   * Drop unnecessary packages: libavformat-extra-, libavutil-extra,
