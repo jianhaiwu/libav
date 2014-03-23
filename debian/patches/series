@@ -1,15 +1,1 @@
 03-disable-configuration-warnings.patch
-post-beta2/0001-configure-Support-older-version-of-openjpeg1.patch
-post-beta2/0002-http-Return-meaningful-error-codes.patch
-post-beta2/0003-http-Drop-doxy-comments.patch
-post-beta2/0004-http-K-R-formatting-cosmetics.patch
-post-beta2/0005-http-Refactor-process_line.patch
-post-beta2/0006-http-Add-support-reading-ICY-metadata.patch
-post-beta2/0007-http-Export-Content-Type-information.patch
-post-beta2/0008-http-Support-setting-custom-User-Agent.patch
-post-beta2/0009-http-Add-support-for-selecting-a-request-range.patch
-post-beta2/0010-http-Always-allow-no-op-seek.patch
-post-beta2/0011-http-Improve-options-descriptions.patch
-post-beta2/0012-http-Allow-setting-a-Content-Type-for-POST-requests.patch
-post-beta2/0013-http-Declare-more-parameters-as-const-where-possible.patch
-post-beta2/0014-http-Properly-initialize-icy-headers-string.patch
