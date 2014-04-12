@@ -1,3 +1,9 @@
+libav (6:10-2) experimental; urgency=low
+
+  * Recompile against libx264-142 and librtmp1
+
+ -- Reinhard Tartler <siretart@tauware.de>  Sat, 12 Apr 2014 08:44:31 -0400
+
 libav (6:10-1) experimental; urgency=low
 
   * New upstream release 10. Full changelog avaialble at:
