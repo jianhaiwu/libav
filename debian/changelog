@@ -1,6 +1,9 @@
 libav (6:10-2) experimental; urgency=low
 
   * Recompile against libx264-142 and librtmp1
+  * Bump standards version, no changes needed
+  * Drop Andres Meija from uploaders. Thanks Andres for your contributions
+    to the libav package! (Closes: #743526).
 
  -- Reinhard Tartler <siretart@tauware.de>  Sat, 12 Apr 2014 08:44:31 -0400
 
