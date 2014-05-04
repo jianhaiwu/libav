@@ -376,20 +376,6 @@ Description: Libav audo resampling library
  .
  This is the audio software resampling library from Libav.
 
-Package: libavutil-extra-52
-Section: oldlibs
-Priority: extra
-Architecture: all
-Depends:
- libavutil52,
- ${misc:Depends},
-Description: Libav utility library (transitional package)
- Libav is a complete, cross-platform solution to decode, encode, record,
- convert and stream audio and video.
- .
- This package is only used for transitional purposes and can be safely
- removed when no other packages depend on this package.
-
 Package: libavcodec-extra-54
 Architecture: any
 Multi-Arch: same
@@ -420,62 +406,6 @@ Description: Libav codec library (additional codecs)
  Because this package links against libraries that are licensed under
  Apache License 2.0, the resulting binaries are distributed under the
  GPL version 3 or later.
-
-Package: libavdevice-extra-53
-Section: oldlibs
-Priority: extra
-Architecture: all
-Depends:
- libavdevice53,
- ${misc:Depends},
-Description: Libav device handling library (transitional package)
- Libav is a complete, cross-platform solution to decode, encode, record,
- convert and stream audio and video.
- .
- This package is only used for transitional purposes and can be safely
- removed when no other packages depend on this package.
-
-Package: libavfilter-extra-3
-Section: oldlibs
-Priority: extra
-Architecture: all
-Depends:
- libavfilter3,
- ${misc:Depends},
-Description: Libav filter library (transitional package)
- Libav is a complete, cross-platform solution to decode, encode, record,
- convert and stream audio and video.
- .
- This package is only used for transitional purposes and can be safely
- removed when no other packages depend on this package.
-
-Package: libavformat-extra-54
-Section: oldlibs
-Priority: extra
-Architecture: all
-Depends:
- libavformat54,
- ${misc:Depends},
-Description: Libav file format library (transitional package)
- Libav is a complete, cross-platform solution to decode, encode, record,
- convert and stream audio and video.
- .
- This package is only used for transitional purposes and can be safely
- removed when no other packages depend on this package.
-
-Package: libswscale-extra-2
-Section: oldlibs
-Priority: extra
-Architecture: all
-Depends:
- libswscale2,
- ${misc:Depends},
-Description: Libav video software scaling library (transitional package)
- Libav is a complete, cross-platform solution to decode, encode, record,
- convert and stream audio and video.
- .
- This package is only used for transitional purposes and can be safely
- removed when no other packages depend on this package.
 
 Package: libavcodec-extra
 Priority: extra
