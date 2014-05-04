@@ -102,7 +102,6 @@ clean:
 	    $(addprefix configure-stamp-, $(FLAVORS)) \
 	    $(addprefix configure-extra-stamp-, $(FLAVORS)) \
 	    build-doxy-stamp
-	rm -rf libav/ # created by the libav-extra variant
 	rm -rf $(addprefix debian-, $(FLAVORS)) \
 		$(addprefix debian-extra-, $(FLAVORS)) doxy
 	dh_clean $(DH_INSTALL_FILES) $(wildcard formats*.txt) $(wildcard codecs*.txt)
@@ -151,14 +150,10 @@ install-extra: build $(DH_INSTALL_FILES)
 	dh_install $(addprefix -p,$(LIB_EXTRA_PKGS)) --fail-missing \
 		--sourcedir=debian/tmp/extra
 	$(call call_and_install_avconv_dump,libavcodec-extra-54,codecs)
-ifeq ($(DEB_SOURCE), libav)
 	dh_installdocs -a doc/APIchanges
 	install -m 644 -D debian-shared/doc/*.html doc/t2h.init debian/libav-tools/usr/share/doc/libav-tools
 	dh_installexamples -p libavcodec-dev libavcodec/api-example.c
 	dh_installchangelogs -a Changelog
-else
-	dh_installchangelogs -a libav/Changelog
-endif
 
 binary-indep:
 	dh_testdir
