@@ -38,8 +38,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "libavutil/common.h"
 #include "libavutil/internal.h"
 #include "libavutil/intreadwrite.h"
+#include "libavutil/common.h"
 #include "avcodec.h"
 
 typedef struct RpzaContext {
@@ -126,6 +128,8 @@ static void rpza_decode_stream(RpzaContext *s)
             }
         }
 
+        n_blocks = FFMIN(n_blocks, total_blocks);
+
         switch (opcode & 0xe0) {
 
         /* Skip blocks */
@@ -203,7 +207,7 @@ static void rpza_decode_stream(RpzaContext *s)
 
         /* Fill block with 16 colors */
         case 0x00:
-            if (s->size - stream_ptr < 16)
+            if (s->size - stream_ptr < 30)
                 return;
             block_ptr = row_ptr + pixel_ptr;
             for (pixel_y = 0; pixel_y < 4; pixel_y++) {

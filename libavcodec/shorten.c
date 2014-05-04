@@ -206,31 +206,38 @@ static int decode_wave_header(AVCodecContext *avctx, const uint8_t *header,
 {
     int len;
     short wave_format;
+    GetByteContext gb;
 
-    if (bytestream_get_le32(&header) != MKTAG('R', 'I', 'F', 'F')) {
+    bytestream2_init(&gb, header, header_size);
+
+    if (bytestream2_get_le32(&gb) != MKTAG('R', 'I', 'F', 'F')) {
         av_log(avctx, AV_LOG_ERROR, "missing RIFF tag\n");
         return AVERROR_INVALIDDATA;
     }
 
-    header += 4; /* chunk size */
+    bytestream2_skip(&gb, 4); /* chunk size */
 
-    if (bytestream_get_le32(&header) != MKTAG('W', 'A', 'V', 'E')) {
+    if (bytestream2_get_le32(&gb) != MKTAG('W', 'A', 'V', 'E')) {
         av_log(avctx, AV_LOG_ERROR, "missing WAVE tag\n");
         return AVERROR_INVALIDDATA;
     }
 
-    while (bytestream_get_le32(&header) != MKTAG('f', 'm', 't', ' ')) {
-        len     = bytestream_get_le32(&header);
-        header += len;
+    while (bytestream2_get_le32(&gb) != MKTAG('f', 'm', 't', ' ')) {
+        len = bytestream2_get_le32(&gb);
+        bytestream2_skip(&gb, len);
+        if (bytestream2_get_bytes_left(&gb) < 16) {
+            av_log(avctx, AV_LOG_ERROR, "no fmt chunk found\n");
+            return AVERROR_INVALIDDATA;
+        }
     }
-    len = bytestream_get_le32(&header);
+    len = bytestream2_get_le32(&gb);
 
     if (len < 16) {
         av_log(avctx, AV_LOG_ERROR, "fmt chunk was too short\n");
         return AVERROR_INVALIDDATA;
     }
 
-    wave_format = bytestream_get_le16(&header);
+    wave_format = bytestream2_get_le16(&gb);
 
     switch (wave_format) {
     case WAVE_FORMAT_PCM:
@@ -240,11 +247,11 @@ static int decode_wave_header(AVCodecContext *avctx, const uint8_t *header,
         return AVERROR(ENOSYS);
     }
 
-    header += 2;        // skip channels    (already got from shorten header)
-    avctx->sample_rate = bytestream_get_le32(&header);
-    header += 4;        // skip bit rate    (represents original uncompressed bit rate)
-    header += 2;        // skip block align (not needed)
-    avctx->bits_per_coded_sample = bytestream_get_le16(&header);
+    bytestream2_skip(&gb, 2); // skip channels    (already got from shorten header)
+    avctx->sample_rate = bytestream2_get_le32(&gb);
+    bytestream2_skip(&gb, 4); // skip bit rate    (represents original uncompressed bit rate)
+    bytestream2_skip(&gb, 2); // skip block align (not needed)
+    avctx->bits_per_coded_sample = bytestream2_get_le16(&gb);
 
     if (avctx->bits_per_coded_sample != 16) {
         av_log(avctx, AV_LOG_ERROR, "unsupported number of bits per sample\n");
@@ -270,7 +277,8 @@ static void output_buffer(int16_t **samples, int nchan, int blocksize,
     }
 }
 
-static const int fixed_coeffs[3][3] = {
+static const int fixed_coeffs[][3] = {
+    { 0,  0,  0 },
     { 1,  0,  0 },
     { 2, -1,  0 },
     { 3, -3,  1 }
@@ -299,7 +307,12 @@ static int decode_subframe_lpc(ShortenContext *s, int command, int channel,
     } else {
         /* fixed LPC coeffs */
         pred_order = command;
-        coeffs     = fixed_coeffs[pred_order - 1];
+        if (pred_order >= FF_ARRAY_ELEMS(fixed_coeffs)) {
+            av_log(s->avctx, AV_LOG_ERROR, "invalid pred_order %d\n",
+                   pred_order);
+            return AVERROR_INVALIDDATA;
+        }
+        coeffs     = fixed_coeffs[pred_order];
         qshift     = 0;
     }
 
@@ -428,7 +441,7 @@ static int shorten_decode_frame(AVCodecContext *avctx, void *data,
         void *tmp_ptr;
         s->max_framesize = 1024; // should hopefully be enough for the first header
         tmp_ptr = av_fast_realloc(s->bitstream, &s->allocated_bitstream_size,
-                                  s->max_framesize);
+                                  s->max_framesize + FF_INPUT_BUFFER_PADDING_SIZE);
         if (!tmp_ptr) {
             av_log(avctx, AV_LOG_ERROR, "error allocating bitstream buffer\n");
             return AVERROR(ENOMEM);

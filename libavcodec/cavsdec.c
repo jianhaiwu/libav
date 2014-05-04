@@ -602,8 +602,8 @@ static inline int decode_residual_inter(AVSContext *h)
 
     /* get coded block pattern */
     int cbp = get_ue_golomb(&h->gb);
-    if (cbp > 63) {
-        av_log(h->avctx, AV_LOG_ERROR, "illegal inter cbp\n");
+    if (cbp > 63 || cbp < 0) {
+        av_log(h->avctx, AV_LOG_ERROR, "illegal inter cbp %d\n", cbp);
         return -1;
     }
     h->cbp = cbp_tab[cbp][1];
@@ -673,7 +673,7 @@ static int decode_mb_i(AVSContext *h, int cbp_code)
     /* get coded block pattern */
     if (h->cur.f->pict_type == AV_PICTURE_TYPE_I)
         cbp_code = get_ue_golomb(gb);
-    if (cbp_code > 63) {
+    if (cbp_code > 63 || cbp_code < 0) {
         av_log(h->avctx, AV_LOG_ERROR, "illegal intra cbp\n");
         return -1;
     }
@@ -928,8 +928,14 @@ static inline int check_for_slice(AVSContext *h)
 
 static int decode_pic(AVSContext *h)
 {
+    int ret;
     int skip_count    = -1;
     enum cavs_mb mb_type;
+
+    if (!h->top_qp) {
+        av_log(h->avctx, AV_LOG_ERROR, "No sequence header decoded yet\n");
+        return AVERROR_INVALIDDATA;
+    }
 
     skip_bits(&h->gb, 16);//bbv_dwlay
     if (h->stc == PIC_PB_START_CODE) {
@@ -960,7 +966,9 @@ static int decode_pic(AVSContext *h)
     if (h->cur.f->data[0])
         h->avctx->release_buffer(h->avctx, h->cur.f);
 
-    ff_get_buffer(h->avctx, h->cur.f);
+    ret = ff_get_buffer(h->avctx, h->cur.f);
+    if (ret < 0)
+        return ret;
 
     if (!h->edge_emu_buffer) {
         int alloc_size = FFALIGN(FFABS(h->cur.f->linesize[0]) + 32, 32);

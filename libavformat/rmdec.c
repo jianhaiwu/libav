@@ -93,13 +93,13 @@ static int rm_read_extradata(AVIOContext *pb, AVCodecContext *avctx, unsigned si
     return 0;
 }
 
-static void rm_read_metadata(AVFormatContext *s, int wide)
+static void rm_read_metadata(AVFormatContext *s, AVIOContext *pb, int wide)
 {
     char buf[1024];
     int i;
     for (i=0; i<FF_ARRAY_ELEMS(ff_rm_metadata); i++) {
-        int len = wide ? avio_rb16(s->pb) : avio_r8(s->pb);
-        get_strl(s->pb, buf, sizeof(buf), len);
+        int len = wide ? avio_rb16(pb) : avio_r8(pb);
+        get_strl(pb, buf, sizeof(buf), len);
         av_dict_set(&s->metadata, ff_rm_metadata[i], buf, 0);
     }
 }
@@ -129,7 +129,7 @@ static int rm_read_audio_stream_info(AVFormatContext *s, AVIOContext *pb,
         int header_size = avio_rb16(pb);
         int64_t startpos = avio_tell(pb);
         avio_skip(pb, 14);
-        rm_read_metadata(s, 0);
+        rm_read_metadata(s, pb, 0);
         if ((startpos + header_size) >= avio_tell(pb) + 2) {
             // fourcc (should always be "lpcJ")
             avio_r8(pb);
@@ -276,7 +276,7 @@ static int rm_read_audio_stream_info(AVFormatContext *s, AVIOContext *pb,
             avio_r8(pb);
             avio_r8(pb);
             avio_r8(pb);
-            rm_read_metadata(s, 0);
+            rm_read_metadata(s, pb, 0);
         }
     }
     return 0;
@@ -331,8 +331,13 @@ ff_rm_read_mdpr_codecdata (AVFormatContext *s, AVIOContext *pb,
         if ((ret = rm_read_extradata(pb, st->codec, codec_data_size - (avio_tell(pb) - codec_pos))) < 0)
             return ret;
 
-        av_reduce(&st->avg_frame_rate.den, &st->avg_frame_rate.num,
-                  0x10000, fps, (1 << 30) - 1);
+        if (fps > 0) {
+            av_reduce(&st->avg_frame_rate.den, &st->avg_frame_rate.num,
+                      0x10000, fps, (1 << 30) - 1);
+        } else if (s->error_recognition & AV_EF_EXPLODE) {
+            av_log(s, AV_LOG_ERROR, "Invalid framerate\n");
+            return AVERROR_INVALIDDATA;
+        }
 #if FF_API_R_FRAME_RATE
         st->r_frame_rate = st->avg_frame_rate;
 #endif
@@ -471,7 +476,7 @@ static int rm_read_header(AVFormatContext *s)
             flags = avio_rb16(pb); /* flags */
             break;
         case MKTAG('C', 'O', 'N', 'T'):
-            rm_read_metadata(s, 1);
+            rm_read_metadata(s, pb, 1);
             break;
         case MKTAG('M', 'D', 'P', 'R'):
             st = avformat_new_stream(s, NULL);

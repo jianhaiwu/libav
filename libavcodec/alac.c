@@ -315,6 +315,9 @@ static int decode_element(AVCodecContext *avctx, void *data, int ch_index,
             rice_history_mult[ch] = get_bits(&alac->gb, 3);
             lpc_order[ch]         = get_bits(&alac->gb, 5);
 
+            if (lpc_order[ch] >= alac->max_samples_per_frame)
+                return AVERROR_INVALIDDATA;
+
             /* read the predictor table */
             for (i = lpc_order[ch] - 1; i >= 0; i--)
                 lpc_coefs[ch][i] = get_sbits(&alac->gb, 16);
@@ -418,7 +421,8 @@ static int alac_decode_frame(AVCodecContext *avctx, void *data,
         }
 
         channels = (element == TYPE_CPE) ? 2 : 1;
-        if (ch + channels > alac->channels) {
+        if (ch + channels > alac->channels ||
+            ff_alac_channel_layout_offsets[alac->channels - 1][ch] + channels > alac->channels) {
             av_log(avctx, AV_LOG_ERROR, "invalid element channel count\n");
             return AVERROR_INVALIDDATA;
         }
@@ -495,7 +499,8 @@ static int alac_set_info(ALACContext *alac)
     bytestream2_skipu(&gb, 12); // size:4, alac:4, version:4
 
     alac->max_samples_per_frame = bytestream2_get_be32u(&gb);
-    if (!alac->max_samples_per_frame || alac->max_samples_per_frame > INT_MAX) {
+    if (!alac->max_samples_per_frame ||
+        alac->max_samples_per_frame > INT_MAX / sizeof(int32_t)) {
         av_log(alac->avctx, AV_LOG_ERROR, "max samples per frame invalid: %u\n",
                alac->max_samples_per_frame);
         return AVERROR_INVALIDDATA;

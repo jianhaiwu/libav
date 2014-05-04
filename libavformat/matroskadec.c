@@ -704,8 +704,10 @@ static int ebml_read_ascii(AVIOContext *pb, int size, char **str)
 static int ebml_read_binary(AVIOContext *pb, int length, EbmlBin *bin)
 {
     av_free(bin->data);
-    if (!(bin->data = av_malloc(length)))
+    if (!(bin->data = av_malloc(length + FF_INPUT_BUFFER_PADDING_SIZE)))
         return AVERROR(ENOMEM);
+
+    memset(bin->data + length, 0, FF_INPUT_BUFFER_PADDING_SIZE);
 
     bin->size = length;
     bin->pos  = avio_tell(pb);
@@ -1157,7 +1159,8 @@ static void matroska_convert_tag(AVFormatContext *s, EbmlList *list,
     int i;
 
     for (i=0; i < list->nb_elem; i++) {
-        const char *lang = strcmp(tags[i].lang, "und") ? tags[i].lang : NULL;
+        const char *lang = tags[i].lang && strcmp(tags[i].lang, "und") ?
+                           tags[i].lang : NULL;
 
         if (!tags[i].name) {
             av_log(s, AV_LOG_WARNING, "Skipping invalid tag with no TagName.\n");
@@ -1404,7 +1407,7 @@ static int matroska_read_header(AVFormatContext *s)
     for (i=0; i < matroska->tracks.nb_elem; i++) {
         MatroskaTrack *track = &tracks[i];
         enum AVCodecID codec_id = AV_CODEC_ID_NONE;
-        EbmlList *encodings_list = &tracks->encodings;
+        EbmlList *encodings_list = &track->encodings;
         MatroskaTrackEncoding *encodings = encodings_list->elem;
         uint8_t *extradata = NULL;
         int extradata_size = 0;
@@ -1579,6 +1582,10 @@ static int matroska_read_header(AVFormatContext *s)
             track->audio.sub_packet_h    = avio_rb16(&b);
             track->audio.frame_size      = avio_rb16(&b);
             track->audio.sub_packet_size = avio_rb16(&b);
+            if (flavor <= 0 || track->audio.coded_framesize <= 0 ||
+                track->audio.sub_packet_h <= 0 || track->audio.frame_size <= 0 ||
+                track->audio.sub_packet_size <= 0)
+                return AVERROR_INVALIDDATA;
             track->audio.buf = av_malloc(track->audio.frame_size * track->audio.sub_packet_h);
             if (codec_id == AV_CODEC_ID_RA_288) {
                 st->codec->block_align = track->audio.coded_framesize;

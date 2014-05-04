@@ -634,9 +634,9 @@ static int svq3_decode_mb(SVQ3Context *svq3, unsigned int mb_type)
         dir = i_mb_type_info[mb_type - 8].pred_mode;
         dir = (dir >> 1) ^ 3 * (dir & 1) ^ 1;
 
-        if ((h->intra16x16_pred_mode = ff_h264_check_intra_pred_mode(h, dir, 0)) == -1) {
-            av_log(h->s.avctx, AV_LOG_ERROR, "check_intra_pred_mode = -1\n");
-            return -1;
+        if ((h->intra16x16_pred_mode = ff_h264_check_intra_pred_mode(h, dir, 0)) < 0) {
+            av_log(h->s.avctx, AV_LOG_ERROR, "ff_h264_check_intra_pred_mode < 0\n");
+            return h->intra16x16_pred_mode;
         }
 
         cbp     = i_mb_type_info[mb_type - 8].cbp;
@@ -956,7 +956,8 @@ static av_cold int svq3_decode_init(AVCodecContext *avctx)
                 int offset                = get_bits_count(&gb) + 7 >> 3;
                 uint8_t *buf;
 
-                if ((uint64_t)watermark_width * 4 > UINT_MAX / watermark_height)
+                if (watermark_height > 0 &&
+                    (uint64_t)watermark_width * 4 > UINT_MAX / watermark_height)
                     return -1;
 
                 buf = av_malloc(buf_len);

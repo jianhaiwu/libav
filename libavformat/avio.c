@@ -197,7 +197,7 @@ int ffurl_alloc(URLContext **puc, const char *filename, int flags,
             return url_alloc_for_protocol (puc, up, filename, flags, int_cb);
     }
     *puc = NULL;
-    return AVERROR(ENOENT);
+    return AVERROR_PROTOCOL_NOT_FOUND;
 }
 
 int ffurl_open(URLContext **puc, const char *filename, int flags,
@@ -238,7 +238,7 @@ static inline int retry_transfer_wrapper(URLContext *h, unsigned char *buf, int 
             else
                 av_usleep(1000);
         } else if (ret < 1)
-            return ret < 0 ? ret : len;
+            return (ret < 0 && ret != AVERROR_EOF) ? ret : len;
         if (ret)
            fast_retries = FFMAX(fast_retries, 2);
         len += ret;
