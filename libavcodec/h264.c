@@ -128,10 +128,10 @@ int ff_h264_check_intra4x4_pred_mode(H264Context *h)
 int ff_h264_check_intra_pred_mode(H264Context *h, int mode, int is_chroma)
 {
     MpegEncContext *const s     = &h->s;
-    static const int8_t top[7]  = { LEFT_DC_PRED8x8, 1, -1, -1 };
-    static const int8_t left[7] = { TOP_DC_PRED8x8, -1, 2, -1, DC_128_PRED8x8 };
+    static const int8_t top[4]  = { LEFT_DC_PRED8x8, 1, -1, -1 };
+    static const int8_t left[5] = { TOP_DC_PRED8x8, -1, 2, -1, DC_128_PRED8x8 };
 
-    if (mode > 6U) {
+    if (mode > 3U) {
         av_log(h->s.avctx, AV_LOG_ERROR,
                "out of range intra chroma pred mode at %d %d\n",
                s->mb_x, s->mb_y);
@@ -1290,6 +1290,8 @@ int ff_h264_frame_start(H264Context *h)
     int i;
     const int pixel_shift = h->pixel_shift;
 
+    h->next_output_pic = NULL;
+
     if (ff_MPV_frame_start(s, s->avctx) < 0)
         return -1;
     ff_er_frame_start(s);
@@ -1340,8 +1342,6 @@ int ff_h264_frame_start(H264Context *h)
 
     s->current_picture_ptr->field_poc[0]     =
         s->current_picture_ptr->field_poc[1] = INT_MAX;
-
-    h->next_output_pic = NULL;
 
     assert(s->current_picture_ptr->long_ref == 0);
 
@@ -2427,12 +2427,6 @@ static int h264_set_parameter_from_sps(H264Context *h)
     if (s->avctx->has_b_frames < 2)
         s->avctx->has_b_frames = !s->low_delay;
 
-    if (h->sps.bit_depth_luma != h->sps.bit_depth_chroma) {
-        av_log_missing_feature(s->avctx,
-            "Different bit depth between chroma and luma", 1);
-        return AVERROR_PATCHWELCOME;
-    }
-
     if (s->avctx->bits_per_raw_sample != h->sps.bit_depth_luma ||
         h->cur_chroma_format_idc      != h->sps.chroma_format_idc) {
         if (s->avctx->codec &&
@@ -2916,8 +2910,10 @@ static int decode_slice_header(H264Context *h, H264Context *h0)
             Picture *prev = h->short_ref_count ? h->short_ref[0] : NULL;
             av_log(h->s.avctx, AV_LOG_DEBUG, "Frame num gap %d %d\n",
                    h->frame_num, h->prev_frame_num);
-            if (ff_h264_frame_start(h) < 0)
+            if (ff_h264_frame_start(h) < 0) {
+                s0->first_field = 0;
                 return -1;
+            }
             h->prev_frame_num++;
             h->prev_frame_num %= 1 << h->sps.log2_max_frame_num;
             s->current_picture_ptr->frame_num = h->prev_frame_num;
@@ -3833,6 +3829,12 @@ static int execute_decode_slices(H264Context *h, int context_count)
     H264Context *hx;
     int i;
 
+    if (s->mb_y >= s->mb_height) {
+        av_log(s->avctx, AV_LOG_ERROR,
+               "Input contains more MB rows than the frame height.\n");
+        return AVERROR_INVALIDDATA;
+    }
+
     if (s->avctx->hwaccel ||
         s->avctx->codec->capabilities & CODEC_CAP_HWACCEL_VDPAU)
         return 0;
@@ -3941,7 +3943,7 @@ static int decode_nal_units(H264Context *h, const uint8_t *buf, int buf_size,
                 s->workaround_bugs |= FF_BUG_TRUNCATED;
 
             if (!(s->workaround_bugs & FF_BUG_TRUNCATED))
-                while (ptr[dst_length - 1] == 0 && dst_length > 0)
+                while (dst_length > 0 && ptr[dst_length - 1] == 0)
                     dst_length--;
             bit_length = !dst_length ? 0
                                      : (8 * dst_length -
@@ -4057,12 +4059,24 @@ again:
                 }
                 break;
             case NAL_DPA:
+                if (s->flags2 & CODEC_FLAG2_CHUNKS) {
+                    av_log(h->s.avctx, AV_LOG_ERROR,
+                           "Decoding in chunks is not supported for "
+                           "partitioned slices.\n");
+                    return AVERROR(ENOSYS);
+                }
+
                 init_get_bits(&hx->s.gb, ptr, bit_length);
                 hx->intra_gb_ptr =
                 hx->inter_gb_ptr = NULL;
 
-                if ((err = decode_slice_header(hx, h)) < 0)
+                if ((err = decode_slice_header(hx, h)) < 0) {
+                    /* make sure data_partitioning is cleared if it was set
+                     * before, so we don't try decoding a slice without a valid
+                     * slice header later */
+                    s->data_partitioning = 0;
                     break;
+                }
 
                 hx->s.data_partitioning = 1;
                 break;
@@ -4130,9 +4144,10 @@ again:
                 context_count = 0;
             }
 
-            if (err < 0)
+            if (err < 0) {
                 av_log(h->s.avctx, AV_LOG_ERROR, "decode_slice_header error\n");
-            else if (err == 1) {
+                h->ref_count[0] = h->ref_count[1] = h->list_count = 0;
+            } else if (err == 1) {
                 /* Slice could not be decoded in parallel mode, copy down
                  * NAL unit stuff to context 0 and restart. Note that
                  * rbsp_buffer is not transferred, but since we no longer
@@ -4183,6 +4198,9 @@ static int decode_frame(AVCodecContext *avctx, void *data,
 
     s->flags  = avctx->flags;
     s->flags2 = avctx->flags2;
+    /* reset data partitioning here, to ensure GetBitContexts from previous
+     * packets do not get used. */
+    s->data_partitioning = 0;
 
     /* end of stream, output what is still in the buffers */
 out:
