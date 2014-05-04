@@ -9,21 +9,16 @@ SHLIBS_VERSION := $(EPOCH)9.1-1
 # The libavcodec-extra package is necessary because it links against
 # libraries that are GPLv3 licensed. Make sure that you do not link
 # GPLv2 only applications against the libavcodec-extra flavor!
-#
-# Because of the lack of archive skew problems, only libavcodec produces
-# an -extra variant.
 
 VENDOR := Debian
 # these package do not build -extra variants
-LIB_PKGS := $(shell sed -nr 's/^Package:[[:space:]]*(lib(avutil|avdevice|avformat|avfilter|avresample|swscale)[0-9]+)[[:space:]]*$$/\1/p' debian/control)
+LIB_PKGS := $(shell dh_listpackages -a | grep -E '(lib[a-z]+[0-9]+)' | grep -v libavcodec )
 # these packages do build -extra variants
-LIB_PKGS2 := $(shell sed -nr 's/^Package:[[:space:]]*(libavcodec[0-9]+)[[:space:]]*$$/\1/p' debian/control)
+LIB_PKGS2 := $(shell dh_listpackages -a  | grep -E 'libavcodec[0-9]+' )
 # these packages are the -extra- variants
-LIB_EXTRA_PKGS := $(shell sed -nr 's/^Package:[[:space:]]*(libavcodec-extra-[0-9]+)[[:space:]]*$$/\1/p' debian/control)
-
-
+LIB_EXTRA_PKGS := $(shell dh_listpackages -a | grep 'extra' )
 # these are the -dev packages
-DEV_PKGS := $(shell echo $(LIB_PKGS) $(LIB_PKGS2) | sed 's/[0-9]\+\>/-dev/g')
+DEV_PKGS := $(shell dh_listpackages -a | grep -E -- '-dev$$' )
 
 # Support multiple makes at once
 ifneq (,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
@@ -42,8 +37,9 @@ OPT_FLAVORS := $(filter-out static shared, $(FLAVORS))
 
 info:
 	@echo Packages that do not build -extra variants: $(LIB_PKGS)
-	@echo Packages that do build -extra variatnts: $(LIB_PKGS2)
+	@echo Packages that do build -extra variants: $(LIB_PKGS2)
 	@echo Packages that are the -extra- variants: $(LIB_EXTRA_PKGS)
+	@echo Packages with development headers: $(DEV_PKGS)
 
 $(info FLAVORS = $(FLAVORS))
 $(info DEB_BUILD_OPTIONS = $(DEB_BUILD_OPTIONS))
