@@ -199,7 +199,7 @@ binary: binary-indep binary-arch
 
 .PHONY: build $(addprefix build-, $(FLAVORS)) \
 	clean \
-	configure $(addprefix configure-, $(FLAVORS)) \
+	$(addprefix configure-, $(FLAVORS)) \
 	binary binary-indep binary-arch \
 	install install-common install-extra \
 	get-orig-source
