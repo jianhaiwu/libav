@@ -1,19 +1,19 @@
 /*
  * This file is part of Libav.
  *
- * Libav is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * Libav is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
  *
  * Libav is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License along
- * with Libav; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with Libav; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
 #ifndef AVFILTER_YADIF_H
@@ -23,6 +23,7 @@
 #include "avfilter.h"
 
 typedef struct YADIFContext {
+    const AVClass *class;
     /**
      * 0: send 1 frame for each frame
      * 1: send 1 frame for each field
@@ -46,13 +47,19 @@ typedef struct YADIFContext {
      */
     int auto_enable;
 
-    AVFilterBufferRef *cur;
-    AVFilterBufferRef *next;
-    AVFilterBufferRef *prev;
-    AVFilterBufferRef *out;
-    void (*filter_line)(uint8_t *dst,
-                        uint8_t *prev, uint8_t *cur, uint8_t *next,
+    AVFrame *cur;
+    AVFrame *next;
+    AVFrame *prev;
+    AVFrame *out;
+
+    /**
+     * Required alignment for filter_line
+     */
+    void (*filter_line)(void *dst,
+                        void *prev, void *cur, void *next,
                         int w, int prefs, int mrefs, int parity, int mode);
+    void (*filter_edges)(void *dst, void *prev, void *cur, void *next,
+                         int w, int prefs, int mrefs, int parity, int mode);
 
     const AVPixFmtDescriptor *csp;
     int eof;

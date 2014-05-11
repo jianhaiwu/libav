@@ -94,11 +94,6 @@ static av_cold int amr_wb_encode_init(AVCodecContext *avctx)
 
     avctx->frame_size  = 320;
     avctx->delay       =  80;
-#if FF_API_OLD_ENCODE_AUDIO
-    avctx->coded_frame = avcodec_alloc_frame();
-    if (!avctx->coded_frame)
-        return AVERROR(ENOMEM);
-#endif
 
     s->state     = E_IF_init();
 
@@ -110,7 +105,6 @@ static int amr_wb_encode_close(AVCodecContext *avctx)
     AMRWBContext *s = avctx->priv_data;
 
     E_IF_exit(s->state);
-    av_freep(&avctx->coded_frame);
     return 0;
 }
 
@@ -146,6 +140,8 @@ static int amr_wb_encode_frame(AVCodecContext *avctx, AVPacket *avpkt,
 
 AVCodec ff_libvo_amrwbenc_encoder = {
     .name           = "libvo_amrwbenc",
+    .long_name      = NULL_IF_CONFIG_SMALL("Android VisualOn AMR-WB "
+                                           "(Adaptive Multi-Rate Wide-Band)"),
     .type           = AVMEDIA_TYPE_AUDIO,
     .id             = AV_CODEC_ID_AMR_WB,
     .priv_data_size = sizeof(AMRWBContext),
@@ -154,7 +150,5 @@ AVCodec ff_libvo_amrwbenc_encoder = {
     .close          = amr_wb_encode_close,
     .sample_fmts    = (const enum AVSampleFormat[]){ AV_SAMPLE_FMT_S16,
                                                      AV_SAMPLE_FMT_NONE },
-    .long_name      = NULL_IF_CONFIG_SMALL("Android VisualOn AMR-WB "
-                                           "(Adaptive Multi-Rate Wide-Band)"),
     .priv_class     = &class,
 };

@@ -20,9 +20,9 @@
 #include "avfilter.h"
 #include "internal.h"
 
-static int null_filter_frame(AVFilterLink *link, AVFilterBufferRef *samplesref)
+static int null_filter_frame(AVFilterLink *link, AVFrame *frame)
 {
-    avfilter_unref_bufferp(&samplesref);
+    av_frame_free(&frame);
     return 0;
 }
 
@@ -35,7 +35,7 @@ static const AVFilterPad avfilter_asink_anullsink_inputs[] = {
     { NULL },
 };
 
-AVFilter avfilter_asink_anullsink = {
+AVFilter ff_asink_anullsink = {
     .name        = "anullsink",
     .description = NULL_IF_CONFIG_SMALL("Do absolutely nothing with the input audio."),
 

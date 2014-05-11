@@ -28,28 +28,31 @@
  */
 
 #include "libavutil/common.h"
-#include "dsputil.h"
+#include "avcodec.h"
 #include "bethsoftvideo.h"
 #include "bytestream.h"
+#include "internal.h"
 
 typedef struct BethsoftvidContext {
-    AVFrame frame;
+    AVFrame *frame;
     GetByteContext g;
 } BethsoftvidContext;
 
 static av_cold int bethsoftvid_decode_init(AVCodecContext *avctx)
 {
     BethsoftvidContext *vid = avctx->priv_data;
-    vid->frame.reference = 1;
-    vid->frame.buffer_hints = FF_BUFFER_HINTS_VALID |
-        FF_BUFFER_HINTS_PRESERVE | FF_BUFFER_HINTS_REUSABLE;
     avctx->pix_fmt = AV_PIX_FMT_PAL8;
+
+    vid->frame = av_frame_alloc();
+    if (!vid->frame)
+        return AVERROR(ENOMEM);
+
     return 0;
 }
 
 static int set_palette(BethsoftvidContext *ctx)
 {
-    uint32_t *palette = (uint32_t *)ctx->frame.data[1];
+    uint32_t *palette = (uint32_t *)ctx->frame->data[1];
     int a;
 
     if (bytestream2_get_bytes_left(&ctx->g) < 256*3)
@@ -58,7 +61,7 @@ static int set_palette(BethsoftvidContext *ctx)
     for(a = 0; a < 256; a++){
         palette[a] = bytestream2_get_be24u(&ctx->g) * 4;
     }
-    ctx->frame.palette_has_changed = 1;
+    ctx->frame->palette_has_changed = 1;
     return 0;
 }
 
@@ -75,11 +78,11 @@ static int bethsoftvid_decode_frame(AVCodecContext *avctx,
     int code, ret;
     int yoffset;
 
-    if (avctx->reget_buffer(avctx, &vid->frame)) {
+    if ((ret = ff_reget_buffer(avctx, vid->frame)) < 0) {
         av_log(avctx, AV_LOG_ERROR, "reget_buffer() failed\n");
-        return -1;
+        return ret;
     }
-    wrap_to_next_line = vid->frame.linesize[0] - avctx->width;
+    wrap_to_next_line = vid->frame->linesize[0] - avctx->width;
 
     if (avpkt->side_data_elems > 0 &&
         avpkt->side_data[0].type == AV_PKT_DATA_PALETTE) {
@@ -90,8 +93,8 @@ static int bethsoftvid_decode_frame(AVCodecContext *avctx,
     }
 
     bytestream2_init(&vid->g, avpkt->data, avpkt->size);
-    dst = vid->frame.data[0];
-    frame_end = vid->frame.data[0] + vid->frame.linesize[0] * avctx->height;
+    dst = vid->frame->data[0];
+    frame_end = vid->frame->data[0] + vid->frame->linesize[0] * avctx->height;
 
     switch(block_type = bytestream2_get_byte(&vid->g)){
         case PALETTE_BLOCK: {
@@ -105,8 +108,8 @@ static int bethsoftvid_decode_frame(AVCodecContext *avctx,
         case VIDEO_YOFF_P_FRAME:
             yoffset = bytestream2_get_le16(&vid->g);
             if(yoffset >= avctx->height)
-                return -1;
-            dst += vid->frame.linesize[0] * yoffset;
+                return AVERROR_INVALIDDATA;
+            dst += vid->frame->linesize[0] * yoffset;
     }
 
     // main code
@@ -136,8 +139,10 @@ static int bethsoftvid_decode_frame(AVCodecContext *avctx,
     }
     end:
 
+    if ((ret = av_frame_ref(data, vid->frame)) < 0)
+        return ret;
+
     *got_frame = 1;
-    *(AVFrame*)data = vid->frame;
 
     return avpkt->size;
 }
@@ -145,13 +150,13 @@ static int bethsoftvid_decode_frame(AVCodecContext *avctx,
 static av_cold int bethsoftvid_decode_end(AVCodecContext *avctx)
 {
     BethsoftvidContext * vid = avctx->priv_data;
-    if(vid->frame.data[0])
-        avctx->release_buffer(avctx, &vid->frame);
+    av_frame_free(&vid->frame);
     return 0;
 }
 
 AVCodec ff_bethsoftvid_decoder = {
     .name           = "bethsoftvid",
+    .long_name      = NULL_IF_CONFIG_SMALL("Bethesda VID video"),
     .type           = AVMEDIA_TYPE_VIDEO,
     .id             = AV_CODEC_ID_BETHSOFTVID,
     .priv_data_size = sizeof(BethsoftvidContext),
@@ -159,5 +164,4 @@ AVCodec ff_bethsoftvid_decoder = {
     .close          = bethsoftvid_decode_end,
     .decode         = bethsoftvid_decode_frame,
     .capabilities   = CODEC_CAP_DR1,
-    .long_name      = NULL_IF_CONFIG_SMALL("Bethesda VID video"),
 };

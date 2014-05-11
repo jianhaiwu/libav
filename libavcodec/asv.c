@@ -27,7 +27,6 @@
 
 #include "asv.h"
 #include "avcodec.h"
-#include "dsputil.h"
 
 const uint8_t ff_asv_scantab[64] = {
     0x00,0x08,0x01,0x09,0x10,0x18,0x11,0x19,
@@ -90,6 +89,5 @@ av_cold void ff_asv_common_init(AVCodecContext *avctx) {
     a->mb_width2  = (avctx->width  + 0) / 16;
     a->mb_height2 = (avctx->height + 0) / 16;
 
-    avctx->coded_frame= &a->picture;
     a->avctx= avctx;
 }

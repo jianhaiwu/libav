@@ -9,6 +9,7 @@ OBJS = allformats.o         \
        avio.o               \
        aviobuf.o            \
        cutils.o             \
+       format.o             \
        id3v1.o              \
        id3v2.o              \
        log2_tab.o           \
@@ -19,9 +20,12 @@ OBJS = allformats.o         \
        riff.o               \
        sdp.o                \
        seek.o               \
+       url.o                \
        utils.o              \
 
 OBJS-$(CONFIG_NETWORK)                   += network.o
+OBJS-$(CONFIG_RIFFDEC)                   += riffdec.o
+OBJS-$(CONFIG_RIFFENC)                   += riffenc.o
 OBJS-$(CONFIG_RTPDEC)                    += rdt.o                       \
                                             rtp.o                       \
                                             rtpdec.o                    \
@@ -34,13 +38,16 @@ OBJS-$(CONFIG_RTPDEC)                    += rdt.o                       \
                                             rtpdec_ilbc.o               \
                                             rtpdec_jpeg.o               \
                                             rtpdec_latm.o               \
+                                            rtpdec_mpeg12.o             \
                                             rtpdec_mpeg4.o              \
+                                            rtpdec_mpegts.o             \
                                             rtpdec_qcelp.o              \
                                             rtpdec_qdm2.o               \
                                             rtpdec_qt.o                 \
                                             rtpdec_svq3.o               \
                                             rtpdec_vp8.o                \
-                                            rtpdec_xiph.o
+                                            rtpdec_xiph.o               \
+                                            srtp.o
 OBJS-$(CONFIG_RTPENC_CHAIN)              += rtpenc_chain.o rtp.o
 
 # muxers/demuxers
@@ -65,7 +72,7 @@ OBJS-$(CONFIG_ASF_MUXER)                 += asfenc.o asf.o
 OBJS-$(CONFIG_ASS_DEMUXER)               += assdec.o
 OBJS-$(CONFIG_ASS_MUXER)                 += assenc.o
 OBJS-$(CONFIG_AU_DEMUXER)                += au.o pcm.o
-OBJS-$(CONFIG_AU_MUXER)                  += au.o
+OBJS-$(CONFIG_AU_MUXER)                  += au.o rawenc.o
 OBJS-$(CONFIG_AVI_DEMUXER)               += avidec.o
 OBJS-$(CONFIG_AVI_MUXER)                 += avienc.o
 OBJS-$(CONFIG_AVISYNTH)                  += avisynth.o
@@ -107,6 +114,7 @@ OBJS-$(CONFIG_FFMETADATA_MUXER)          += ffmetaenc.o
 OBJS-$(CONFIG_FILMSTRIP_DEMUXER)         += filmstripdec.o
 OBJS-$(CONFIG_FILMSTRIP_MUXER)           += filmstripenc.o
 OBJS-$(CONFIG_FLAC_DEMUXER)              += flacdec.o rawdec.o \
+                                            flac_picture.o   \
                                             oggparsevorbis.o \
                                             vorbiscomment.o
 OBJS-$(CONFIG_FLAC_MUXER)                += flacenc.o flacenc_header.o \
@@ -130,8 +138,12 @@ OBJS-$(CONFIG_H263_DEMUXER)              += h263dec.o rawdec.o
 OBJS-$(CONFIG_H263_MUXER)                += rawenc.o
 OBJS-$(CONFIG_H264_DEMUXER)              += h264dec.o rawdec.o
 OBJS-$(CONFIG_H264_MUXER)                += rawenc.o
+OBJS-$(CONFIG_HDS_MUXER)                 += hdsenc.o
+OBJS-$(CONFIG_HEVC_DEMUXER)              += hevcdec.o rawdec.o
+OBJS-$(CONFIG_HEVC_MUXER)                += rawenc.o
 OBJS-$(CONFIG_HLS_DEMUXER)               += hls.o
-OBJS-$(CONFIG_HLS_MUXER)                 += hlsenc.o mpegtsenc.o
+OBJS-$(CONFIG_HLS_MUXER)                 += hlsenc.o
+OBJS-$(CONFIG_HNM_DEMUXER)               += hnm.o
 OBJS-$(CONFIG_IDCIN_DEMUXER)             += idcin.o
 OBJS-$(CONFIG_IFF_DEMUXER)               += iff.o
 OBJS-$(CONFIG_ILBC_DEMUXER)              += ilbc.o
@@ -156,8 +168,8 @@ OBJS-$(CONFIG_M4V_MUXER)                 += rawenc.o
 OBJS-$(CONFIG_MATROSKA_DEMUXER)          += matroskadec.o matroska.o  \
                                             isom.o rmsipr.o
 OBJS-$(CONFIG_MATROSKA_MUXER)            += matroskaenc.o matroska.o \
-                                            isom.o avc.o \
-                                            flacenc_header.o avlanguage.o
+                                            isom.o avc.o hevc.o \
+                                            flacenc_header.o avlanguage.o wv.o
 OBJS-$(CONFIG_MD5_MUXER)                 += md5enc.o
 OBJS-$(CONFIG_MJPEG_DEMUXER)             += rawdec.o
 OBJS-$(CONFIG_MJPEG_MUXER)               += rawenc.o
@@ -167,7 +179,7 @@ OBJS-$(CONFIG_MM_DEMUXER)                += mm.o
 OBJS-$(CONFIG_MMF_DEMUXER)               += mmf.o pcm.o
 OBJS-$(CONFIG_MMF_MUXER)                 += mmf.o
 OBJS-$(CONFIG_MOV_DEMUXER)               += mov.o isom.o mov_chan.o
-OBJS-$(CONFIG_MOV_MUXER)                 += movenc.o isom.o avc.o \
+OBJS-$(CONFIG_MOV_MUXER)                 += movenc.o isom.o avc.o hevc.o \
                                             movenchint.o mov_chan.o
 OBJS-$(CONFIG_MP2_MUXER)                 += mp3enc.o rawenc.o id3v2enc.o
 OBJS-$(CONFIG_MP3_DEMUXER)               += mp3dec.o
@@ -208,7 +220,8 @@ OBJS-$(CONFIG_OGG_DEMUXER)               += oggdec.o         \
                                             oggparsespeex.o  \
                                             oggparsetheora.o \
                                             oggparsevorbis.o \
-                                            vorbiscomment.o
+                                            vorbiscomment.o  \
+                                            flac_picture.o
 OBJS-$(CONFIG_OGG_MUXER)                 += oggenc.o \
                                             vorbiscomment.o
 OBJS-$(CONFIG_OMA_DEMUXER)               += omadec.o pcm.o oma.o
@@ -327,12 +340,13 @@ OBJS-$(CONFIG_WAV_MUXER)                 += wavenc.o
 OBJS-$(CONFIG_WC3_DEMUXER)               += wc3movie.o
 OBJS-$(CONFIG_WEBM_MUXER)                += matroskaenc.o matroska.o \
                                             isom.o avc.o \
-                                            flacenc_header.o avlanguage.o
+                                            flacenc_header.o avlanguage.o wv.o
 OBJS-$(CONFIG_WSAUD_DEMUXER)             += westwood_aud.o
 OBJS-$(CONFIG_WSVQA_DEMUXER)             += westwood_vqa.o
 OBJS-$(CONFIG_WTV_DEMUXER)               += wtv.o asfdec.o asf.o asfcrypt.o \
                                             avlanguage.o mpegts.o isom.o
-OBJS-$(CONFIG_WV_DEMUXER)                += wv.o apetag.o img2.o
+OBJS-$(CONFIG_WV_DEMUXER)                += wvdec.o wv.o apetag.o img2.o
+OBJS-$(CONFIG_WV_MUXER)                  += wvenc.o wv.o apetag.o img2.o
 OBJS-$(CONFIG_XA_DEMUXER)                += xa.o
 OBJS-$(CONFIG_XMV_DEMUXER)               += xmv.o
 OBJS-$(CONFIG_XWMA_DEMUXER)              += xwma.o
@@ -367,22 +381,24 @@ OBJS-$(CONFIG_RTMPTE_PROTOCOL)           += rtmpproto.o rtmppkt.o
 OBJS-$(CONFIG_RTMPTS_PROTOCOL)           += rtmpproto.o rtmppkt.o
 OBJS-$(CONFIG_RTP_PROTOCOL)              += rtpproto.o
 OBJS-$(CONFIG_SCTP_PROTOCOL)             += sctp.o
+OBJS-$(CONFIG_SRTP_PROTOCOL)             += srtpproto.o srtp.o
 OBJS-$(CONFIG_TCP_PROTOCOL)              += tcp.o
 OBJS-$(CONFIG_TLS_PROTOCOL)              += tls.o
 OBJS-$(CONFIG_UDP_PROTOCOL)              += udp.o
+OBJS-$(CONFIG_UNIX_PROTOCOL)             += unix.o
+
+OBJS-$(HAVE_LIBC_MSVCRT)                 += file_open.o
 
 SKIPHEADERS-$(CONFIG_FFRTMPCRYPT_PROTOCOL) += rtmpdh.h
 SKIPHEADERS-$(CONFIG_NETWORK)            += network.h rtsp.h
 
-EXAMPLES  = metadata                                                    \
-            output                                                      \
-
 TESTPROGS = seek                                                        \
+            srtp                                                        \
             url                                                         \
+
+TESTPROGS-$(CONFIG_NETWORK)              += noproxy
 
 TOOLS     = aviocat                                                     \
             ismindex                                                    \
             pktdumper                                                   \
             probetest                                                   \
-
-$(SUBDIR)output-example$(EXESUF): ELIBS = $(patsubst %,$(LD_LIB),swscale)

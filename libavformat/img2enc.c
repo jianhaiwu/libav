@@ -33,6 +33,7 @@ typedef struct {
     int img_number;
     int is_pipe;
     char path[1024];
+    int update;
 } VideoMuxData;
 
 static int write_header(AVFormatContext *s)
@@ -59,8 +60,10 @@ static int write_packet(AVFormatContext *s, AVPacket *pkt)
     int i;
 
     if (!img->is_pipe) {
-        if (av_get_frame_filename(filename, sizeof(filename),
-                                  img->path, img->img_number) < 0 && img->img_number > 1) {
+        if (img->update) {
+            av_strlcpy(filename, img->path, sizeof(filename));
+        } else if (av_get_frame_filename(filename, sizeof(filename), img->path, img->img_number) < 0 &&
+                   img->img_number > 1) {
             av_log(s, AV_LOG_ERROR,
                    "Could not get frame filename number %d from pattern '%s'\n",
                    img->img_number, img->path);
@@ -128,6 +131,7 @@ error:
 #define ENC AV_OPT_FLAG_ENCODING_PARAM
 static const AVOption muxoptions[] = {
     { "start_number", "first number in the sequence", OFFSET(img_number), AV_OPT_TYPE_INT, { .i64 = 1 }, 1, INT_MAX, ENC },
+    { "update",       "continuously overwrite one file", OFFSET(update),  AV_OPT_TYPE_INT, { .i64 = 0 }, 0,       1, ENC },
     { NULL },
 };
 
@@ -144,7 +148,7 @@ AVOutputFormat ff_image2_muxer = {
     .long_name      = NULL_IF_CONFIG_SMALL("image2 sequence"),
     .extensions     = "bmp,dpx,jpeg,jpg,ljpg,pam,pbm,pcx,pgm,pgmyuv,png,"
                       "ppm,sgi,tga,tif,tiff,jp2,xwd,sun,ras,rs,im1,im8,im24,"
-                      "sunras,xbm",
+                      "sunras,webp,xbm",
     .priv_data_size = sizeof(VideoMuxData),
     .video_codec    = AV_CODEC_ID_MJPEG,
     .write_header   = write_header,

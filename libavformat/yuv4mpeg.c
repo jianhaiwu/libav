@@ -18,6 +18,8 @@
  * License along with Libav; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
+
+#include "libavutil/pixdesc.h"
 #include "avformat.h"
 #include "internal.h"
 
@@ -128,10 +130,11 @@ static int yuv4_write_packet(AVFormatContext *s, AVPacket *pkt)
 
     if (st->codec->pix_fmt != AV_PIX_FMT_GRAY8) {
         // Adjust for smaller Cb and Cr planes
-        avcodec_get_chroma_sub_sample(st->codec->pix_fmt, &h_chroma_shift,
-                                      &v_chroma_shift);
-        width  >>= h_chroma_shift;
-        height >>= v_chroma_shift;
+        av_pix_fmt_get_chroma_sub_sample(st->codec->pix_fmt, &h_chroma_shift,
+                                         &v_chroma_shift);
+        // Shift right, rounding up
+        width  = -(-width  >> h_chroma_shift);
+        height = -(-height >> v_chroma_shift);
 
         ptr1 = picture->data[1];
         ptr2 = picture->data[2];
@@ -144,7 +147,6 @@ static int yuv4_write_packet(AVFormatContext *s, AVPacket *pkt)
             ptr2 += picture->linesize[2];
         }
     }
-    avio_flush(pb);
     return 0;
 }
 
@@ -359,6 +361,7 @@ static int yuv4_read_header(AVFormatContext *s)
     st->codec->height = height;
     av_reduce(&raten, &rated, raten, rated, (1UL << 31) - 1);
     avpriv_set_pts_info(st, 64, rated, raten);
+    st->avg_frame_rate                = av_inv_q(st->time_base);
     st->codec->pix_fmt                = pix_fmt;
     st->codec->codec_type             = AVMEDIA_TYPE_VIDEO;
     st->codec->codec_id               = AV_CODEC_ID_RAWVIDEO;

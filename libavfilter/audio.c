@@ -23,60 +23,51 @@
 #include "avfilter.h"
 #include "internal.h"
 
-AVFilterBufferRef *ff_null_get_audio_buffer(AVFilterLink *link, int perms,
-                                            int nb_samples)
+AVFrame *ff_null_get_audio_buffer(AVFilterLink *link, int nb_samples)
 {
-    return ff_get_audio_buffer(link->dst->outputs[0], perms, nb_samples);
+    return ff_get_audio_buffer(link->dst->outputs[0], nb_samples);
 }
 
-AVFilterBufferRef *ff_default_get_audio_buffer(AVFilterLink *link, int perms,
-                                               int nb_samples)
+AVFrame *ff_default_get_audio_buffer(AVFilterLink *link, int nb_samples)
 {
-    AVFilterBufferRef *samplesref = NULL;
-    uint8_t **data;
-    int planar      = av_sample_fmt_is_planar(link->format);
-    int nb_channels = av_get_channel_layout_nb_channels(link->channel_layout);
-    int planes      = planar ? nb_channels : 1;
-    int linesize;
+    AVFrame *frame = av_frame_alloc();
+    int channels = av_get_channel_layout_nb_channels(link->channel_layout);
+    int ret;
 
-    if (!(data = av_mallocz(sizeof(*data) * planes)))
-        goto fail;
+    if (!frame)
+        return NULL;
 
-    if (av_samples_alloc(data, &linesize, nb_channels, nb_samples, link->format, 0) < 0)
-        goto fail;
+    frame->nb_samples     = nb_samples;
+    frame->format         = link->format;
+    frame->channel_layout = link->channel_layout;
+    frame->sample_rate    = link->sample_rate;
+    ret = av_frame_get_buffer(frame, 0);
+    if (ret < 0) {
+        av_frame_free(&frame);
+        return NULL;
+    }
 
-    samplesref = avfilter_get_audio_buffer_ref_from_arrays(data, linesize, perms,
-                                                           nb_samples, link->format,
-                                                           link->channel_layout);
-    if (!samplesref)
-        goto fail;
+    av_samples_set_silence(frame->extended_data, 0, nb_samples, channels,
+                           link->format);
 
-    av_freep(&data);
 
-fail:
-    if (data)
-        av_freep(&data[0]);
-    av_freep(&data);
-    return samplesref;
+    return frame;
 }
 
-AVFilterBufferRef *ff_get_audio_buffer(AVFilterLink *link, int perms,
-                                       int nb_samples)
+AVFrame *ff_get_audio_buffer(AVFilterLink *link, int nb_samples)
 {
-    AVFilterBufferRef *ret = NULL;
+    AVFrame *ret = NULL;
 
     if (link->dstpad->get_audio_buffer)
-        ret = link->dstpad->get_audio_buffer(link, perms, nb_samples);
+        ret = link->dstpad->get_audio_buffer(link, nb_samples);
 
     if (!ret)
-        ret = ff_default_get_audio_buffer(link, perms, nb_samples);
-
-    if (ret)
-        ret->type = AVMEDIA_TYPE_AUDIO;
+        ret = ff_default_get_audio_buffer(link, nb_samples);
 
     return ret;
 }
 
+#if FF_API_AVFILTERBUFFER
 AVFilterBufferRef* avfilter_get_audio_buffer_ref_from_arrays(uint8_t **data,
                                                              int linesize,int perms,
                                                              int nb_samples,
@@ -146,3 +137,4 @@ fail:
     av_freep(&samples);
     return NULL;
 }
+#endif

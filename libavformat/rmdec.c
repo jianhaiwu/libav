@@ -21,6 +21,7 @@
 
 #include "libavutil/avstring.h"
 #include "libavutil/channel_layout.h"
+#include "libavutil/internal.h"
 #include "libavutil/intreadwrite.h"
 #include "libavutil/dict.h"
 #include "avformat.h"
@@ -28,7 +29,7 @@
 #include "rmsipr.h"
 #include "rm.h"
 
-#define DEINT_ID_GENR MKTAG('g', 'e', 'n', 'r') ///< interleaving for Cooker/Atrac
+#define DEINT_ID_GENR MKTAG('g', 'e', 'n', 'r') ///< interleaving for Cooker/ATRAC
 #define DEINT_ID_INT0 MKTAG('I', 'n', 't', '0') ///< no interleaving needed
 #define DEINT_ID_INT4 MKTAG('I', 'n', 't', '4') ///< interleaving for 28.8
 #define DEINT_ID_SIPR MKTAG('s', 'i', 'p', 'r') ///< interleaving for Sipro
@@ -338,9 +339,6 @@ ff_rm_read_mdpr_codecdata (AVFormatContext *s, AVIOContext *pb,
             av_log(s, AV_LOG_ERROR, "Invalid framerate\n");
             return AVERROR_INVALIDDATA;
         }
-#if FF_API_R_FRAME_RATE
-        st->r_frame_rate = st->avg_frame_rate;
-#endif
     }
 
 skip:
@@ -683,6 +681,12 @@ static int rm_assemble_video_frame(AVFormatContext *s, AVIOContext *pb,
         *pkt= vst->pkt;
         vst->pkt.data= NULL;
         vst->pkt.size= 0;
+        vst->pkt.buf = NULL;
+#if FF_API_DESTRUCT_PACKET
+FF_DISABLE_DEPRECATION_WARNINGS
+        vst->pkt.destruct = NULL;
+FF_ENABLE_DEPRECATION_WARNINGS
+#endif
         if(vst->slices != vst->cur_slice) //FIXME find out how to set slices correct from the begin
             memmove(pkt->data + 1 + 8*vst->cur_slice, pkt->data + 1 + 8*vst->slices,
                 vst->videobufpos - 1 - 8*vst->slices);
