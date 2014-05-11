@@ -1,8 +1,24 @@
-libav (6:10-3) UNRELEASED; urgency=low
+libav (6:10.1-1) experimental; urgency=low
 
-  * Prepare new upload
-
- -- Reinhard Tartler <siretart@tauware.de>  Tue, 22 Apr 2014 20:53:12 -0400
+  * New upstream release 10:
+     - pcm-dvd: Fix 20bit decoding (bug/592)
+     - avi: Improve non-interleaved detection (bug/666)
+     - arm: hpeldsp: fix put_pixels8_y2_{,no_rnd_}armv6
+     - arm: hpeldsp: prevent overreads in armv6 asm (bug/646)
+     - avfilter: Add missing emms_c when needed
+     - rtmpproto: Check the buffer sizes when copying app/playpath strings
+     - swscale: Fix an undefined behaviour
+     - vp9: Read the frame size as unsigned
+     - dcadec: Use correct channel count in stereo downmix check
+     - dcadec: Do not decode the XCh extension when downmixing to stereo
+     - matroska: add the Opus mapping
+     - matroskadec: read the CodecDelay element
+     - rtmpproto: Make sure to pass on the error code if read_connect failed
+     - lavr: allocate the resampling buffer with a positive size
+     - mp3enc: Properly write bitrate value in XING header (Closes: #736088)
+     - golomb: Fix the implementation of get_se_golomb_long
+  
+ -- Reinhard Tartler <siretart@tauware.de>  Sun, 11 May 2014 09:41:12 -0400
 
 libav (6:10-2) experimental; urgency=low
 
@@ -16,7 +32,7 @@ libav (6:10-2) experimental; urgency=low
 libav (6:10-1) experimental; urgency=low
 
   * New upstream release 10. Full changelog avaialble at:
-    http://git.libav.org/?p=libav.git;a=blob;f=Changelog;hb=refs/tags/v10_beta2
+    http://git.libav.org/?p=libav.git;a=blob;f=Changelog;hb=refs/tags/v10
 
  -- Reinhard Tartler <siretart@tauware.de>  Sun, 23 Mar 2014 14:23:55 -0400
 
