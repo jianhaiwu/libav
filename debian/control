@@ -7,7 +7,6 @@ Uploaders:
  Loïc Minier <lool@debian.org>,
  Reinhard Tartler <siretart@tauware.de>,
  Fabian Greffrath <fabian+debian@greffrath.com>,
- Andres Mejia <amejia@debian.org>,
  Jonas Smedegaard <dr@jones.dk>
 Standards-Version: 3.9.5
 Vcs-Git: git://anonscm.debian.org/pkg-multimedia/libav.git
@@ -31,6 +30,7 @@ Build-Depends:
  libmp3lame-dev,
  libopencore-amrnb-dev,
  libopencore-amrwb-dev,
+ libopencv-dev,
  libopenjpeg-dev,
  libopus-dev (>= 1.0.1),
  libpulse-dev,
@@ -83,8 +83,8 @@ Description: Multimedia player, server, encoder and transcoder
  DV...). Additionally, it contains the qt-faststart utility which
  rearranges Quicktime files to facilitate network streaming.
  .
- This package also serves as a replacement for the former 'ffmpeg'
- package.
+ This package replaces the 'ffmpeg' command-line tool that was provided
+ in earlier distroreleases.
 
 Package: libav-dbg
 Section: debug
@@ -98,10 +98,10 @@ Breaks:
  libav-extra-dbg (<< 6:0.8.3-5)
 Depends:
  libav-tools (= ${binary:Version}),
- libavcodec54 (= ${binary:Version}) | libavcodec-extra-54 (= ${binary:Version}),
- libavdevice53 (= ${binary:Version}),
- libavformat54 (= ${binary:Version}),
- libavutil52 (= ${binary:Version}),
+ libavcodec55 (= ${binary:Version}) | libavcodec-extra-55 (= ${binary:Version}),
+ libavdevice54 (= ${binary:Version}),
+ libavformat55 (= ${binary:Version}),
+ libavutil53 (= ${binary:Version}),
  libswscale2 (= ${binary:Version}),
  ${misc:Depends}
 Description: Debug symbols for Libav related packages
@@ -126,7 +126,7 @@ Description: Documentation of the Libav API
  .
  Only application developers will find this package useful.
 
-Package: libavutil52
+Package: libavutil53
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
@@ -140,7 +140,7 @@ Description: Libav utility library
  This is the common utility library from Libav. It contains shared code
  used by all other Libav libraries.
 
-Package: libavcodec54
+Package: libavcodec55
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
@@ -148,9 +148,9 @@ Depends:
  ${misc:Depends},
  ${shlibs:Depends}
 Conflicts:
- libavcodec-extra-54
+ libavcodec-extra-55
 Replaces:
- libavcodec-extra-54
+ libavcodec-extra-55
 Breaks:
  mplayer (<< 2:1.0~rc4.dfsg1+svn34540-1~)
 Description: Libav codec library
@@ -161,34 +161,26 @@ Description: Libav codec library
  .
  It supports most existing codecs (MPEG, MPEG2, MPEG4, AC3, DV...).
 
-Package: libavdevice53
+Package: libavdevice54
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends:
  ${misc:Depends},
  ${shlibs:Depends}
-Replaces:
- libavdevice-extra-53
-Breaks:
- libavdevice-extra-53 (<< 5:0.8.1-2)
 Description: Libav device handling library
  Libav is a complete, cross-platform solution to decode, encode, record,
  convert and stream audio and video.
  .
  This is the device handling library from Libav.
 
-Package: libavformat54
+Package: libavformat55
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends:
  ${misc:Depends},
  ${shlibs:Depends}
-Replaces:
- libavformat-extra-54
-Breaks:
- libavformat-extra-54 (<< 5:0.8.1-2)
 Description: Libav file format library
  Libav is a complete, cross-platform solution to decode, encode, record,
  convert and stream audio and video.
@@ -198,7 +190,7 @@ Description: Libav file format library
  It supports most existing file formats (AVI, MPEG, OGG, Matroska,
  ASF...).
 
-Package: libavfilter3
+Package: libavfilter4
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
@@ -207,10 +199,6 @@ Depends:
  ${shlibs:Depends}
 Suggests:
  frei0r-plugins (>= 1.3)
-Replaces:
- libavfilter-extra-3
-Breaks:
- libavfilter-extra-3 (<< 5:0.8.1-2)
 Description: Libav video filtering library
  Libav is a complete, cross-platform solution to decode, encode, record,
  convert and stream audio and video.
@@ -238,7 +226,7 @@ Package: libavutil-dev
 Section: libdevel
 Architecture: any
 Depends:
- libavutil52 (= ${binary:Version}),
+ libavutil53 (= ${binary:Version}),
  ${misc:Depends}
 Description: Development files for libavutil
  Libav is a complete, cross-platform solution to decode, encode, record,
@@ -253,8 +241,8 @@ Package: libavcodec-dev
 Section: libdevel
 Architecture: any
 Depends:
- libavcodec54 (<= ${source:Upstream-Version}-99) | libavcodec-extra-54 (<= ${source:Upstream-Version}-99),
- libavcodec54 (>= ${binary:Version}) | libavcodec-extra-54 (>= ${binary:Version}),
+ libavcodec55 (<= ${source:Upstream-Version}-99) | libavcodec-extra-55 (<= ${source:Upstream-Version}-99),
+ libavcodec55 (>= ${binary:Version}) | libavcodec-extra-55 (>= ${binary:Version}),
  libavutil-dev (= ${binary:Version}),
  ${misc:Depends}
 Suggests:
@@ -283,7 +271,7 @@ Package: libavdevice-dev
 Section: libdevel
 Architecture: any
 Depends:
- libavdevice53 (= ${binary:Version}),
+ libavdevice54 (= ${binary:Version}),
  libavformat-dev (= ${binary:Version}),
  ${misc:Depends}
 Description: Development files for libavdevice
@@ -300,7 +288,7 @@ Section: libdevel
 Architecture: any
 Depends:
  libavcodec-dev (= ${binary:Version}),
- libavformat54 (= ${binary:Version}),
+ libavformat55 (= ${binary:Version}),
  libavutil-dev (= ${binary:Version}),
  ${misc:Depends}
 Description: Development files for libavformat
@@ -318,7 +306,7 @@ Section: libdevel
 Architecture: any
 Depends:
  libavcodec-dev (= ${binary:Version}),
- libavfilter3 (= ${binary:Version}),
+ libavfilter4 (= ${binary:Version}),
  ${misc:Depends}
 Description: Development files for libavfilter
  Libav is a complete, cross-platform solution to decode, encode, record,
@@ -376,7 +364,7 @@ Description: Libav audo resampling library
  .
  This is the audio software resampling library from Libav.
 
-Package: libavcodec-extra-54
+Package: libavcodec-extra-55
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
@@ -384,9 +372,9 @@ Depends:
  ${misc:Depends},
  ${shlibs:Depends}
 Replaces:
- libavcodec54
+ libavcodec55
 Conflicts:
- libavcodec54
+ libavcodec55
 Breaks:
  mplayer (<< 2:1.0~rc4.dfsg1+svn34540-1~)
 Description: Libav codec library (additional codecs)
@@ -395,7 +383,7 @@ Description: Libav codec library (additional codecs)
  .
  This is the codec library from Libav (both encoding and decoding).
  .
- This package is a replacement for the regular libavcodec54 library package;
+ This package is a replacement for the regular libavcodec55 library package;
  it contains the following additional codecs:
  .
   * OpenCORE Adaptive Multi-Rate (AMR) Narrow-Band (Encoder/Decoder)
@@ -411,7 +399,7 @@ Package: libavcodec-extra
 Priority: extra
 Architecture: all
 Depends:
- libavcodec-extra-54,
+ libavcodec-extra-55,
  ${misc:Depends},
 Description: Libav codec library (additional codecs meta-package)
  Libav is a complete, cross-platform solution to decode, encode, record,

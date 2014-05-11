@@ -23,6 +23,7 @@
 #include "libavutil/libm.h"
 #include "libavutil/log.h"
 #include "internal.h"
+#include "resample.h"
 #include "audio_data.h"
 
 struct ResampleContext {
@@ -46,7 +47,6 @@ struct ResampleContext {
     void (*resample_one)(struct ResampleContext *c, int no_filter, void *dst0,
                          int dst_index, const void *src0, int src_size,
                          int index, int frac);
-    int padding_size;
 };
 
 
@@ -212,7 +212,6 @@ ResampleContext *ff_audio_resample_init(AVAudioResampleContext *avr)
         goto error;
     c->ideal_dst_incr = c->dst_incr;
 
-    c->padding_size   = (c->filter_length - 1) / 2;
     c->index = -phase_count * ((c->filter_length - 1) / 2);
     c->frac  = 0;
 
@@ -463,10 +462,8 @@ int ff_audio_resample(ResampleContext *c, AudioData *dst, AudioData *src)
 
 int avresample_get_delay(AVAudioResampleContext *avr)
 {
-    ResampleContext *c = avr->resample;
-
     if (!avr->resample_needed || !avr->resample)
         return 0;
 
-    return FFMAX(c->buffer->nb_samples - c->padding_size, 0);
+    return avr->resample->buffer->nb_samples;
 }

@@ -1,3 +1,0 @@
-# This is the sister package of libavcodec54
-libavcodec-extra-54: package-name-doesnt-match-sonames
-libavcodec-extra-54: shlib-with-non-pic-code

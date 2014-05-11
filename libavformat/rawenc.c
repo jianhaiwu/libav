@@ -26,7 +26,6 @@
 int ff_raw_write_packet(AVFormatContext *s, AVPacket *pkt)
 {
     avio_write(s->pb, pkt->data, pkt->size);
-    avio_flush(s->pb);
     return 0;
 }
 
@@ -165,6 +164,18 @@ AVOutputFormat ff_h264_muxer = {
     .extensions        = "h264",
     .audio_codec       = AV_CODEC_ID_NONE,
     .video_codec       = AV_CODEC_ID_H264,
+    .write_packet      = ff_raw_write_packet,
+    .flags             = AVFMT_NOTIMESTAMPS,
+};
+#endif
+
+#if CONFIG_HEVC_MUXER
+AVOutputFormat ff_hevc_muxer = {
+    .name              = "hevc",
+    .long_name         = NULL_IF_CONFIG_SMALL("raw HEVC video"),
+    .extensions        = "hevc",
+    .audio_codec       = AV_CODEC_ID_NONE,
+    .video_codec       = AV_CODEC_ID_HEVC,
     .write_packet      = ff_raw_write_packet,
     .flags             = AVFMT_NOTIMESTAMPS,
 };

@@ -26,7 +26,6 @@
 #include "avcodec.h"
 
 typedef struct GSMContext {
-    AVFrame frame;
     // Contains first 120 elements from the previous frame
     // (used by long_term_synth according to the "lag"),
     // then in the following 160 elements the current
@@ -40,5 +39,7 @@ typedef struct GSMContext {
 
 extern const uint16_t ff_gsm_long_term_gain_tab[4];
 extern const int16_t ff_gsm_dequant_tab[64][8];
+
+extern const int* const ff_gsm_apcm_bits[][4];
 
 #endif /* AVCODEC_GSMDEC_DATA_H */

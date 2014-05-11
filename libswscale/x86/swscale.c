@@ -74,7 +74,7 @@ DECLARE_ALIGNED(8, const uint64_t, ff_w1111)        = 0x0001000100010001ULL;
 #if HAVE_MMX_INLINE
 #undef RENAME
 #define COMPILE_TEMPLATE_MMXEXT 0
-#define RENAME(a) a ## _MMX
+#define RENAME(a) a ## _mmx
 #include "swscale_template.c"
 #endif
 
@@ -83,7 +83,7 @@ DECLARE_ALIGNED(8, const uint64_t, ff_w1111)        = 0x0001000100010001ULL;
 #undef RENAME
 #undef COMPILE_TEMPLATE_MMXEXT
 #define COMPILE_TEMPLATE_MMXEXT 1
-#define RENAME(a) a ## _MMXEXT
+#define RENAME(a) a ## _mmxext
 #include "swscale_template.c"
 #endif
 
@@ -206,7 +206,7 @@ void updateMMXDitherTables(SwsContext *c, int dstY, int lumBufIndex, int chrBufI
 #endif /* HAVE_INLINE_ASM */
 
 #define SCALE_FUNC(filter_n, from_bpc, to_bpc, opt) \
-extern void ff_hscale ## from_bpc ## to ## to_bpc ## _ ## filter_n ## _ ## opt( \
+void ff_hscale ## from_bpc ## to ## to_bpc ## _ ## filter_n ## _ ## opt( \
                                                 SwsContext *c, int16_t *data, \
                                                 int dstW, const uint8_t *src, \
                                                 const int16_t *filter, \
@@ -241,9 +241,9 @@ SCALE_FUNCS_SSE(ssse3);
 SCALE_FUNCS_SSE(sse4);
 
 #define VSCALEX_FUNC(size, opt) \
-extern void ff_yuv2planeX_ ## size ## _ ## opt(const int16_t *filter, int filterSize, \
-                                               const int16_t **src, uint8_t *dest, int dstW, \
-                                               const uint8_t *dither, int offset)
+void ff_yuv2planeX_ ## size ## _ ## opt(const int16_t *filter, int filterSize, \
+                                        const int16_t **src, uint8_t *dest, int dstW, \
+                                        const uint8_t *dither, int offset)
 #define VSCALEX_FUNCS(opt) \
     VSCALEX_FUNC(8,  opt); \
     VSCALEX_FUNC(9,  opt); \
@@ -258,8 +258,8 @@ VSCALEX_FUNC(16, sse4);
 VSCALEX_FUNCS(avx);
 
 #define VSCALE_FUNC(size, opt) \
-extern void ff_yuv2plane1_ ## size ## _ ## opt(const int16_t *src, uint8_t *dst, int dstW, \
-                                               const uint8_t *dither, int offset)
+void ff_yuv2plane1_ ## size ## _ ## opt(const int16_t *src, uint8_t *dst, int dstW, \
+                                        const uint8_t *dither, int offset)
 #define VSCALE_FUNCS(opt1, opt2) \
     VSCALE_FUNC(8,  opt1); \
     VSCALE_FUNC(9,  opt2); \
@@ -274,12 +274,12 @@ VSCALE_FUNC(16, sse4);
 VSCALE_FUNCS(avx, avx);
 
 #define INPUT_Y_FUNC(fmt, opt) \
-extern void ff_ ## fmt ## ToY_  ## opt(uint8_t *dst, const uint8_t *src, \
-                                       int w, uint32_t *unused)
+void ff_ ## fmt ## ToY_  ## opt(uint8_t *dst, const uint8_t *src, \
+                                int w, uint32_t *unused)
 #define INPUT_UV_FUNC(fmt, opt) \
-extern void ff_ ## fmt ## ToUV_ ## opt(uint8_t *dstU, uint8_t *dstV, \
-                                       const uint8_t *src, const uint8_t *unused1, \
-                                       int w, uint32_t *unused2)
+void ff_ ## fmt ## ToUV_ ## opt(uint8_t *dstU, uint8_t *dstV, \
+                                const uint8_t *src, const uint8_t *unused1, \
+                                int w, uint32_t *unused2)
 #define INPUT_FUNC(fmt, opt) \
     INPUT_Y_FUNC(fmt, opt); \
     INPUT_UV_FUNC(fmt, opt)
@@ -302,18 +302,18 @@ INPUT_FUNCS(sse2);
 INPUT_FUNCS(ssse3);
 INPUT_FUNCS(avx);
 
-av_cold void ff_sws_init_swScale_mmx(SwsContext *c)
+av_cold void ff_sws_init_swscale_x86(SwsContext *c)
 {
     int cpu_flags = av_get_cpu_flags();
 
-#if HAVE_INLINE_ASM
-    if (cpu_flags & AV_CPU_FLAG_MMX)
-        sws_init_swScale_MMX(c);
-#if HAVE_MMXEXT_INLINE
-    if (cpu_flags & AV_CPU_FLAG_MMXEXT)
-        sws_init_swScale_MMXEXT(c);
+#if HAVE_MMX_INLINE
+    if (INLINE_MMX(cpu_flags))
+        sws_init_swscale_mmx(c);
 #endif
-#endif /* HAVE_INLINE_ASM */
+#if HAVE_MMXEXT_INLINE
+    if (INLINE_MMXEXT(cpu_flags))
+        sws_init_swscale_mmxext(c);
+#endif
 
 #define ASSIGN_SCALE_FUNC2(hscalefn, filtersize, opt1, opt2) do { \
     if (c->srcBpc == 8) { \

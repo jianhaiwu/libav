@@ -1,0 +1,14 @@
+Author: Fabian Greffrath <fabian+debian@greffrath.com>
+Description: Use the freetype API correctly.
+Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=731307
+
+--- a/libavfilter/vf_drawtext.c
++++ b/libavfilter/vf_drawtext.c
+@@ -47,7 +47,6 @@
+ #include "video.h"
+ 
+ #include <ft2build.h>
+-#include <freetype/config/ftheader.h>
+ #include FT_FREETYPE_H
+ #include FT_GLYPH_H
+ 

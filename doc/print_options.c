@@ -27,7 +27,9 @@
 #include <float.h>
 
 #include "libavformat/avformat.h"
+#include "libavformat/options_table.h"
 #include "libavcodec/avcodec.h"
+#include "libavcodec/options_table.h"
 #include "libavutil/opt.h"
 
 static void print_usage(void)
@@ -39,6 +41,9 @@ static void print_usage(void)
 
 static void print_option(const AVOption *opts, const AVOption *o, int per_stream)
 {
+    if (!(o->flags & (AV_OPT_FLAG_DECODING_PARAM | AV_OPT_FLAG_ENCODING_PARAM)))
+        return;
+
     printf("@item -%s%s @var{", o->name, per_stream ? "[:stream_specifier]" : "");
     switch (o->type) {
     case AV_OPT_TYPE_BINARY:   printf("hexadecimal string"); break;
@@ -93,18 +98,14 @@ static void show_opts(const AVOption *opts, int per_stream)
 
 static void show_format_opts(void)
 {
-#include "libavformat/options_table.h"
-
     printf("@section Format AVOptions\n");
-    show_opts(options, 0);
+    show_opts(avformat_options, 0);
 }
 
 static void show_codec_opts(void)
 {
-#include "libavcodec/options_table.h"
-
     printf("@section Codec AVOptions\n");
-    show_opts(options, 1);
+    show_opts(avcodec_options, 1);
 }
 
 int main(int argc, char **argv)

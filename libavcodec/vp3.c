@@ -38,6 +38,7 @@
 #include "internal.h"
 #include "dsputil.h"
 #include "get_bits.h"
+#include "hpeldsp.h"
 #include "videodsp.h"
 #include "vp3data.h"
 #include "vp3dsp.h"
@@ -131,13 +132,16 @@ typedef struct Vp3DecodeContext {
     int version;
     int width, height;
     int chroma_x_shift, chroma_y_shift;
-    AVFrame golden_frame;
-    AVFrame last_frame;
-    AVFrame current_frame;
+    ThreadFrame golden_frame;
+    ThreadFrame last_frame;
+    ThreadFrame current_frame;
     int keyframe;
-    DSPContext dsp;
+    uint8_t idct_permutation[64];
+    uint8_t idct_scantable[64];
+    HpelDSPContext hdsp;
     VideoDSPContext vdsp;
     VP3DSPContext vp3dsp;
+    DECLARE_ALIGNED(16, int16_t, block)[64];
     int flipped_image;
     int last_slice_end;
     int skip_loop_filter;
@@ -170,8 +174,6 @@ typedef struct Vp3DecodeContext {
     int data_offset[3];
 
     int8_t (*motion_val[2])[2];
-
-    ScanTable scantable;
 
     /* tables */
     uint16_t coded_dc_scale_factor[64];
@@ -260,19 +262,11 @@ static void vp3_decode_flush(AVCodecContext *avctx)
 {
     Vp3DecodeContext *s = avctx->priv_data;
 
-    if (s->golden_frame.data[0]) {
-        if (s->golden_frame.data[0] == s->last_frame.data[0])
-            memset(&s->last_frame, 0, sizeof(AVFrame));
-        if (s->current_frame.data[0] == s->golden_frame.data[0])
-            memset(&s->current_frame, 0, sizeof(AVFrame));
+    if (s->golden_frame.f)
         ff_thread_release_buffer(avctx, &s->golden_frame);
-    }
-    if (s->last_frame.data[0]) {
-        if (s->current_frame.data[0] == s->last_frame.data[0])
-            memset(&s->current_frame, 0, sizeof(AVFrame));
+    if (s->last_frame.f)
         ff_thread_release_buffer(avctx, &s->last_frame);
-    }
-    if (s->current_frame.data[0])
+    if (s->current_frame.f)
         ff_thread_release_buffer(avctx, &s->current_frame);
 }
 
@@ -291,6 +285,12 @@ static av_cold int vp3_decode_end(AVCodecContext *avctx)
     av_freep(&s->motion_val[1]);
     av_freep(&s->edge_emu_buffer);
 
+    /* release all frames */
+    vp3_decode_flush(avctx);
+    av_frame_free(&s->current_frame.f);
+    av_frame_free(&s->last_frame.f);
+    av_frame_free(&s->golden_frame.f);
+
     if (avctx->internal->is_copy)
         return 0;
 
@@ -307,8 +307,6 @@ static av_cold int vp3_decode_end(AVCodecContext *avctx)
     ff_free_vlc(&s->mode_code_vlc);
     ff_free_vlc(&s->motion_vector_vlc);
 
-    /* release all frames */
-    vp3_decode_flush(avctx);
 
     return 0;
 }
@@ -377,7 +375,8 @@ static void init_dequantizer(Vp3DecodeContext *s, int qpi)
                 int qmin= 8<<(inter + !i);
                 int qscale= i ? ac_scale_factor : dc_scale_factor;
 
-                s->qmat[qpi][inter][plane][s->dsp.idct_permutation[i]]= av_clip((qscale * coeff)/100 * 4, qmin, 4096);
+                s->qmat[qpi][inter][plane][s->idct_permutation[i]] =
+                    av_clip((qscale * coeff) / 100 * 4, qmin, 4096);
             }
             // all DC coefficients use the same quant so as not to interfere with DC prediction
             s->qmat[qpi][inter][plane][0] = s->qmat[0][inter][plane][0];
@@ -919,7 +918,7 @@ static int unpack_vlcs(Vp3DecodeContext *s, GetBitContext *gb,
     int i, j = 0;
     int token;
     int zero_run = 0;
-    DCTELEM coeff = 0;
+    int16_t coeff = 0;
     int bits_to_get;
     int blocks_ended;
     int coeff_i = 0;
@@ -1289,8 +1288,8 @@ static void apply_loop_filter(Vp3DecodeContext *s, int plane, int ystart, int ye
     int width           = s->fragment_width[!!plane];
     int height          = s->fragment_height[!!plane];
     int fragment        = s->fragment_start        [plane] + ystart * width;
-    int stride          = s->current_frame.linesize[plane];
-    uint8_t *plane_data = s->current_frame.data    [plane];
+    ptrdiff_t stride    = s->current_frame.f->linesize[plane];
+    uint8_t *plane_data = s->current_frame.f->data    [plane];
     if (!s->flipped_image) stride = -stride;
     plane_data += s->data_offset[plane] + 8*ystart*stride;
 
@@ -1349,10 +1348,10 @@ static void apply_loop_filter(Vp3DecodeContext *s, int plane, int ystart, int ye
  * for the next block in coding order
  */
 static inline int vp3_dequant(Vp3DecodeContext *s, Vp3Fragment *frag,
-                              int plane, int inter, DCTELEM block[64])
+                              int plane, int inter, int16_t block[64])
 {
     int16_t *dequantizer = s->qmat[frag->qpi][inter][plane];
-    uint8_t *perm = s->scantable.permutated;
+    uint8_t *perm = s->idct_scantable;
     int i = 0;
 
     do {
@@ -1419,14 +1418,14 @@ static void vp3_draw_horiz_band(Vp3DecodeContext *s, int y)
     }
 
     cy = y >> s->chroma_y_shift;
-    offset[0] = s->current_frame.linesize[0]*y;
-    offset[1] = s->current_frame.linesize[1]*cy;
-    offset[2] = s->current_frame.linesize[2]*cy;
+    offset[0] = s->current_frame.f->linesize[0]*y;
+    offset[1] = s->current_frame.f->linesize[1]*cy;
+    offset[2] = s->current_frame.f->linesize[2]*cy;
     for (i = 3; i < AV_NUM_DATA_POINTERS; i++)
         offset[i] = 0;
 
     emms_c();
-    s->avctx->draw_horiz_band(s->avctx, &s->current_frame, offset, y, 3, h);
+    s->avctx->draw_horiz_band(s->avctx, s->current_frame.f, offset, y, 3, h);
 }
 
 /**
@@ -1435,7 +1434,7 @@ static void vp3_draw_horiz_band(Vp3DecodeContext *s, int y)
  */
 static void await_reference_row(Vp3DecodeContext *s, Vp3Fragment *fragment, int motion_y, int y)
 {
-    AVFrame *ref_frame;
+    ThreadFrame *ref_frame;
     int ref_row;
     int border = motion_y&1;
 
@@ -1458,7 +1457,7 @@ static void await_reference_row(Vp3DecodeContext *s, Vp3Fragment *fragment, int 
 static void render_slice(Vp3DecodeContext *s, int slice)
 {
     int x, y, i, j, fragment;
-    LOCAL_ALIGNED_16(DCTELEM, block, [64]);
+    int16_t *block = s->block;
     int motion_x = 0xdeadbeef, motion_y = 0xdeadbeef;
     int motion_halfpel_index;
     uint8_t *motion_source;
@@ -1468,10 +1467,10 @@ static void render_slice(Vp3DecodeContext *s, int slice)
         return;
 
     for (plane = 0; plane < 3; plane++) {
-        uint8_t *output_plane = s->current_frame.data    [plane] + s->data_offset[plane];
-        uint8_t *  last_plane = s->   last_frame.data    [plane] + s->data_offset[plane];
-        uint8_t *golden_plane = s-> golden_frame.data    [plane] + s->data_offset[plane];
-        int stride            = s->current_frame.linesize[plane];
+        uint8_t *output_plane = s->current_frame.f->data    [plane] + s->data_offset[plane];
+        uint8_t *  last_plane = s->   last_frame.f->data    [plane] + s->data_offset[plane];
+        uint8_t *golden_plane = s-> golden_frame.f->data    [plane] + s->data_offset[plane];
+        ptrdiff_t stride      = s->current_frame.f->linesize[plane];
         int plane_width       = s->width  >> (plane && s->chroma_x_shift);
         int plane_height      = s->height >> (plane && s->chroma_y_shift);
         int8_t (*motion_val)[2] = s->motion_val[!!plane];
@@ -1544,7 +1543,11 @@ static void render_slice(Vp3DecodeContext *s, int slice)
                             uint8_t *temp= s->edge_emu_buffer;
                             if(stride<0) temp -= 8*stride;
 
-                            s->vdsp.emulated_edge_mc(temp, motion_source, stride, 9, 9, src_x, src_y, plane_width, plane_height);
+                            s->vdsp.emulated_edge_mc(temp, motion_source,
+                                                     stride, stride,
+                                                     9, 9, src_x, src_y,
+                                                     plane_width,
+                                                     plane_height);
                             motion_source= temp;
                         }
                     }
@@ -1558,20 +1561,18 @@ static void render_slice(Vp3DecodeContext *s, int slice)
                            VP3 source but this would be slower as
                            put_no_rnd_pixels_tab is better optimzed */
                         if(motion_halfpel_index != 3){
-                            s->dsp.put_no_rnd_pixels_tab[1][motion_halfpel_index](
+                            s->hdsp.put_no_rnd_pixels_tab[1][motion_halfpel_index](
                                 output_plane + first_pixel,
                                 motion_source, stride, 8);
                         }else{
                             int d= (motion_x ^ motion_y)>>31; // d is 0 if motion_x and _y have the same sign, else -1
-                            s->dsp.put_no_rnd_pixels_l2[1](
+                            s->vp3dsp.put_no_rnd_pixels_l2(
                                 output_plane + first_pixel,
                                 motion_source - d,
                                 motion_source + stride + 1 + d,
                                 stride, 8);
                         }
                     }
-
-                        s->dsp.clear_block(block);
 
                     /* invert DCT and place (or add) in final output */
 
@@ -1600,7 +1601,7 @@ static void render_slice(Vp3DecodeContext *s, int slice)
                 } else {
 
                     /* copy directly from the previous frame */
-                    s->dsp.put_pixels_tab[1][0](
+                    s->hdsp.put_pixels_tab[1][0](
                         output_plane + first_pixel,
                         last_plane + first_pixel,
                         stride, 8);
@@ -1658,13 +1659,35 @@ static av_cold int allocate_tables(AVCodecContext *avctx)
     return 0;
 }
 
+static av_cold int init_frames(Vp3DecodeContext *s)
+{
+    s->current_frame.f = av_frame_alloc();
+    s->last_frame.f    = av_frame_alloc();
+    s->golden_frame.f  = av_frame_alloc();
+
+    if (!s->current_frame.f || !s->last_frame.f || !s->golden_frame.f) {
+        av_frame_free(&s->current_frame.f);
+        av_frame_free(&s->last_frame.f);
+        av_frame_free(&s->golden_frame.f);
+        return AVERROR(ENOMEM);
+    }
+
+    return 0;
+}
+
 static av_cold int vp3_decode_init(AVCodecContext *avctx)
 {
     Vp3DecodeContext *s = avctx->priv_data;
-    int i, inter, plane;
+    int i, inter, plane, ret;
     int c_width;
     int c_height;
     int y_fragment_count, c_fragment_count;
+
+    ret = init_frames(s);
+    if (ret < 0)
+        return ret;
+
+    avctx->internal->allocate_progress = 1;
 
     if (avctx->codec_tag == MKTAG('V','P','3','0'))
         s->version = 0;
@@ -1677,12 +1700,16 @@ static av_cold int vp3_decode_init(AVCodecContext *avctx)
     if (avctx->pix_fmt == AV_PIX_FMT_NONE)
         avctx->pix_fmt = AV_PIX_FMT_YUV420P;
     avctx->chroma_sample_location = AVCHROMA_LOC_CENTER;
-    ff_dsputil_init(&s->dsp, avctx);
+    ff_hpeldsp_init(&s->hdsp, avctx->flags | CODEC_FLAG_BITEXACT);
     ff_videodsp_init(&s->vdsp, 8);
     ff_vp3dsp_init(&s->vp3dsp, avctx->flags);
 
-    ff_init_scantable_permutation(s->dsp.idct_permutation, s->vp3dsp.idct_perm);
-    ff_init_scantable(s->dsp.idct_permutation, &s->scantable, ff_zigzag_direct);
+    for (i = 0; i < 64; i++) {
+#define T(x) (x >> 3) | ((x & 7) << 3)
+        s->idct_permutation[i] = T(i);
+        s->idct_scantable[i] = T(ff_zigzag_direct[i]);
+#undef T
+    }
 
     /* initialize to an impossible value which will force a recalculation
      * in the first frame decode */
@@ -1822,12 +1849,6 @@ static av_cold int vp3_decode_init(AVCodecContext *avctx)
         &motion_vector_vlc_table[0][1], 2, 1,
         &motion_vector_vlc_table[0][0], 2, 1, 0);
 
-    for (i = 0; i < 3; i++) {
-        s->current_frame.data[i] = NULL;
-        s->last_frame.data[i] = NULL;
-        s->golden_frame.data[i] = NULL;
-    }
-
     return allocate_tables(avctx);
 
 vlc_fail:
@@ -1836,26 +1857,44 @@ vlc_fail:
 }
 
 /// Release and shuffle frames after decode finishes
-static void update_frames(AVCodecContext *avctx)
+static int update_frames(AVCodecContext *avctx)
 {
     Vp3DecodeContext *s = avctx->priv_data;
+    int ret = 0;
 
-    /* release the last frame, if it is allocated and if it is not the
-     * golden frame */
-    if (s->last_frame.data[0] && s->last_frame.type != FF_BUFFER_TYPE_COPY)
-        ff_thread_release_buffer(avctx, &s->last_frame);
 
     /* shuffle frames (last = current) */
-    s->last_frame= s->current_frame;
+    ff_thread_release_buffer(avctx, &s->last_frame);
+    ret = ff_thread_ref_frame(&s->last_frame, &s->current_frame);
+    if (ret < 0)
+        goto fail;
 
     if (s->keyframe) {
-        if (s->golden_frame.data[0])
-            ff_thread_release_buffer(avctx, &s->golden_frame);
-        s->golden_frame = s->current_frame;
-        s->last_frame.type = FF_BUFFER_TYPE_COPY;
+        ff_thread_release_buffer(avctx, &s->golden_frame);
+        ret = ff_thread_ref_frame(&s->golden_frame, &s->current_frame);
     }
 
-    s->current_frame.data[0]= NULL; /* ensure that we catch any access to this released frame */
+fail:
+    ff_thread_release_buffer(avctx, &s->current_frame);
+    return ret;
+}
+
+static int ref_frame(Vp3DecodeContext *s, ThreadFrame *dst, ThreadFrame *src)
+{
+    ff_thread_release_buffer(s->avctx, dst);
+    if (src->f->data[0])
+        return ff_thread_ref_frame(dst, src);
+    return 0;
+}
+
+static int ref_frames(Vp3DecodeContext *dst, Vp3DecodeContext *src)
+{
+    int ret;
+    if ((ret = ref_frame(dst, &dst->current_frame, &src->current_frame)) < 0 ||
+        (ret = ref_frame(dst, &dst->golden_frame,  &src->golden_frame)) < 0  ||
+        (ret = ref_frame(dst, &dst->last_frame,    &src->last_frame)) < 0)
+        return ret;
+    return 0;
 }
 
 static int vp3_update_thread_context(AVCodecContext *dst, const AVCodecContext *src)
@@ -1865,17 +1904,17 @@ static int vp3_update_thread_context(AVCodecContext *dst, const AVCodecContext *
 
 #define copy_fields(to, from, start_field, end_field) memcpy(&to->start_field, &from->start_field, (char*)&to->end_field - (char*)&to->start_field)
 
-    if (!s1->current_frame.data[0]
+    if (!s1->current_frame.f->data[0]
         ||s->width != s1->width
         ||s->height!= s1->height) {
         if (s != s1)
-            copy_fields(s, s1, golden_frame, current_frame);
+            ref_frames(s, s1);
         return -1;
     }
 
     if (s != s1) {
         // init tables if the first frame hasn't been decoded
-        if (!s->current_frame.data[0]) {
+        if (!s->current_frame.f->data[0]) {
             int y_fragment_count, c_fragment_count;
             s->avctx = dst;
             err = allocate_tables(dst);
@@ -1888,7 +1927,10 @@ static int vp3_update_thread_context(AVCodecContext *dst, const AVCodecContext *
         }
 
         // copy previous frame data
-        copy_fields(s, s1, golden_frame, dsp);
+        if ((err = ref_frames(s, s1)) < 0)
+            return err;
+
+        s->keyframe = s1->keyframe;
 
         // copy qscale data if necessary
         for (i = 0; i < 3; i++) {
@@ -1906,9 +1948,7 @@ static int vp3_update_thread_context(AVCodecContext *dst, const AVCodecContext *
 #undef copy_fields
     }
 
-    update_frames(dst);
-
-    return 0;
+    return update_frames(dst);
 }
 
 static int vp3_decode_frame(AVCodecContext *avctx,
@@ -1919,7 +1959,7 @@ static int vp3_decode_frame(AVCodecContext *avctx,
     int buf_size = avpkt->size;
     Vp3DecodeContext *s = avctx->priv_data;
     GetBitContext gb;
-    int i;
+    int i, ret;
 
     init_get_bits(&gb, buf, buf_size * 8);
 
@@ -1961,15 +2001,14 @@ static int vp3_decode_frame(AVCodecContext *avctx,
     if (avctx->skip_frame >= AVDISCARD_NONKEY && !s->keyframe)
         return buf_size;
 
-    s->current_frame.reference = 3;
-    s->current_frame.pict_type = s->keyframe ? AV_PICTURE_TYPE_I : AV_PICTURE_TYPE_P;
-    if (ff_thread_get_buffer(avctx, &s->current_frame) < 0) {
+    s->current_frame.f->pict_type = s->keyframe ? AV_PICTURE_TYPE_I : AV_PICTURE_TYPE_P;
+    if (ff_thread_get_buffer(avctx, &s->current_frame, AV_GET_BUFFER_FLAG_REF) < 0) {
         av_log(s->avctx, AV_LOG_ERROR, "get_buffer() failed\n");
         goto error;
     }
 
     if (!s->edge_emu_buffer)
-        s->edge_emu_buffer = av_malloc(9*FFABS(s->current_frame.linesize[0]));
+        s->edge_emu_buffer = av_malloc(9*FFABS(s->current_frame.f->linesize[0]));
 
     if (s->keyframe) {
         if (!s->theora)
@@ -1990,17 +2029,17 @@ static int vp3_decode_frame(AVCodecContext *avctx,
             skip_bits(&gb, 2); /* reserved? */
         }
     } else {
-        if (!s->golden_frame.data[0]) {
+        if (!s->golden_frame.f->data[0]) {
             av_log(s->avctx, AV_LOG_WARNING, "vp3: first frame not a keyframe\n");
 
-            s->golden_frame.reference = 3;
-            s->golden_frame.pict_type = AV_PICTURE_TYPE_I;
-            if (ff_thread_get_buffer(avctx, &s->golden_frame) < 0) {
+            s->golden_frame.f->pict_type = AV_PICTURE_TYPE_I;
+            if (ff_thread_get_buffer(avctx, &s->golden_frame, AV_GET_BUFFER_FLAG_REF) < 0) {
                 av_log(s->avctx, AV_LOG_ERROR, "get_buffer() failed\n");
                 goto error;
             }
-            s->last_frame = s->golden_frame;
-            s->last_frame.type = FF_BUFFER_TYPE_COPY;
+            ff_thread_release_buffer(avctx, &s->last_frame);
+            if ((ret = ff_thread_ref_frame(&s->last_frame, &s->golden_frame)) < 0)
+                goto error;
             ff_thread_report_progress(&s->last_frame, INT_MAX, 0);
         }
     }
@@ -2034,7 +2073,7 @@ static int vp3_decode_frame(AVCodecContext *avctx,
         if (s->flipped_image)
             s->data_offset[i] = 0;
         else
-            s->data_offset[i] = (height-1) * s->current_frame.linesize[i];
+            s->data_offset[i] = (height-1) * s->current_frame.f->linesize[i];
     }
 
     s->last_slice_end = 0;
@@ -2048,11 +2087,15 @@ static int vp3_decode_frame(AVCodecContext *avctx,
     }
     vp3_draw_horiz_band(s, s->avctx->height);
 
+    if ((ret = av_frame_ref(data, s->current_frame.f)) < 0)
+        return ret;
     *got_frame = 1;
-    *(AVFrame*)data= s->current_frame;
 
-    if (!HAVE_THREADS || !(s->avctx->active_thread_type&FF_THREAD_FRAME))
-        update_frames(avctx);
+    if (!HAVE_THREADS || !(s->avctx->active_thread_type&FF_THREAD_FRAME)) {
+        ret = update_frames(avctx);
+        if (ret < 0)
+            return ret;
+    }
 
     return buf_size;
 
@@ -2060,7 +2103,7 @@ error:
     ff_thread_report_progress(&s->current_frame, INT_MAX, 0);
 
     if (!HAVE_THREADS || !(s->avctx->active_thread_type&FF_THREAD_FRAME))
-        avctx->release_buffer(avctx, &s->current_frame);
+        av_frame_unref(s->current_frame.f);
 
     return -1;
 }
@@ -2114,7 +2157,7 @@ static int vp3_init_thread_copy(AVCodecContext *avctx)
     s->motion_val[1]          = NULL;
     s->edge_emu_buffer        = NULL;
 
-    return 0;
+    return init_frames(s);
 }
 
 #if CONFIG_THEORA_DECODER
@@ -2127,6 +2170,7 @@ static int theora_decode_header(AVCodecContext *avctx, GetBitContext *gb)
     Vp3DecodeContext *s = avctx->priv_data;
     int visible_width, visible_height, colorspace;
     int offset_x = 0, offset_y = 0;
+    int ret;
     AVRational fps, aspect;
 
     s->theora = get_bits_long(gb, 24);
@@ -2142,12 +2186,6 @@ static int theora_decode_header(AVCodecContext *avctx, GetBitContext *gb)
 
     visible_width  = s->width  = get_bits(gb, 16) << 4;
     visible_height = s->height = get_bits(gb, 16) << 4;
-
-    if(av_image_check_size(s->width, s->height, 0, avctx)){
-        av_log(avctx, AV_LOG_ERROR, "Invalid dimensions (%dx%d)\n", s->width, s->height);
-        s->width= s->height= 0;
-        return -1;
-    }
 
     if (s->theora >= 0x030200) {
         visible_width  = get_bits_long(gb, 24);
@@ -2195,9 +2233,11 @@ static int theora_decode_header(AVCodecContext *avctx, GetBitContext *gb)
     if (   visible_width  <= s->width  && visible_width  > s->width-16
         && visible_height <= s->height && visible_height > s->height-16
         && !offset_x && (offset_y == s->height - visible_height))
-        avcodec_set_dimensions(avctx, visible_width, visible_height);
+        ret = ff_set_dimensions(avctx, visible_width, visible_height);
     else
-        avcodec_set_dimensions(avctx, s->width, s->height);
+        ret = ff_set_dimensions(avctx, s->width, s->height);
+    if (ret < 0)
+        return ret;
 
     if (colorspace == 1) {
         avctx->color_primaries = AVCOL_PRI_BT470M;
@@ -2386,6 +2426,7 @@ static av_cold int theora_decode_init(AVCodecContext *avctx)
 
 AVCodec ff_theora_decoder = {
     .name                  = "theora",
+    .long_name             = NULL_IF_CONFIG_SMALL("Theora"),
     .type                  = AVMEDIA_TYPE_VIDEO,
     .id                    = AV_CODEC_ID_THEORA,
     .priv_data_size        = sizeof(Vp3DecodeContext),
@@ -2395,7 +2436,6 @@ AVCodec ff_theora_decoder = {
     .capabilities          = CODEC_CAP_DR1 | CODEC_CAP_DRAW_HORIZ_BAND |
                              CODEC_CAP_FRAME_THREADS,
     .flush                 = vp3_decode_flush,
-    .long_name             = NULL_IF_CONFIG_SMALL("Theora"),
     .init_thread_copy      = ONLY_IF_THREADS_ENABLED(vp3_init_thread_copy),
     .update_thread_context = ONLY_IF_THREADS_ENABLED(vp3_update_thread_context)
 };
@@ -2403,6 +2443,7 @@ AVCodec ff_theora_decoder = {
 
 AVCodec ff_vp3_decoder = {
     .name                  = "vp3",
+    .long_name             = NULL_IF_CONFIG_SMALL("On2 VP3"),
     .type                  = AVMEDIA_TYPE_VIDEO,
     .id                    = AV_CODEC_ID_VP3,
     .priv_data_size        = sizeof(Vp3DecodeContext),
@@ -2412,7 +2453,6 @@ AVCodec ff_vp3_decoder = {
     .capabilities          = CODEC_CAP_DR1 | CODEC_CAP_DRAW_HORIZ_BAND |
                              CODEC_CAP_FRAME_THREADS,
     .flush                 = vp3_decode_flush,
-    .long_name             = NULL_IF_CONFIG_SMALL("On2 VP3"),
     .init_thread_copy      = ONLY_IF_THREADS_ENABLED(vp3_init_thread_copy),
     .update_thread_context = ONLY_IF_THREADS_ENABLED(vp3_update_thread_context),
 };

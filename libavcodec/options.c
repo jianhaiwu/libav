@@ -70,7 +70,7 @@ static const AVClass *codec_child_class_next(const AVClass *prev)
 static const AVClass av_codec_context_class = {
     .class_name              = "AVCodecContext",
     .item_name               = context_to_name,
-    .option                  = options,
+    .option                  = avcodec_options,
     .version                 = LIBAVUTIL_VERSION_INT,
     .log_level_offset_offset = offsetof(AVCodecContext, log_level_offset),
     .child_next              = codec_child_next,
@@ -88,8 +88,7 @@ int avcodec_get_context_defaults3(AVCodecContext *s, const AVCodec *codec)
     av_opt_set_defaults(s);
 
     s->time_base           = (AVRational){0,1};
-    s->get_buffer          = avcodec_default_get_buffer;
-    s->release_buffer      = avcodec_default_release_buffer;
+    s->get_buffer2         = avcodec_default_get_buffer2;
     s->get_format          = avcodec_default_get_format;
     s->execute             = avcodec_default_execute;
     s->execute2            = avcodec_default_execute2;
@@ -97,7 +96,6 @@ int avcodec_get_context_defaults3(AVCodecContext *s, const AVCodec *codec)
     s->pix_fmt             = AV_PIX_FMT_NONE;
     s->sample_fmt          = AV_SAMPLE_FMT_NONE;
 
-    s->reget_buffer        = avcodec_default_reget_buffer;
     s->reordered_opaque    = AV_NOPTS_VALUE;
     if(codec && codec->priv_data_size){
         if(!s->priv_data){
@@ -152,7 +150,6 @@ int avcodec_copy_context(AVCodecContext *dest, const AVCodecContext *src)
     dest->codec           = NULL;
     dest->slice_offset    = NULL;
     dest->hwaccel         = NULL;
-    dest->thread_opaque   = NULL;
     dest->internal        = NULL;
 
     /* reallocate values that should be allocated separately */

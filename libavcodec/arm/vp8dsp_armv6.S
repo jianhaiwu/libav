@@ -56,7 +56,7 @@
 
 @ idct
 
-@ void vp8_luma_dc_wht(DCTELEM block[4][4][16], DCTELEM dc[16])
+@ void vp8_luma_dc_wht(int16_t block[4][4][16], int16_t dc[16])
 function ff_vp8_luma_dc_wht_armv6, export=1
         push            {r4-r10, lr}
 
@@ -179,7 +179,7 @@ function ff_vp8_luma_dc_wht_armv6, export=1
         pop             {r4-r10, pc}
 endfunc
 
-@ void vp8_luma_dc_wht_dc(DCTELEM block[4][4][16], DCTELEM dc[16])
+@ void vp8_luma_dc_wht_dc(int16_t block[4][4][16], int16_t dc[16])
 function ff_vp8_luma_dc_wht_dc_armv6, export=1
         ldrsh           r2,  [r1]
         mov             r3,  #0
@@ -192,7 +192,7 @@ function ff_vp8_luma_dc_wht_dc_armv6, export=1
         bx              lr
 endfunc
 
-@ void vp8_idct_add(uint8_t *dst, DCTELEM block[16], int stride)
+@ void vp8_idct_add(uint8_t *dst, int16_t block[16], int stride)
 function ff_vp8_idct_add_armv6, export=1
         push            {r4-r12, lr}
         sub             sp,  sp,  #32
@@ -314,7 +314,7 @@ function ff_vp8_idct_add_armv6, export=1
         pop             {r4-r12, pc}
 endfunc
 
-@ void vp8_idct_dc_add(uint8_t *dst, DCTELEM block[16], int stride)
+@ void vp8_idct_dc_add(uint8_t *dst, int16_t block[16], int stride)
 function ff_vp8_idct_dc_add_armv6, export=1
         push            {r4-r6, lr}
         add             r6,  r0,  r2,  lsl #1
@@ -355,33 +355,33 @@ function ff_vp8_idct_dc_add_armv6, export=1
         pop             {r4-r6, pc}
 endfunc
 
-@ void vp8_idct_dc_add4uv(uint8_t *dst, DCTELEM block[4][16], int stride)
+@ void vp8_idct_dc_add4uv(uint8_t *dst, int16_t block[4][16], int stride)
 function ff_vp8_idct_dc_add4uv_armv6, export=1
         push            {r4, lr}
 
-        bl              ff_vp8_idct_dc_add_armv6
+        bl              X(ff_vp8_idct_dc_add_armv6)
         add             r0,  r0,  #4
-        bl              ff_vp8_idct_dc_add_armv6
+        bl              X(ff_vp8_idct_dc_add_armv6)
         add             r0,  r0,  r2,  lsl #2
         sub             r0,  r0,  #4
-        bl              ff_vp8_idct_dc_add_armv6
+        bl              X(ff_vp8_idct_dc_add_armv6)
         add             r0,  r0,  #4
-        bl              ff_vp8_idct_dc_add_armv6
+        bl              X(ff_vp8_idct_dc_add_armv6)
 
         pop             {r4, pc}
 endfunc
 
-@ void vp8_idct_dc_add4y(uint8_t *dst, DCTELEM block[4][16], int stride)
+@ void vp8_idct_dc_add4y(uint8_t *dst, int16_t block[4][16], int stride)
 function ff_vp8_idct_dc_add4y_armv6, export=1
         push            {r4, lr}
 
-        bl              ff_vp8_idct_dc_add_armv6
+        bl              X(ff_vp8_idct_dc_add_armv6)
         add             r0,  r0,  #4
-        bl              ff_vp8_idct_dc_add_armv6
+        bl              X(ff_vp8_idct_dc_add_armv6)
         add             r0,  r0,  #4
-        bl              ff_vp8_idct_dc_add_armv6
+        bl              X(ff_vp8_idct_dc_add_armv6)
         add             r0,  r0,  #4
-        bl              ff_vp8_idct_dc_add_armv6
+        bl              X(ff_vp8_idct_dc_add_armv6)
 
         pop             {r4, pc}
 endfunc
@@ -1204,7 +1204,7 @@ function ff_put_vp8_\name\size\()_\hv\()_armv6, export=1
         mov             r4,  #\size
         stm             r12, {r4, r5}
         orr             r12, r6,  r7
-        b               vp8_put_\name\()_\hv\()_armv6 + 4
+        b               bl_put_\name\()_\hv\()_armv6
 endfunc
 .endm
 
@@ -1300,6 +1300,7 @@ vp8_mc_hv               bilin,  4, h,  v,  2
 
 function vp8_put_epel_h6_armv6
         push            {r1, r4-r11, lr}
+bl_put_epel_h6_armv6:
         sub             r2,  r2,  #2
         movrel          lr,  sixtap_filters_13245600 - 16
         add             lr,  lr,  r12, lsl #3
@@ -1358,6 +1359,7 @@ endfunc
 
 function vp8_put_epel_v6_armv6
         push            {r1, r4-r11, lr}
+bl_put_epel_v6_armv6:
         movrel          lr,  sixtap_filters_13245600 - 16
         add             lr,  lr,  r12, lsl #3
         str             r3,  [sp, #48]
@@ -1437,6 +1439,7 @@ endfunc
 
 function vp8_put_epel_h4_armv6
         push            {r1, r4-r11, lr}
+bl_put_epel_h4_armv6:
         subs            r2,  r2,  #1
         movrel          lr,  fourtap_filters_1324 - 4
         add             lr,  lr,  r12, lsl #2
@@ -1483,6 +1486,7 @@ endfunc
 
 function vp8_put_epel_v4_armv6
         push            {r1, r4-r11, lr}
+bl_put_epel_v4_armv6:
         movrel          lr,  fourtap_filters_1324 - 4
         add             lr,  lr,  r12, lsl #2
         ldm             lr,  {r5, r6}
@@ -1544,6 +1548,7 @@ endfunc
 
 function vp8_put_bilin_h_armv6
         push            {r1, r4-r11, lr}
+bl_put_bilin_h_armv6:
         rsb             r5,  r12, r12, lsl #16
         ldr             r12, [sp, #44]
         sub             r3,  r3,  r4
@@ -1589,6 +1594,7 @@ endfunc
 
 function vp8_put_bilin_v_armv6
         push            {r1, r4-r11, lr}
+bl_put_bilin_v_armv6:
         rsb             r5,  r12, r12, lsl #16
         ldr             r12, [sp, #44]
         add             r5,  r5,  #8

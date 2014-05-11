@@ -4,21 +4,26 @@ EPOCH=6:
 DEB_SOURCE := $(shell dpkg-parsechangelog | sed -n 's/^Source: //p')
 DEB_VERSION := $(shell dpkg-parsechangelog | sed -n 's/^Version: //p')
 UPSTREAM_VERSION := $(shell echo $(DEB_VERSION) | sed -r 's/[^:]+://; s/-[^-]+$$//')
-SHLIBS_VERSION := $(EPOCH)9.1-1
+SHLIBS_VERSION := $(EPOCH)10~beta1~
 
 # The libavcodec-extra package is necessary because it links against
 # libraries that are GPLv3 licensed. Make sure that you do not link
 # GPLv2 only applications against the libavcodec-extra flavor!
+#
+# Because of the lack of archive skew problems, only libavcodec produces
+# an -extra variant.
 
 VENDOR := Debian
 # these package do not build -extra variants
-LIB_PKGS := $(shell dh_listpackages -a | grep -E '(lib[a-z]+[0-9]+)' | grep -v libavcodec )
+LIB_PKGS := $(shell sed -nr 's/^Package:[[:space:]]*(lib(avutil|avdevice|avformat|avfilter|avresample|swscale)[0-9]+)[[:space:]]*$$/\1/p' debian/control)
 # these packages do build -extra variants
-LIB_PKGS2 := $(shell dh_listpackages -a  | grep -E 'libavcodec[0-9]+' )
+LIB_PKGS2 := $(shell sed -nr 's/^Package:[[:space:]]*(libavcodec[0-9]+)[[:space:]]*$$/\1/p' debian/control)
 # these packages are the -extra- variants
-LIB_EXTRA_PKGS := $(shell dh_listpackages -a | grep 'extra' )
+LIB_EXTRA_PKGS := $(shell sed -nr 's/^Package:[[:space:]]*(libavcodec-extra-[0-9]+)[[:space:]]*$$/\1/p' debian/control)
+
+
 # these are the -dev packages
-DEV_PKGS := $(shell dh_listpackages -a | grep -E -- '-dev$$' )
+DEV_PKGS := $(shell echo $(LIB_PKGS) $(LIB_PKGS2) | sed 's/[0-9]\+\>/-dev/g')
 
 # Support multiple makes at once
 ifneq (,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
@@ -37,9 +42,8 @@ OPT_FLAVORS := $(filter-out static shared, $(FLAVORS))
 
 info:
 	@echo Packages that do not build -extra variants: $(LIB_PKGS)
-	@echo Packages that do build -extra variants: $(LIB_PKGS2)
+	@echo Packages that do build -extra variatnts: $(LIB_PKGS2)
 	@echo Packages that are the -extra- variants: $(LIB_EXTRA_PKGS)
-	@echo Packages with development headers: $(DEV_PKGS)
 
 $(info FLAVORS = $(FLAVORS))
 $(info DEB_BUILD_OPTIONS = $(DEB_BUILD_OPTIONS))
@@ -98,6 +102,7 @@ clean:
 	    $(addprefix configure-stamp-, $(FLAVORS)) \
 	    $(addprefix configure-extra-stamp-, $(FLAVORS)) \
 	    build-doxy-stamp
+	rm -rf libav/ # created by the libav-extra variant
 	rm -rf $(addprefix debian-, $(FLAVORS)) \
 		$(addprefix debian-extra-, $(FLAVORS)) doxy
 	dh_clean $(DH_INSTALL_FILES) $(wildcard formats*.txt) $(wildcard codecs*.txt)
@@ -116,18 +121,8 @@ define install_flavor_extra
 
 endef
 
-# usage $(call call_and_install_avconv_dump,$package,$parameter), paramter like "codecs" or "formats"
-define call_and_install_avconv_dump
-	mkdir -p debian/$(1)/usr/share/doc/$(1)
-	env LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(CURDIR)/debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)" \
-	debian/tmp/usr/bin/avconv -$(2) > debian/$(1)/usr/share/doc/$(1)/$(2)-$(DEB_HOST_ARCH).txt
-	cat debian/$(1)/usr/share/doc/$(1)/$(2)-$(DEB_HOST_ARCH).txt
-
-endef
-
 # installs arch-dependent files only
-install: install-common install-extra
-install-common: build $(DH_INSTALL_FILES)
+install: build $(DH_INSTALL_FILES)
 	dh_testdir
 	dh_testroot
 	dh_prep -a
@@ -137,19 +132,22 @@ install-common: build $(DH_INSTALL_FILES)
 	install -m 755 -D debian-shared/tools/qt-faststart debian/tmp/usr/bin/qt-faststart
 	dh_install $(addprefix -N,$(LIB_EXTRA_PKGS)) \
 		 --fail-missing --sourcedir=debian/tmp
-	$(call call_and_install_avconv_dump,libavformat54,formats)
-	$(call call_and_install_avconv_dump,libavcodec54,codecs)
-install-extra: build $(DH_INSTALL_FILES)
-	dh_testdir
-	dh_testroot
-	$(foreach flavor,$(filter-out static,$(FLAVORS)),$(call install_flavor_extra,$(flavor)))
-	dh_install $(addprefix -p,$(LIB_EXTRA_PKGS)) --fail-missing \
-		--sourcedir=debian/tmp/extra
-	$(call call_and_install_avconv_dump,libavcodec-extra-54,codecs)
+	env LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(CURDIR)/debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)" \
+	debian/tmp/usr/bin/avconv -formats | tee formats-$(DEB_HOST_ARCH).txt
+	env LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(CURDIR)/debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)" \
+	debian/tmp/usr/bin/avconv -codecs | tee codecs.txt
+	dh_installdocs -plibavformat54 formats-$(DEB_HOST_ARCH).txt
+	dh_installdocs -plibavcodec54 codecs.txt
 	dh_installdocs -a doc/APIchanges
 	install -m 644 -D debian-shared/doc/*.html doc/t2h.init debian/libav-tools/usr/share/doc/libav-tools
-	dh_installexamples -p libavcodec-dev libavcodec/api-example.c
+	dh_installexamples -a
 	dh_installchangelogs -a Changelog
+	$(foreach flavor,$(filter-out static,$(FLAVORS)),$(call install_flavor_extra,$(flavor)))
+	env LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(CURDIR)/debian/tmp/extra/usr/lib/$(DEB_HOST_MULTIARCH)" \
+	debian/tmp/usr/bin/avconv -codecs | tee codecs.txt
+	dh_installdocs -plibavcodec-extra-54 codecs.txt
+	dh_install $(addprefix -p,$(LIB_EXTRA_PKGS)) --fail-missing \
+		--sourcedir=debian/tmp/extra
 
 binary-indep:
 	dh_testdir

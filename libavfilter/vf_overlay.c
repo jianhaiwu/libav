@@ -34,6 +34,7 @@
 #include "libavutil/pixdesc.h"
 #include "libavutil/imgutils.h"
 #include "libavutil/mathematics.h"
+#include "libavutil/opt.h"
 #include "internal.h"
 #include "video.h"
 
@@ -59,41 +60,41 @@ enum var_name {
     VAR_VARS_NB
 };
 
+enum EOFAction {
+    EOF_ACTION_REPEAT,
+    EOF_ACTION_ENDALL,
+    EOF_ACTION_PASS
+};
+
+static const char *eof_action_str[] = {
+    "repeat", "endall", "pass"
+};
+
 #define MAIN    0
 #define OVERLAY 1
 
 typedef struct {
+    const AVClass *class;
     int x, y;                   ///< position of overlayed picture
 
     int max_plane_step[4];      ///< steps per pixel for each plane
     int hsub, vsub;             ///< chroma subsampling values
 
-    char x_expr[256], y_expr[256];
+    char *x_expr, *y_expr;
 
-    AVFilterBufferRef *main;
-    AVFilterBufferRef *over_prev, *over_next;
+    enum EOFAction eof_action;  ///< action to take on EOF from source
+
+    AVFrame *main;
+    AVFrame *over_prev, *over_next;
 } OverlayContext;
-
-static av_cold int init(AVFilterContext *ctx, const char *args)
-{
-    OverlayContext *over = ctx->priv;
-
-    av_strlcpy(over->x_expr, "0", sizeof(over->x_expr));
-    av_strlcpy(over->y_expr, "0", sizeof(over->y_expr));
-
-    if (args)
-        sscanf(args, "%255[^:]:%255[^:]", over->x_expr, over->y_expr);
-
-    return 0;
-}
 
 static av_cold void uninit(AVFilterContext *ctx)
 {
     OverlayContext *s = ctx->priv;
 
-    avfilter_unref_bufferp(&s->main);
-    avfilter_unref_bufferp(&s->over_prev);
-    avfilter_unref_bufferp(&s->over_next);
+    av_frame_free(&s->main);
+    av_frame_free(&s->over_prev);
+    av_frame_free(&s->over_next);
 }
 
 static int query_formats(AVFilterContext *ctx)
@@ -112,12 +113,12 @@ static int query_formats(AVFilterContext *ctx)
 
 static int config_input_main(AVFilterLink *inlink)
 {
-    OverlayContext *over = inlink->dst->priv;
+    OverlayContext *s = inlink->dst->priv;
     const AVPixFmtDescriptor *pix_desc = av_pix_fmt_desc_get(inlink->format);
 
-    av_image_fill_max_pixsteps(over->max_plane_step, NULL, pix_desc);
-    over->hsub = pix_desc->log2_chroma_w;
-    over->vsub = pix_desc->log2_chroma_h;
+    av_image_fill_max_pixsteps(s->max_plane_step, NULL, pix_desc);
+    s->hsub = pix_desc->log2_chroma_w;
+    s->vsub = pix_desc->log2_chroma_h;
 
     return 0;
 }
@@ -125,7 +126,7 @@ static int config_input_main(AVFilterLink *inlink)
 static int config_input_overlay(AVFilterLink *inlink)
 {
     AVFilterContext *ctx  = inlink->dst;
-    OverlayContext  *over = inlink->dst->priv;
+    OverlayContext  *s = inlink->dst->priv;
     char *expr;
     double var_values[VAR_VARS_NB], res;
     int ret;
@@ -141,36 +142,37 @@ static int config_input_overlay(AVFilterLink *inlink)
     var_values[VAR_OVERLAY_W] = var_values[VAR_OW] = ctx->inputs[OVERLAY]->w;
     var_values[VAR_OVERLAY_H] = var_values[VAR_OH] = ctx->inputs[OVERLAY]->h;
 
-    if ((ret = av_expr_parse_and_eval(&res, (expr = over->x_expr), var_names, var_values,
+    if ((ret = av_expr_parse_and_eval(&res, (expr = s->x_expr), var_names, var_values,
                                       NULL, NULL, NULL, NULL, NULL, 0, ctx)) < 0)
         goto fail;
-    over->x = res;
-    if ((ret = av_expr_parse_and_eval(&res, (expr = over->y_expr), var_names, var_values,
+    s->x = res;
+    if ((ret = av_expr_parse_and_eval(&res, (expr = s->y_expr), var_names, var_values,
                                       NULL, NULL, NULL, NULL, NULL, 0, ctx)))
         goto fail;
-    over->y = res;
+    s->y = res;
     /* x may depend on y */
-    if ((ret = av_expr_parse_and_eval(&res, (expr = over->x_expr), var_names, var_values,
+    if ((ret = av_expr_parse_and_eval(&res, (expr = s->x_expr), var_names, var_values,
                                       NULL, NULL, NULL, NULL, NULL, 0, ctx)) < 0)
         goto fail;
-    over->x = res;
+    s->x = res;
 
     av_log(ctx, AV_LOG_VERBOSE,
-           "main w:%d h:%d fmt:%s overlay x:%d y:%d w:%d h:%d fmt:%s\n",
+           "main w:%d h:%d fmt:%s overlay x:%d y:%d w:%d h:%d fmt:%s eof_action:%s\n",
            ctx->inputs[MAIN]->w, ctx->inputs[MAIN]->h,
            av_get_pix_fmt_name(ctx->inputs[MAIN]->format),
-           over->x, over->y,
+           s->x, s->y,
            ctx->inputs[OVERLAY]->w, ctx->inputs[OVERLAY]->h,
-           av_get_pix_fmt_name(ctx->inputs[OVERLAY]->format));
+           av_get_pix_fmt_name(ctx->inputs[OVERLAY]->format),
+           eof_action_str[s->eof_action]);
 
-    if (over->x < 0 || over->y < 0 ||
-        over->x + var_values[VAR_OVERLAY_W] > var_values[VAR_MAIN_W] ||
-        over->y + var_values[VAR_OVERLAY_H] > var_values[VAR_MAIN_H]) {
+    if (s->x < 0 || s->y < 0 ||
+        s->x + var_values[VAR_OVERLAY_W] > var_values[VAR_MAIN_W] ||
+        s->y + var_values[VAR_OVERLAY_H] > var_values[VAR_MAIN_H]) {
         av_log(ctx, AV_LOG_ERROR,
                "Overlay area (%d,%d)<->(%d,%d) not within the main area (0,0)<->(%d,%d) or zero-sized\n",
-               over->x, over->y,
-               (int)(over->x + var_values[VAR_OVERLAY_W]),
-               (int)(over->y + var_values[VAR_OVERLAY_H]),
+               s->x, s->y,
+               (int)(s->x + var_values[VAR_OVERLAY_W]),
+               (int)(s->y + var_values[VAR_OVERLAY_H]),
                (int)var_values[VAR_MAIN_W], (int)var_values[VAR_MAIN_H]);
         return AVERROR(EINVAL);
     }
@@ -194,17 +196,17 @@ static int config_output(AVFilterLink *outlink)
 }
 
 static void blend_frame(AVFilterContext *ctx,
-                        AVFilterBufferRef *dst, AVFilterBufferRef *src,
+                        AVFrame *dst, AVFrame *src,
                         int x, int y)
 {
-    OverlayContext *over = ctx->priv;
+    OverlayContext *s = ctx->priv;
     int i, j, k;
     int width, height;
-    int overlay_end_y = y + src->video->h;
+    int overlay_end_y = y + src->height;
     int end_y, start_y;
 
-    width = FFMIN(dst->video->w - x, src->video->w);
-    end_y = FFMIN(dst->video->h, overlay_end_y);
+    width = FFMIN(dst->width - x, src->width);
+    end_y = FFMIN(dst->height, overlay_end_y);
     start_y = FFMAX(y, 0);
     height = end_y - start_y;
 
@@ -229,8 +231,8 @@ static void blend_frame(AVFilterContext *ctx,
         }
     } else {
         for (i = 0; i < 3; i++) {
-            int hsub = i ? over->hsub : 0;
-            int vsub = i ? over->vsub : 0;
+            int hsub = i ? s->hsub : 0;
+            int vsub = i ? s->vsub : 0;
             uint8_t *dp = dst->data[i] + (x >> hsub) +
                 (start_y >> vsub) * dst->linesize[i];
             uint8_t *sp = src->data[i];
@@ -269,7 +271,7 @@ static void blend_frame(AVFilterContext *ctx,
     }
 }
 
-static int filter_frame_main(AVFilterLink *inlink, AVFilterBufferRef *frame)
+static int filter_frame_main(AVFilterLink *inlink, AVFrame *frame)
 {
     OverlayContext *s = inlink->dst->priv;
 
@@ -279,7 +281,7 @@ static int filter_frame_main(AVFilterLink *inlink, AVFilterBufferRef *frame)
     return 0;
 }
 
-static int filter_frame_overlay(AVFilterLink *inlink, AVFilterBufferRef *frame)
+static int filter_frame_overlay(AVFilterLink *inlink, AVFrame *frame)
 {
     OverlayContext *s = inlink->dst->priv;
 
@@ -302,8 +304,12 @@ static int output_frame(AVFilterContext *ctx)
 static int handle_overlay_eof(AVFilterContext *ctx)
 {
     OverlayContext *s = ctx->priv;
-    if (s->over_prev)
+    /* Repeat previous frame on secondary input */
+    if (s->over_prev && s->eof_action == EOF_ACTION_REPEAT)
         blend_frame(ctx, s->main, s->over_prev, s->x, s->y);
+    /* End both streams */
+    else if (s->eof_action == EOF_ACTION_ENDALL)
+        return AVERROR_EOF;
     return output_frame(ctx);
 }
 
@@ -322,8 +328,7 @@ static int request_frame(AVFilterLink *outlink)
             return ret;
     }
 
-    /* get a new frame on the overlay input, on EOF
-     * reuse previous */
+    /* get a new frame on the overlay input, on EOF check setting 'eof_action' */
     if (!s->over_next) {
         ret = ff_request_frame(ctx->inputs[OVERLAY]);
         if (ret == AVERROR_EOF)
@@ -335,8 +340,8 @@ static int request_frame(AVFilterLink *outlink)
     while (s->main->pts != AV_NOPTS_VALUE &&
            s->over_next->pts != AV_NOPTS_VALUE &&
            av_compare_ts(s->over_next->pts, tb_over, s->main->pts, tb_main) < 0) {
-        avfilter_unref_bufferp(&s->over_prev);
-        FFSWAP(AVFilterBufferRef*, s->over_prev, s->over_next);
+        av_frame_free(&s->over_prev);
+        FFSWAP(AVFrame*, s->over_prev, s->over_next);
 
         ret = ff_request_frame(ctx->inputs[OVERLAY]);
         if (ret == AVERROR_EOF)
@@ -349,8 +354,8 @@ static int request_frame(AVFilterLink *outlink)
         s->over_next->pts == AV_NOPTS_VALUE ||
         !av_compare_ts(s->over_next->pts, tb_over, s->main->pts, tb_main)) {
         blend_frame(ctx, s->main, s->over_next, s->x, s->y);
-        avfilter_unref_bufferp(&s->over_prev);
-        FFSWAP(AVFilterBufferRef*, s->over_prev, s->over_next);
+        av_frame_free(&s->over_prev);
+        FFSWAP(AVFrame*, s->over_prev, s->over_next);
     } else if (s->over_prev) {
         blend_frame(ctx, s->main, s->over_prev, s->x, s->y);
     }
@@ -358,14 +363,36 @@ static int request_frame(AVFilterLink *outlink)
     return output_frame(ctx);
 }
 
+#define OFFSET(x) offsetof(OverlayContext, x)
+#define FLAGS AV_OPT_FLAG_VIDEO_PARAM
+static const AVOption options[] = {
+    { "x", "Horizontal position of the left edge of the overlaid video on the "
+        "main video.",          OFFSET(x_expr), AV_OPT_TYPE_STRING, { .str = "0" }, .flags = FLAGS },
+    { "y", "Vertical position of the top edge of the overlaid video on the "
+        "main video.",          OFFSET(y_expr), AV_OPT_TYPE_STRING, { .str = "0" }, .flags = FLAGS },
+    { "eof_action", "Action to take when encountering EOF from secondary input ",
+        OFFSET(eof_action), AV_OPT_TYPE_INT, { .i64 = EOF_ACTION_REPEAT },
+        EOF_ACTION_REPEAT, EOF_ACTION_PASS, .flags = FLAGS, "eof_action" },
+        { "repeat", "Repeat the previous frame.",   0, AV_OPT_TYPE_CONST, { .i64 = EOF_ACTION_REPEAT }, .flags = FLAGS, "eof_action" },
+        { "endall", "End both streams.",            0, AV_OPT_TYPE_CONST, { .i64 = EOF_ACTION_ENDALL }, .flags = FLAGS, "eof_action" },
+        { "pass",   "Pass through the main input.", 0, AV_OPT_TYPE_CONST, { .i64 = EOF_ACTION_PASS },   .flags = FLAGS, "eof_action" },
+    { NULL },
+};
+
+static const AVClass overlay_class = {
+    .class_name = "overlay",
+    .item_name  = av_default_item_name,
+    .option     = options,
+    .version    = LIBAVUTIL_VERSION_INT,
+};
+
 static const AVFilterPad avfilter_vf_overlay_inputs[] = {
     {
         .name         = "main",
         .type         = AVMEDIA_TYPE_VIDEO,
         .config_props = config_input_main,
         .filter_frame = filter_frame_main,
-        .min_perms    = AV_PERM_READ,
-        .rej_perms    = AV_PERM_REUSE2 | AV_PERM_PRESERVE,
+        .needs_writable = 1,
         .needs_fifo   = 1,
     },
     {
@@ -373,8 +400,6 @@ static const AVFilterPad avfilter_vf_overlay_inputs[] = {
         .type         = AVMEDIA_TYPE_VIDEO,
         .config_props = config_input_overlay,
         .filter_frame = filter_frame_overlay,
-        .min_perms    = AV_PERM_READ,
-        .rej_perms    = AV_PERM_REUSE2,
         .needs_fifo   = 1,
     },
     { NULL }
@@ -390,14 +415,14 @@ static const AVFilterPad avfilter_vf_overlay_outputs[] = {
     { NULL }
 };
 
-AVFilter avfilter_vf_overlay = {
+AVFilter ff_vf_overlay = {
     .name      = "overlay",
     .description = NULL_IF_CONFIG_SMALL("Overlay a video source on top of the input."),
 
-    .init      = init,
     .uninit    = uninit,
 
     .priv_size = sizeof(OverlayContext),
+    .priv_class = &overlay_class,
 
     .query_formats = query_formats,
 

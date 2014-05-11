@@ -80,7 +80,6 @@ static const uint8_t is_audio_command[10] = { 1, 1, 1, 1, 0, 0, 0, 1, 1, 0 };
 
 typedef struct ShortenContext {
     AVCodecContext *avctx;
-    AVFrame frame;
     GetBitContext gb;
 
     int min_framesize, max_framesize;
@@ -115,17 +114,12 @@ static av_cold int shorten_decode_init(AVCodecContext *avctx)
     s->avctx          = avctx;
     avctx->sample_fmt = AV_SAMPLE_FMT_S16P;
 
-    avcodec_get_frame_defaults(&s->frame);
-    avctx->coded_frame = &s->frame;
-
     return 0;
 }
 
 static int allocate_buffers(ShortenContext *s)
 {
-    int i, chan;
-    int *coeffs;
-    void *tmp_ptr;
+    int i, chan, err;
 
     for (chan = 0; chan < s->channels; chan++) {
         if (FFMAX(1, s->nmean) >= UINT_MAX / sizeof(int32_t)) {
@@ -139,26 +133,21 @@ static int allocate_buffers(ShortenContext *s)
             return AVERROR_INVALIDDATA;
         }
 
-        tmp_ptr =
-            av_realloc(s->offset[chan], sizeof(int32_t) * FFMAX(1, s->nmean));
-        if (!tmp_ptr)
-            return AVERROR(ENOMEM);
-        s->offset[chan] = tmp_ptr;
+        if ((err = av_reallocp(&s->offset[chan],
+                               sizeof(int32_t) *
+                               FFMAX(1, s->nmean))) < 0)
+            return err;
 
-        tmp_ptr = av_realloc(s->decoded_base[chan], (s->blocksize + s->nwrap) *
-                             sizeof(s->decoded_base[0][0]));
-        if (!tmp_ptr)
-            return AVERROR(ENOMEM);
-        s->decoded_base[chan] = tmp_ptr;
+        if ((err = av_reallocp(&s->decoded_base[chan], (s->blocksize + s->nwrap) *
+                               sizeof(s->decoded_base[0][0]))) < 0)
+            return err;
         for (i = 0; i < s->nwrap; i++)
             s->decoded_base[chan][i] = 0;
         s->decoded[chan] = s->decoded_base[chan] + s->nwrap;
     }
 
-    coeffs = av_realloc(s->coeffs, s->nwrap * sizeof(*s->coeffs));
-    if (!coeffs)
-        return AVERROR(ENOMEM);
-    s->coeffs = coeffs;
+    if ((err = av_reallocp(&s->coeffs, s->nwrap * sizeof(*s->coeffs))) < 0)
+        return err;
 
     return 0;
 }
@@ -430,6 +419,7 @@ static int read_header(ShortenContext *s)
 static int shorten_decode_frame(AVCodecContext *avctx, void *data,
                                 int *got_frame_ptr, AVPacket *avpkt)
 {
+    AVFrame *frame     = data;
     const uint8_t *buf = avpkt->data;
     int buf_size       = avpkt->size;
     ShortenContext *s  = avctx->priv_data;
@@ -494,7 +484,7 @@ static int shorten_decode_frame(AVCodecContext *avctx, void *data,
 
     s->cur_chan = 0;
     while (s->cur_chan < s->channels) {
-        int cmd;
+        unsigned cmd;
         int len;
 
         if (get_bits_left(&s->gb) < 3 + FNSIZE) {
@@ -608,17 +598,16 @@ static int shorten_decode_frame(AVCodecContext *avctx, void *data,
             s->cur_chan++;
             if (s->cur_chan == s->channels) {
                 /* get output buffer */
-                s->frame.nb_samples = s->blocksize;
-                if ((ret = ff_get_buffer(avctx, &s->frame)) < 0) {
+                frame->nb_samples = s->blocksize;
+                if ((ret = ff_get_buffer(avctx, frame, 0)) < 0) {
                     av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
                     return ret;
                 }
                 /* interleave output */
-                output_buffer((int16_t **)s->frame.extended_data, s->channels,
+                output_buffer((int16_t **)frame->extended_data, s->channels,
                               s->blocksize, s->decoded);
 
-                *got_frame_ptr   = 1;
-                *(AVFrame *)data = s->frame;
+                *got_frame_ptr = 1;
             }
         }
     }
@@ -660,6 +649,7 @@ static av_cold int shorten_decode_close(AVCodecContext *avctx)
 
 AVCodec ff_shorten_decoder = {
     .name           = "shorten",
+    .long_name      = NULL_IF_CONFIG_SMALL("Shorten"),
     .type           = AVMEDIA_TYPE_AUDIO,
     .id             = AV_CODEC_ID_SHORTEN,
     .priv_data_size = sizeof(ShortenContext),
@@ -667,7 +657,6 @@ AVCodec ff_shorten_decoder = {
     .close          = shorten_decode_close,
     .decode         = shorten_decode_frame,
     .capabilities   = CODEC_CAP_DELAY | CODEC_CAP_DR1,
-    .long_name      = NULL_IF_CONFIG_SMALL("Shorten"),
     .sample_fmts    = (const enum AVSampleFormat[]) { AV_SAMPLE_FMT_S16P,
                                                       AV_SAMPLE_FMT_NONE },
 };
