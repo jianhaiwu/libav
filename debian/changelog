@@ -17,8 +17,10 @@ libav (6:10.1-1) experimental; urgency=low
      - lavr: allocate the resampling buffer with a positive size
      - mp3enc: Properly write bitrate value in XING header (Closes: #736088)
      - golomb: Fix the implementation of get_se_golomb_long
-  
- -- Reinhard Tartler <siretart@tauware.de>  Sun, 11 May 2014 09:41:12 -0400
+  * Drop debian/libav-tools.maintscript. ffserver is no longer found in
+    stable, and this seems to cause other problems today (Closes: #742676)
+
+ -- Reinhard Tartler <siretart@tauware.de>  Sun, 11 May 2014 09:44:02 -0400
 
 libav (6:10-2) experimental; urgency=low
 
