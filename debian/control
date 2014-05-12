@@ -398,6 +398,7 @@ Description: Libav codec library (additional codecs)
  GPL version 3 or later.
 
 Package: libavcodec-extra
+Section: metapackages
 Priority: extra
 Architecture: all
 Depends:
