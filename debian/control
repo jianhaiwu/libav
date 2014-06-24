@@ -306,6 +306,8 @@ Section: libdevel
 Architecture: any
 Depends:
  libavcodec-dev (= ${binary:Version}),
+ libavresample-dev (= ${binary:Version}),
+ libswscale-dev (= ${binary:Version}),
  libavfilter4 (= ${binary:Version}),
  ${misc:Depends}
 Description: Development files for libavfilter
