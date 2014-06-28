@@ -1,8 +1,23 @@
-libav (6:10.1-2) UNRELEASED; urgency=low
+libav (6:10.2-1) unstable; urgency=high
 
-  * prepare new upload
+  * Bumping severity for critical LZO security issue.
+  * New Upstream Release v10.2
+    - aarch64: Use the correct syntax for relocations (Closes: #751856,
+    -  LP: #1323144)
+    - ppc: Fix compilation for ppc64le (ELFv2) (LP: #1263802)
+    - avconv: make -shortest work with streamcopy
+    - lzo: Handle integer overflow (Reported by Don A. Bailey)
+    - Check if an mp3 header is using a reserved sample rate.
+    - Check mp3 header before calling avpriv_mpegaudio_decode_header().
+    - jpeg2000: fix dereferencing invalid pointers during cleanup
+    - avpacket: fix copying side data in av_packet_copy_props()
+    - oggenc: Set the right AVOption size for the pref_duration option
+    - adpcm: Avoid reading out of bounds in the IMA QT trellis encoder
+    - adpcm: Write the proper predictor in trellis mode in IMA QT
+  * No longer build avserver (Closes: #734335)
+  * Clarify licensing in debian/copyright (Closes: #698019)
 
- -- Reinhard Tartler <siretart@tauware.de>  Sun, 11 May 2014 14:04:42 -0400
+ -- Reinhard Tartler <siretart@tauware.de>  Fri, 27 Jun 2014 22:23:32 -0400
 
 libav (6:10.1-1) unstable; urgency=low
 
