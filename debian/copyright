@@ -2,6 +2,15 @@ Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: Libav
 Upstream-Contact: libav-devel@libav.org
 Source: http://libav.org
+Comment:
+  The license for the whole work is the GPL, not the LGPL, because GPL-only
+  parts of Libav were activated -- namely libswscale, x11grab and
+  other GPL licensed libraries. If you need LGPL versions of the libraries,
+  please comment out the appropriate line in debian/confflags.
+  .
+  Because libavcodec-extra-* links against libraries that are licensed
+  under Apache License 2.0, the resulting binaries are distributed under
+  the GPL version 3 or later.
 
 Files: *
 Copyright: 1994-2012, the Xiph.Org Foundation and contributors

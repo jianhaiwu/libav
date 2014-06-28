@@ -12,7 +12,7 @@ i386 architecture, as we know that the upstream build system will
 produce PIC libraries where necessary. Only architectures like i386 will
 be built non-PIC, mainly for performance reasons.
 
- -- Reinhard Tartler <siretart@tauware.de>, Sat, 28 Jun 2014 09:33:54 -0400
+ -- Reinhard Tartler <siretart@tauware.de>, Sat, 28 Jun 2014 09:38:52 -0400
 
 Source package
 ==============
@@ -26,10 +26,10 @@ application packages.
 License of the Debian ffmpeg packages
 =====================================
 
-The license for the whole work is the GPL, not the LGPL, because GPL-only
-parts of ffmpeg were activated -- namely libpostproc, libswscale, x11grab and
-(optionally) libfaad2. If you need LGPL versions of the libraries, please
-comment out the appropriate line in debian/confflags.
+The license for the whole work is the GPL, not the LGPL, because
+GPL-only parts of ffmpeg were activated -- namely libswscale, x11grab
+and other GPL licensed libraries. If you need LGPL versions of the
+libraries, please comment out the appropriate line in debian/confflags.
 
 Because libavcodec-extra-* links against libraries that are licensed
 under Apache License 2.0, the resulting binaries are distributed under
