@@ -72,16 +72,16 @@ Suggests:
  frei0r-plugins (>= 1.3)
 Conflicts:
  ffprobe
-Description: Multimedia player, server, encoder and transcoder
+Description: Multimedia player, encoder and transcoder
  Libav is a complete, cross-platform solution to decode, encode, record,
  convert and stream audio and video.
  .
- This package contains the avplay multimedia player, the avserver
- streaming server, the avconv audio and video encoder, and the avprobe
- stream analyzer.  They support most existing file formats (AVI, MPEG,
- OGG, Matroska, ASF...) and encoding formats (MPEG, DivX, MPEG4, AC3,
- DV...). Additionally, it contains the qt-faststart utility which
- rearranges Quicktime files to facilitate network streaming.
+ This package contains the avplay multimedia player, the avconv audio
+ and video encoder, and the avprobe stream analyzer.  They support most
+ existing file formats (AVI, MPEG, OGG, Matroska, ASF...) and encoding
+ formats (MPEG, DivX, MPEG4, AC3, DV...). Additionally, it contains the
+ qt-faststart utility which rearranges Quicktime files to facilitate
+ network streaming.
  .
  This package replaces the 'ffmpeg' command-line tool that was provided
  in earlier distroreleases.
