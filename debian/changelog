@@ -1,3 +1,9 @@
+libav (6:10.2-2) UNRELEASED; urgency=low
+
+  * 
+
+ -- Reinhard Tartler <siretart@tauware.de>  Sat, 19 Jul 2014 19:46:27 -0400
+
 libav (6:10.2-1) unstable; urgency=high
 
   * Bumping severity for critical LZO security issue.
