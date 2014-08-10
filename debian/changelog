@@ -1,3 +1,11 @@
+libav (6:11~alpha1-1) experimental; urgency=low
+
+  * New upstream Release v11
+  * All SONAMEs bumped because of internal changes, but external API is
+    promised to have not changed
+
+ -- Reinhard Tartler <siretart@tauware.de>  Sun, 10 Aug 2014 09:45:02 -0400
+
 libav (6:10.3-1) unstable; urgency=medium
 
   * New Upstream Release v10.3
