@@ -1,1 +1,8 @@
 03-disable-configuration-warnings.patch
+upstream/0001-tiff-Improve-grayscale-support.patch
+upstream/0002-configure-Add-probe-identification-of-MS-armasm.patch
+upstream/0003-configure-Enable-gas-preprocessor-on-all-OSes-but-on.patch
+upstream/0004-configure-Suggest-upgrading-gas-preprocessor-instead.patch
+upstream/0005-Prepare-for-11_alpha2-Release.patch
+upstream/0006-mpegts-Return-proper-error-code-on-invalid-input-dat.patch
+upstream/0007-lavc-drop-the-av_fast_-re-m-alloc-compatibility-wrap.patch

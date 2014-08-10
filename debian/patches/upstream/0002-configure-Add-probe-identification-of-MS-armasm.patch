@@ -1,0 +1,32 @@
+From f4312352fc52cc47c1ba398a33f629d32a737e91 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Martin=20Storsj=C3=B6?= <martin@martin.st>
+Date: Sat, 9 Aug 2014 22:25:44 +0300
+Subject: [PATCH 2/7] configure: Add probe identification of MS armasm
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Signed-off-by: Martin Storsjö <martin@martin.st>
+---
+ configure | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/configure b/configure
+index c128b29..b9626e7 100755
+--- a/configure
++++ b/configure
+@@ -2883,6 +2883,11 @@ probe_cc(){
+         _cflags_size="-O2 -Munroll=c:1 $opt_common"
+         _cflags_noopt="-O1"
+         _flags_filter=pgi_flags
++    elif $_cc 2>&1 | grep -q 'Microsoft.*ARM.*Assembler'; then
++        _type=armasm
++        _ident=$($_cc | head -n1)
++        # 4509: "This form of conditional instruction is deprecated"
++        _flags="-nologo -ignore 4509"
+     elif $_cc 2>&1 | grep -q Microsoft; then
+         _type=msvc
+         _ident=$($cc 2>&1 | head -n1)
+-- 
+1.9.1
+

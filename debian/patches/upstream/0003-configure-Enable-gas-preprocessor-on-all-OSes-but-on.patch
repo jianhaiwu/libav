@@ -1,0 +1,60 @@
+From 9f8cf50e3be04b8e178086edaa4598826143303d Mon Sep 17 00:00:00 2001
+From: Diego Biurrun <diego@biurrun.de>
+Date: Sat, 9 Aug 2014 08:06:12 -0700
+Subject: [PATCH 3/7] configure: Enable gas-preprocessor on all OSes but only
+ if available
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Signed-off-by: Martin Storsjö <martin@martin.st>
+---
+ configure | 16 +++++++++++++---
+ 1 file changed, 13 insertions(+), 3 deletions(-)
+
+diff --git a/configure b/configure
+index b9626e7..684a93c 100755
+--- a/configure
++++ b/configure
+@@ -2199,8 +2199,6 @@ ranlib="ranlib"
+ strip="strip"
+ yasmexe="yasm"
+ 
+-nogas=":"
+-
+ # machine
+ arch_default=$(uname -m)
+ cpu="generic"
+@@ -3424,7 +3422,6 @@ case $target_os in
+         add_extralibs -lpoll -lgnugetopt
+         ;;
+     darwin)
+-        gas="gas-preprocessor.pl $cc"
+         enabled ppc && add_asflags -force_cpusubtype_ALL
+         SHFLAGS='-dynamiclib -Wl,-single_module -Wl,-install_name,$(SHLIBDIR)/$(SLIBNAME_WITH_MAJOR),-current_version,$(LIBVERSION),-compatibility_version,$(LIBMAJOR)'
+         enabled x86_32 && append SHFLAGS -Wl,-read_only_relocs,suppress
+@@ -3783,8 +3780,21 @@ EOF
+ }
+ 
+ if enabled_any arm aarch64 || enabled_all ppc altivec && enabled asm; then
++    nogas=:
+     enabled_any arm aarch64 && nogas=die
+     enabled_all ppc altivec && nogas=warn
++    as_noop=-v
++
++    case $as_type in
++        arm*) gaspp_as_type=armasm; as_noop=-h ;;
++        gcc)  gaspp_as_type=gas ;;
++        *)    gaspp_as_type=$as_type ;;
++    esac
++
++    [ $target_os = "darwin" ] && gaspp_as_type="apple-$gaspp_as_type"
++
++    check_cmd gas-preprocessor.pl -arch $arch -as-type $gaspp_as_type -- $as $as_noop &&
++        gas="gas-preprocessor.pl -arch $arch -as-type $gaspp_as_type -- $as"
+ 
+     if ! check_gas ; then
+         as=${gas:=$as}
+-- 
+1.9.1
+
