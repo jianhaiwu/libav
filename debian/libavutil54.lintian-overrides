@@ -1,2 +1,2 @@
 # Overriding these fpic lintian errors. Please see bug #528080.
-libavutil53: shlib-with-non-pic-code
+libavutil54: shlib-with-non-pic-code
