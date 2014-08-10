@@ -37,6 +37,7 @@
 #include "config.h"
 #include "attributes.h"
 #include "dict.h"
+#include "pixfmt.h"
 
 #if ARCH_X86
 #   include "x86/emms.h"
@@ -83,6 +84,13 @@
 // Some broken preprocessors need a second expansion
 // to be forced to tokenize __VA_ARGS__
 #define E1(x) x
+
+/* Check if the hard coded offset of a struct member still matches reality.
+ * Induce a compilation failure if not.
+ */
+#define AV_CHECK_OFFSET(s, m, o) struct check_##o {    \
+        int x_##o[offsetof(s, m) == o? 1: -1];         \
+    }
 
 #define LOCAL_ALIGNED_A(a, t, v, s, o, ...)             \
     uint8_t la_##v[sizeof(t s o) + (a)];                \
@@ -211,5 +219,7 @@ void avpriv_request_sample(void *avc,
  * A wrapper for open() setting O_CLOEXEC.
  */
 int avpriv_open(const char *filename, int flags, ...);
+
+int avpriv_set_systematic_pal2(uint32_t pal[256], enum AVPixelFormat pix_fmt);
 
 #endif /* AVUTIL_INTERNAL_H */

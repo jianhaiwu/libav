@@ -288,8 +288,8 @@ AudioConvert *ff_audio_convert_alloc(AVAudioResampleContext *avr,
         return ac;
     }
 
-    in_planar  = av_sample_fmt_is_planar(in_fmt);
-    out_planar = av_sample_fmt_is_planar(out_fmt);
+    in_planar  = ff_sample_fmt_is_planar(in_fmt, channels);
+    out_planar = ff_sample_fmt_is_planar(out_fmt, channels);
 
     if (in_planar == out_planar) {
         ac->func_type = CONV_FUNC_TYPE_FLAT;
@@ -301,6 +301,8 @@ AudioConvert *ff_audio_convert_alloc(AVAudioResampleContext *avr,
 
     set_generic_function(ac);
 
+    if (ARCH_AARCH64)
+        ff_audio_convert_init_aarch64(ac);
     if (ARCH_ARM)
         ff_audio_convert_init_arm(ac);
     if (ARCH_X86)

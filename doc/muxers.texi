@@ -114,6 +114,9 @@ Set the maximum number of playlist entries.
 Set the number after which index wraps.
 @item -start_number @var{number}
 Start the sequence from @var{number}.
+@item -hls_base_url @var{baseurl}
+Append @var{baseurl} to every entry in the playlist.
+Useful to generate playlists with absolute paths.
 @end table
 
 @anchor{image2}
@@ -327,6 +330,11 @@ This option is implicitly set when writing ismv (Smooth Streaming) files.
 Run a second pass moving the index (moov atom) to the beginning of the file.
 This operation can take a while, and will not work in various situations such
 as fragmented output, thus it is not enabled by default.
+@item -movflags disable_chpl
+Disable Nero chapter markers (chpl atom).  Normally, both Nero chapters
+and a QuickTime chapter track are written to the file. With this option
+set, only the QuickTime chapter track will be written. Nero chapters can
+cause failures when the file is reprocessed with certain tagging programs.
 @end table
 
 Smooth Streaming content can be pushed in real time to a publishing
@@ -400,6 +408,11 @@ Set the service_id (default 0x0001) also known as program in DVB.
 Set the first PID for PMT (default 0x1000, max 0x1f00).
 @item -mpegts_start_pid @var{number}
 Set the first PID for data packets (default 0x0100, max 0x0f00).
+@item -muxrate @var{number}
+Set a constant muxrate (default VBR).
+@item -pcr_period @var{numer}
+Override the default PCR retransmission time (default 20ms), ignored
+if variable muxrate is selected.
 @end table
 
 The recognized metadata settings in mpegts muxer are @code{service_provider}
@@ -441,6 +454,23 @@ Alternatively you can write the command as:
 avconv -benchmark -i INPUT -f null -
 @end example
 
+@section nut
+
+@table @option
+@item -syncpoints @var{flags}
+Change the syncpoint usage in nut:
+@table @option
+@item @var{default} use the normal low-overhead seeking aids.
+@item @var{none} do not use the syncpoints at all, reducing the overhead but making the stream non-seekable;
+@item @var{timestamped} extend the syncpoint with a wallclock field.
+@end table
+The @var{none} and @var{timestamped} flags are experimental.
+@end table
+
+@example
+avconv -i INPUT -f_strict experimental -syncpoints none - | processor
+@end example
+
 @section ogg
 
 Ogg container muxer.
@@ -478,8 +508,16 @@ extension.
 Set segment duration to @var{t} seconds.
 @item segment_list @var{name}
 Generate also a listfile named @var{name}.
+@item segment_list_type @var{type}
+Select the listing format.
+@table @option
+@item @var{flat} use a simple flat list of entries.
+@item @var{hls} use a m3u8-like structure.
+@end table
 @item segment_list_size @var{size}
 Overwrite the listfile once it reaches @var{size} entries.
+@item segment_list_entry_prefix @var{prefix}
+Prepend @var{prefix} to each entry. Useful to generate absolute paths.
 @item segment_wrap @var{limit}
 Wrap around segment index once it reaches @var{limit}.
 @end table

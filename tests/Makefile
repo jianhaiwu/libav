@@ -1,3 +1,4 @@
+THREADS = 1
 VREF = tests/vsynth1/00.pgm
 AREF = tests/data/asynth1.sw
 
@@ -24,8 +25,10 @@ tests/data/filtergraphs/%: TAG = COPY
 tests/data/filtergraphs/%: $(SRC_PATH)/tests/filtergraphs/% | tests/data/filtergraphs
 	$(M)cp $< $@
 
+RUNNING_FATE := $(filter check fate%,$(filter-out fate-rsync,$(MAKECMDGOALS)))
+
 # Check sanity of dependencies when running FATE tests.
-ifneq (,$(filter check fate%,$(filter-out fate-rsync,$(MAKECMDGOALS))))
+ifneq (,$(RUNNING_FATE))
 CHKCFG  = $(if $($(1))$(!$(1)),$($(1)), $(error No such config: $(1)))
 endif
 
@@ -93,6 +96,7 @@ include $(SRC_PATH)/tests/fate/microsoft.mak
 include $(SRC_PATH)/tests/fate/monkeysaudio.mak
 include $(SRC_PATH)/tests/fate/mp3.mak
 include $(SRC_PATH)/tests/fate/mpc.mak
+include $(SRC_PATH)/tests/fate/opus.mak
 include $(SRC_PATH)/tests/fate/pcm.mak
 include $(SRC_PATH)/tests/fate/probe.mak
 include $(SRC_PATH)/tests/fate/prores.mak
@@ -124,7 +128,7 @@ $(FATE_AVCONV) $(FATE_SAMPLES_AVCONV): avconv$(EXESUF)
 ifdef SAMPLES
 FATE += $(FATE_SAMPLES)
 fate-rsync:
-	rsync -vaLW rsync://fate-suite.libav.org/fate-suite-10/ $(SAMPLES)
+	rsync -vaLW rsync://fate-suite.libav.org/fate-suite/ $(SAMPLES)
 else
 fate-rsync:
 	@echo "use 'make fate-rsync SAMPLES=/path/to/samples' to sync the fate suite"
@@ -164,6 +168,7 @@ testclean:
 	$(RM) -r tests/vsynth1 tests/data
 	$(RM) $(CLEANSUFFIXES:%=tests/%)
 	$(RM) $(TESTTOOLS:%=tests/%$(HOSTEXESUF))
+	$(RM) tests/pixfmts.mak
 
 -include $(wildcard tests/*.d)
 
