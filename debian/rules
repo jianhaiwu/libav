@@ -137,7 +137,6 @@ install: build $(DH_INSTALL_FILES)
 	dh_prep -a
 	$(foreach flavor,$(FLAVORS),$(call install_flavor,$(flavor)))
 	mkdir -p debian/tmp/etc
-	install -m 644 -D doc/avserver.conf debian/tmp/etc/
 	install -m 755 -D debian-shared/tools/qt-faststart debian/tmp/usr/bin/qt-faststart
 	dh_install $(addprefix -N,$(LIB_EXTRA_PKGS)) \
 		 --fail-missing --sourcedir=debian/tmp
