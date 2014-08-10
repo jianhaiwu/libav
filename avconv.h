@@ -52,6 +52,8 @@ enum HWAccelID {
     HWACCEL_NONE = 0,
     HWACCEL_AUTO,
     HWACCEL_VDPAU,
+    HWACCEL_DXVA2,
+    HWACCEL_VDA,
 };
 
 typedef struct HWAccel {
@@ -217,6 +219,7 @@ typedef struct InputStream {
     AVStream *st;
     int discard;             /* true if stream data should be discarded */
     int decoding_needed;     /* true if the packets must be decoded in 'raw_fifo' */
+    AVCodecContext *dec_ctx;
     AVCodec *dec;
     AVFrame *decoded_frame;
     AVFrame *filter_frame; /* a ref of decoded_frame, to be sent to filters */
@@ -229,9 +232,8 @@ typedef struct InputStream {
     int64_t       last_dts;
     PtsCorrectionContext pts_ctx;
     double ts_scale;
-    int is_start;            /* is 1 at the start and after a discontinuity */
     int showed_multi_packet_warning;
-    AVDictionary *opts;
+    AVDictionary *decoder_opts;
     AVRational framerate;               /* framerate forced with -r */
 
     int resample_height;
@@ -260,6 +262,15 @@ typedef struct InputStream {
     int  (*hwaccel_retrieve_data)(AVCodecContext *s, AVFrame *frame);
     enum AVPixelFormat hwaccel_pix_fmt;
     enum AVPixelFormat hwaccel_retrieved_pix_fmt;
+
+    /* stats */
+    // combined size of all the packets read
+    uint64_t data_size;
+    /* number of packets successfully read for this stream */
+    uint64_t nb_packets;
+    // number of frames/samples retrieved from the decoder
+    uint64_t frames_decoded;
+    uint64_t samples_decoded;
 } InputStream;
 
 typedef struct InputFile {
@@ -303,6 +314,7 @@ typedef struct OutputStream {
     /* dts of the last packet sent to the muxer */
     int64_t last_mux_dts;
     AVBitStreamFilterContext *bitstream_filters;
+    AVCodecContext *enc_ctx;
     AVCodec *enc;
     int64_t max_frames;
     AVFrame *filtered_frame;
@@ -327,7 +339,7 @@ typedef struct OutputStream {
     char *avfilter;
 
     int64_t sws_flags;
-    AVDictionary *opts;
+    AVDictionary *encoder_opts;
     AVDictionary *resample_opts;
     int finished;        /* no more packets should be written for this stream */
     int stream_copy;
@@ -337,6 +349,15 @@ typedef struct OutputStream {
     enum AVPixelFormat pix_fmts[2];
 
     AVCodecParserContext *parser;
+
+    /* stats */
+    // combined size of all the packets written
+    uint64_t data_size;
+    // number of packets send to the muxer
+    uint64_t packets_written;
+    // number of frames/samples sent to the encoder
+    uint64_t frames_encoded;
+    uint64_t samples_encoded;
 } OutputStream;
 
 typedef struct OutputFile {
@@ -404,5 +425,7 @@ FilterGraph *init_simple_filtergraph(InputStream *ist, OutputStream *ost);
 int avconv_parse_options(int argc, char **argv);
 
 int vdpau_init(AVCodecContext *s);
+int dxva2_init(AVCodecContext *s);
+int vda_init(AVCodecContext *s);
 
 #endif /* AVCONV_H */

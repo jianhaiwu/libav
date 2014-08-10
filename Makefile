@@ -63,30 +63,32 @@ COMPILE_HOSTC = $(call COMPILE,HOSTCC)
 AVPROGS-$(CONFIG_AVCONV)   += avconv
 AVPROGS-$(CONFIG_AVPLAY)   += avplay
 AVPROGS-$(CONFIG_AVPROBE)  += avprobe
-AVPROGS-$(CONFIG_AVSERVER) += avserver
 
 AVPROGS    := $(AVPROGS-yes:%=%$(EXESUF))
 PROGS      += $(AVPROGS)
 
-AVBASENAMES = avconv avplay avprobe avserver
+AVBASENAMES = avconv avplay avprobe
 ALLAVPROGS  = $(AVBASENAMES:%=%$(EXESUF))
 
 $(foreach prog,$(AVBASENAMES),$(eval OBJS-$(prog) += cmdutils.o))
 
 OBJS-avconv                   += avconv_opt.o avconv_filter.o
 OBJS-avconv-$(HAVE_VDPAU_X11) += avconv_vdpau.o
+OBJS-avconv-$(HAVE_DXVA2_LIB) += avconv_dxva2.o
+OBJS-avconv-$(CONFIG_VDA)     += avconv_vda.o
 
 TESTTOOLS   = audiogen videogen rotozoom tiny_psnr base64
 HOSTPROGS  := $(TESTTOOLS:%=tests/%) doc/print_options
 TOOLS       = qt-faststart trasher
 TOOLS-$(CONFIG_ZLIB) += cws2fws
 
-FFLIBS-$(CONFIG_AVDEVICE) += avdevice
-FFLIBS-$(CONFIG_AVFILTER) += avfilter
-FFLIBS-$(CONFIG_AVFORMAT) += avformat
+# $(FFLIBS-yes) needs to be in linking order
+FFLIBS-$(CONFIG_AVDEVICE)   += avdevice
+FFLIBS-$(CONFIG_AVFILTER)   += avfilter
+FFLIBS-$(CONFIG_AVFORMAT)   += avformat
+FFLIBS-$(CONFIG_AVCODEC)    += avcodec
 FFLIBS-$(CONFIG_AVRESAMPLE) += avresample
-FFLIBS-$(CONFIG_AVCODEC)  += avcodec
-FFLIBS-$(CONFIG_SWSCALE)  += swscale
+FFLIBS-$(CONFIG_SWSCALE)    += swscale
 
 FFLIBS := avutil
 
@@ -102,7 +104,7 @@ FF_DEP_LIBS  := $(DEP_LIBS)
 all: $(AVPROGS)
 
 $(TOOLS): %$(EXESUF): %.o $(EXEOBJS)
-	$(LD) $(LDFLAGS) $(LD_O) $^ $(ELIBS)
+	$(LD) $(LDFLAGS) $(LDEXEFLAGS) $(LD_O) $^ $(ELIBS)
 
 tools/cws2fws$(EXESUF): ELIBS = $(ZLIB)
 
@@ -114,9 +116,8 @@ config.h: .config
 
 SUBDIR_VARS := CLEANFILES EXAMPLES FFLIBS HOSTPROGS TESTPROGS TOOLS      \
                HEADERS ARCH_HEADERS BUILT_HEADERS SKIPHEADERS            \
-               ARMV5TE-OBJS ARMV6-OBJS VFP-OBJS NEON-OBJS                \
-               ALTIVEC-OBJS VIS-OBJS                                     \
-               MMX-OBJS YASM-OBJS                                        \
+               ARMV5TE-OBJS ARMV6-OBJS ARMV8-OBJS VFP-OBJS NEON-OBJS     \
+               ALTIVEC-OBJS MMX-OBJS YASM-OBJS                           \
                OBJS HOSTOBJS TESTOBJS
 
 define RESET
@@ -129,6 +130,7 @@ $(foreach V,$(SUBDIR_VARS),$(eval $(call RESET,$(V))))
 SUBDIR := $(1)/
 include $(SRC_PATH)/$(1)/Makefile
 -include $(SRC_PATH)/$(1)/$(ARCH)/Makefile
+-include $(SRC_PATH)/$(1)/$(INTRINSICS)/Makefile
 include $(SRC_PATH)/library.mak
 endef
 
@@ -148,7 +150,7 @@ endef
 $(foreach P,$(PROGS),$(eval $(call DOPROG,$(P:$(EXESUF)=))))
 
 $(PROGS): %$(EXESUF): %.o $(FF_DEP_LIBS)
-	$(LD) $(LDFLAGS) $(LD_O) $(OBJS-$*) $(FF_EXTRALIBS)
+	$(LD) $(LDFLAGS) $(LDEXEFLAGS) $(LD_O) $(OBJS-$*) $(FF_EXTRALIBS)
 
 OBJDIRS += tools
 

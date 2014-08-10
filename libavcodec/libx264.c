@@ -166,6 +166,38 @@ static int X264_frame(AVCodecContext *ctx, AVPacket *pkt, const AVFrame *frame,
             x264_encoder_reconfig(x4->enc, &x4->params);
         }
 
+        if (x4->params.rc.i_vbv_buffer_size != ctx->rc_buffer_size / 1000 ||
+            x4->params.rc.i_vbv_max_bitrate != ctx->rc_max_rate    / 1000) {
+            x4->params.rc.i_vbv_buffer_size = ctx->rc_buffer_size / 1000;
+            x4->params.rc.i_vbv_max_bitrate = ctx->rc_max_rate    / 1000;
+            x264_encoder_reconfig(x4->enc, &x4->params);
+        }
+
+        if (x4->params.rc.i_rc_method == X264_RC_ABR &&
+            x4->params.rc.i_bitrate != ctx->bit_rate / 1000) {
+            x4->params.rc.i_bitrate = ctx->bit_rate / 1000;
+            x264_encoder_reconfig(x4->enc, &x4->params);
+        }
+
+        if (x4->crf >= 0 &&
+            x4->params.rc.i_rc_method == X264_RC_CRF &&
+            x4->params.rc.f_rf_constant != x4->crf) {
+            x4->params.rc.f_rf_constant = x4->crf;
+            x264_encoder_reconfig(x4->enc, &x4->params);
+        }
+
+        if (x4->params.rc.i_rc_method == X264_RC_CQP &&
+            x4->params.rc.i_qp_constant != x4->cqp) {
+            x4->params.rc.i_qp_constant = x4->cqp;
+            x264_encoder_reconfig(x4->enc, &x4->params);
+        }
+
+        if (x4->crf_max >= 0 &&
+            x4->params.rc.f_rf_constant_max != x4->crf_max) {
+            x4->params.rc.f_rf_constant_max = x4->crf_max;
+            x264_encoder_reconfig(x4->enc, &x4->params);
+        }
+
         side_data = av_frame_get_side_data(frame, AV_FRAME_DATA_STEREO3D);
         if (side_data) {
             AVStereo3D *stereo = (AVStereo3D *)side_data->data;
@@ -175,10 +207,10 @@ static int X264_frame(AVCodecContext *ctx, AVPacket *pkt, const AVFrame *frame,
             case AV_STEREO3D_CHECKERBOARD:
                 fpa_type = 0;
                 break;
-            case AV_STEREO3D_LINES:
+            case AV_STEREO3D_COLUMNS:
                 fpa_type = 1;
                 break;
-            case AV_STEREO3D_COLUMNS:
+            case AV_STEREO3D_LINES:
                 fpa_type = 2;
                 break;
             case AV_STEREO3D_SIDEBYSIDE:
@@ -454,7 +486,8 @@ static av_cold int X264_init(AVCodecContext *avctx)
 
     x4->params.i_slice_count  = avctx->slices;
 
-    x4->params.vui.b_fullrange = avctx->pix_fmt == AV_PIX_FMT_YUVJ420P;
+    x4->params.vui.b_fullrange = avctx->pix_fmt == AV_PIX_FMT_YUVJ420P ||
+                                 avctx->color_range == AVCOL_RANGE_JPEG;
 
     if (avctx->flags & CODEC_FLAG_GLOBAL_HEADER)
         x4->params.b_repeat_headers = 0;

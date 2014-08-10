@@ -30,8 +30,8 @@
 #include "libavutil/md5.h"
 
 #include "avcodec.h"
+#include "bswapdsp.h"
 #include "cabac.h"
-#include "dsputil.h"
 #include "get_bits.h"
 #include "hevcdsp.h"
 #include "internal.h"
@@ -78,7 +78,6 @@
  */
 #define SAMPLE(tab, x, y) ((tab)[(y) * s->sps->width + (x)])
 #define SAMPLE_CTB(tab, x, y) ((tab)[(y) * min_cb_width + (x)])
-#define SAMPLE_CBF(tab, x, y) ((tab)[((y) & ((1<<log2_trafo_size)-1)) * MAX_CU_SIZE + ((x) & ((1<<log2_trafo_size)-1))])
 
 #define IS_IDR(s) (s->nal_unit_type == NAL_IDR_W_RADL || s->nal_unit_type == NAL_IDR_N_LP)
 #define IS_BLA(s) (s->nal_unit_type == NAL_BLA_W_RADL || s->nal_unit_type == NAL_BLA_W_LP || \
@@ -523,7 +522,6 @@ typedef struct HEVCPPS {
     int *ctb_addr_ts_to_rs; ///< CtbAddrTSToRS
     int *tile_id;           ///< TileId
     int *tile_pos_rs;       ///< TilePosRS
-    int *min_cb_addr_zs;    ///< MinCbAddrZS
     int *min_tb_addr_zs;    ///< MinTbAddrZS
 } HEVCPPS;
 
@@ -647,15 +645,6 @@ typedef struct PredictionUnit {
     uint8_t intra_pred_mode_c;
 } PredictionUnit;
 
-typedef struct TransformTree {
-    uint8_t cbf_cb[MAX_TRANSFORM_DEPTH][MAX_CU_SIZE * MAX_CU_SIZE];
-    uint8_t cbf_cr[MAX_TRANSFORM_DEPTH][MAX_CU_SIZE * MAX_CU_SIZE];
-    uint8_t cbf_luma;
-
-    // Inferred parameters
-    uint8_t inter_split_flag;
-} TransformTree;
-
 typedef struct TransformUnit {
     int cu_qp_delta;
 
@@ -712,8 +701,7 @@ typedef struct HEVCNAL {
 struct HEVCContext;
 
 typedef struct HEVCPredContext {
-    void (*intra_pred)(struct HEVCContext *s, int x0, int y0,
-                       int log2_size, int c_idx);
+    void (*intra_pred[4])(struct HEVCContext *s, int x0, int y0, int c_idx);
 
     void (*pred_planar[4])(uint8_t *src, const uint8_t *top,
                            const uint8_t *left, ptrdiff_t stride);
@@ -732,7 +720,6 @@ typedef struct HEVCLocalContext {
 
     GetBitContext gb;
     CABACContext cc;
-    TransformTree tt;
 
     int8_t qp_y;
     int8_t curr_qp_y;
@@ -753,8 +740,13 @@ typedef struct HEVCLocalContext {
     PredictionUnit pu;
     NeighbourAvailable na;
 
-    uint8_t slice_or_tiles_left_boundary;
-    uint8_t slice_or_tiles_up_boundary;
+#define BOUNDARY_LEFT_SLICE     (1 << 0)
+#define BOUNDARY_LEFT_TILE      (1 << 1)
+#define BOUNDARY_UPPER_SLICE    (1 << 2)
+#define BOUNDARY_UPPER_TILE     (1 << 3)
+    /* properties of the boundary of the current CTB for the purposes
+     * of the deblocking filter */
+    int boundary_flags;
 } HEVCLocalContext;
 
 typedef struct HEVCContext {
@@ -806,9 +798,8 @@ typedef struct HEVCContext {
     HEVCPredContext hpc;
     HEVCDSPContext hevcdsp;
     VideoDSPContext vdsp;
-    DSPContext dsp;
+    BswapDSPContext bdsp;
     int8_t *qp_y_tab;
-    uint8_t *split_cu_flag;
     uint8_t *horizontal_bs;
     uint8_t *vertical_bs;
 
@@ -861,6 +852,11 @@ typedef struct HEVCContext {
     int frame_packing_arrangement_type;
     int content_interpretation_type;
     int quincunx_subsampling;
+
+    /** display orientation */
+    int sei_display_orientation_present;
+    int sei_anticlockwise_rotation;
+    int sei_hflip, sei_vflip;
 } HEVCContext;
 
 int ff_hevc_decode_short_term_rps(HEVCContext *s, ShortTermRPS *rps,
@@ -979,9 +975,7 @@ void ff_hevc_luma_mv_mvp_mode(HEVCContext *s, int x0, int y0,
 void ff_hevc_set_qPy(HEVCContext *s, int xC, int yC, int xBase, int yBase,
                      int log2_cb_size);
 void ff_hevc_deblocking_boundary_strengths(HEVCContext *s, int x0, int y0,
-                                           int log2_trafo_size,
-                                           int slice_or_tiles_up_boundary,
-                                           int slice_or_tiles_left_boundary);
+                                           int log2_trafo_size);
 int ff_hevc_cu_qp_delta_sign_flag(HEVCContext *s);
 int ff_hevc_cu_qp_delta_abs(HEVCContext *s);
 void ff_hevc_hls_filter(HEVCContext *s, int x, int y);

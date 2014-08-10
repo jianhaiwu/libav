@@ -559,14 +559,6 @@ static int flv_read_header(AVFormatContext *s)
 
     avio_skip(s->pb, 4);
     flags = avio_r8(s->pb);
-    /* old flvtool cleared this field */
-    /* FIXME: better fix needed */
-    if (!flags) {
-        flags = FLV_HEADER_FLAG_HASVIDEO | FLV_HEADER_FLAG_HASAUDIO;
-        av_log(s, AV_LOG_WARNING,
-               "Broken FLV file, which says no streams present, "
-               "this might fail\n");
-    }
 
     s->ctx_flags |= AVFMTCTX_NOHEADER;
 
@@ -798,7 +790,7 @@ static int flv_read_packet(AVFormatContext *s, AVPacket *pkt)
                     return flv_data_packet(s, pkt, dts, next);
                 } else /* skip packet */
                     av_log(s, AV_LOG_DEBUG,
-                           "skipping flv packet: type %d, size %d, flags %d\n",
+                           "Skipping flv packet: type %d, size %d, flags %d.\n",
                            type, size, flags);
 
 skip:
@@ -826,6 +818,11 @@ skip:
             st = create_stream(s, is_audio ? AVMEDIA_TYPE_AUDIO
                                            : AVMEDIA_TYPE_VIDEO);
         av_dlog(s, "%d %X %d \n", is_audio, flags, st->discard);
+
+        if ((flags & FLV_VIDEO_FRAMETYPE_MASK) == FLV_FRAME_KEY ||
+            is_audio)
+            av_add_index_entry(st, pos, dts, size, 0, AVINDEX_KEYFRAME);
+
         if ((st->discard >= AVDISCARD_NONKEY &&
              !((flags & FLV_VIDEO_FRAMETYPE_MASK) == FLV_FRAME_KEY || is_audio)) ||
             (st->discard >= AVDISCARD_BIDIR &&
@@ -834,8 +831,6 @@ skip:
             avio_seek(s->pb, next, SEEK_SET);
             continue;
         }
-        if ((flags & FLV_VIDEO_FRAMETYPE_MASK) == FLV_FRAME_KEY)
-            av_add_index_entry(st, pos, dts, size, 0, AVINDEX_KEYFRAME);
         break;
     }
 
@@ -896,13 +891,11 @@ skip:
             // sign extension
             int32_t cts = (avio_rb24(s->pb) + 0xff800000) ^ 0xff800000;
             pts = dts + cts;
-            if (cts < 0) { // dts are wrong
+            if (cts < 0 && !flv->wrong_dts) { // dts might be wrong
                 flv->wrong_dts = 1;
                 av_log(s, AV_LOG_WARNING,
-                       "negative cts, previous timestamps might be wrong\n");
+                       "Negative cts, previous timestamps might be wrong.\n");
             }
-            if (flv->wrong_dts)
-                dts = AV_NOPTS_VALUE;
         }
         if (type == 0) {
             if (st->codec->extradata) {

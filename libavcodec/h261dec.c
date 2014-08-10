@@ -26,6 +26,8 @@
  */
 
 #include "avcodec.h"
+#include "mpeg_er.h"
+#include "mpegutils.h"
 #include "mpegvideo.h"
 #include "h263.h"
 #include "h261.h"
@@ -432,7 +434,7 @@ static int h261_decode_mb(H261Context *h)
 intra:
     /* decode each block */
     if (s->mb_intra || HAS_CBP(h->mtype)) {
-        s->dsp.clear_blocks(s->block[0]);
+        s->bdsp.clear_blocks(s->block[0]);
         for (i = 0; i < 6; i++) {
             if (h261_decode_block(h, s->block[i], i, cbp & 32) < 0)
                 return SLICE_ERROR;
@@ -607,8 +609,8 @@ retry:
     }
 
     // for skipping the frame
-    s->current_picture.f.pict_type = s->pict_type;
-    s->current_picture.f.key_frame = s->pict_type == AV_PICTURE_TYPE_I;
+    s->current_picture.f->pict_type = s->pict_type;
+    s->current_picture.f->key_frame = s->pict_type == AV_PICTURE_TYPE_I;
 
     if ((avctx->skip_frame >= AVDISCARD_NONREF && s->pict_type == AV_PICTURE_TYPE_B) ||
         (avctx->skip_frame >= AVDISCARD_NONKEY && s->pict_type != AV_PICTURE_TYPE_I) ||
@@ -631,10 +633,10 @@ retry:
     }
     ff_MPV_frame_end(s);
 
-    assert(s->current_picture.f.pict_type == s->current_picture_ptr->f.pict_type);
-    assert(s->current_picture.f.pict_type == s->pict_type);
+    assert(s->current_picture.f->pict_type == s->current_picture_ptr->f->pict_type);
+    assert(s->current_picture.f->pict_type == s->pict_type);
 
-    if ((ret = av_frame_ref(pict, &s->current_picture_ptr->f)) < 0)
+    if ((ret = av_frame_ref(pict, s->current_picture_ptr->f)) < 0)
         return ret;
     ff_print_debug_info(s, s->current_picture_ptr);
 

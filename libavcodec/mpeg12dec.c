@@ -25,17 +25,21 @@
  * MPEG-1/2 decoder
  */
 
+#include <inttypes.h>
+
 #include "libavutil/attributes.h"
 #include "libavutil/internal.h"
 #include "libavutil/stereo3d.h"
 
 #include "avcodec.h"
 #include "bytestream.h"
-#include "dsputil.h"
 #include "error_resilience.h"
+#include "idctdsp.h"
 #include "internal.h"
+#include "mpeg_er.h"
 #include "mpeg12.h"
 #include "mpeg12data.h"
+#include "mpegutils.h"
 #include "mpegvideo.h"
 #include "thread.h"
 #include "version.h"
@@ -50,6 +54,8 @@ typedef struct Mpeg1Context {
     int has_stereo3d;
     uint8_t *a53_caption;
     int a53_caption_size;
+    uint8_t afd;
+    int has_afd;
     int slice_count;
     int save_aspect_info;
     int save_width, save_height, save_progressive_seq;
@@ -773,10 +779,10 @@ static int mpeg_decode_mb(MpegEncContext *s, int16_t block[12][64])
     av_dlog(s->avctx, "mb_type=%x\n", mb_type);
 //    motion_type = 0; /* avoid warning */
     if (IS_INTRA(mb_type)) {
-        s->dsp.clear_blocks(s->block[0]);
+        s->bdsp.clear_blocks(s->block[0]);
 
         if (!s->chroma_y_shift)
-            s->dsp.clear_blocks(s->block[6]);
+            s->bdsp.clear_blocks(s->block[6]);
 
         /* compute DCT type */
         // FIXME: add an interlaced_dct coded var?
@@ -1011,13 +1017,13 @@ FF_ENABLE_DEPRECATION_WARNINGS
 
         s->mb_intra = 0;
         if (HAS_CBP(mb_type)) {
-            s->dsp.clear_blocks(s->block[0]);
+            s->bdsp.clear_blocks(s->block[0]);
 
             cbp = get_vlc2(&s->gb, ff_mb_pat_vlc.table, MB_PAT_VLC_BITS, 1);
             if (mb_block_count > 6) {
                 cbp <<= mb_block_count - 6;
                 cbp  |= get_bits(&s->gb, mb_block_count - 6);
-                s->dsp.clear_blocks(s->block[6]);
+                s->bdsp.clear_blocks(s->block[6]);
             }
             if (cbp <= 0) {
                 av_log(s->avctx, AV_LOG_ERROR,
@@ -1096,7 +1102,7 @@ static av_cold int mpeg_decode_init(AVCodecContext *avctx)
     /* we need some permutation to store matrices,
      * until MPV_common_init() sets the real permutation. */
     for (i = 0; i < 64; i++)
-        s2->dsp.idct_permutation[i] = i;
+        s2->idsp.idct_permutation[i] = i;
 
     ff_MPV_decode_defaults(s2);
 
@@ -1185,12 +1191,12 @@ static enum AVPixelFormat mpeg_get_pixelformat(AVCodecContext *avctx)
 #if FF_API_XVMC
 FF_DISABLE_DEPRECATION_WARNINGS
     if (avctx->xvmc_acceleration)
-        return avctx->get_format(avctx, pixfmt_xvmc_mpg2_420);
+        return ff_get_format(avctx, pixfmt_xvmc_mpg2_420);
 FF_ENABLE_DEPRECATION_WARNINGS
 #endif /* FF_API_XVMC */
 
     if (s->chroma_format < 2)
-        return avctx->get_format(avctx, mpeg12_hwaccel_pixfmt_list_420);
+        return ff_get_format(avctx, mpeg12_hwaccel_pixfmt_list_420);
     else if (s->chroma_format == 2)
         return AV_PIX_FMT_YUV422P;
     else
@@ -1291,8 +1297,9 @@ static int mpeg_decode_postinit(AVCodecContext *avctx)
             }
         } // MPEG-2
 
+        ff_set_sar(s->avctx, s->avctx->sample_aspect_ratio);
+
         avctx->pix_fmt = mpeg_get_pixelformat(avctx);
-        avctx->hwaccel = ff_find_hwaccel(avctx);
         // until then pix_fmt may be changed right after codec init
 #if FF_API_XVMC
         if ((avctx->pix_fmt == AV_PIX_FMT_XVMC_MPEG2_IDCT ||
@@ -1304,15 +1311,15 @@ static int mpeg_decode_postinit(AVCodecContext *avctx)
 
         /* Quantization matrices may need reordering
          * if DCT permutation is changed. */
-        memcpy(old_permutation, s->dsp.idct_permutation, 64 * sizeof(uint8_t));
+        memcpy(old_permutation, s->idsp.idct_permutation, 64 * sizeof(uint8_t));
 
         if (ff_MPV_common_init(s) < 0)
             return -2;
 
-        quant_matrix_rebuild(s->intra_matrix,        old_permutation, s->dsp.idct_permutation);
-        quant_matrix_rebuild(s->inter_matrix,        old_permutation, s->dsp.idct_permutation);
-        quant_matrix_rebuild(s->chroma_intra_matrix, old_permutation, s->dsp.idct_permutation);
-        quant_matrix_rebuild(s->chroma_inter_matrix, old_permutation, s->dsp.idct_permutation);
+        quant_matrix_rebuild(s->intra_matrix,        old_permutation, s->idsp.idct_permutation);
+        quant_matrix_rebuild(s->inter_matrix,        old_permutation, s->idsp.idct_permutation);
+        quant_matrix_rebuild(s->chroma_intra_matrix, old_permutation, s->idsp.idct_permutation);
+        quant_matrix_rebuild(s->chroma_inter_matrix, old_permutation, s->idsp.idct_permutation);
 
         s1->mpeg_enc_ctx_allocated = 1;
     }
@@ -1351,8 +1358,8 @@ static int mpeg1_decode_picture(AVCodecContext *avctx, const uint8_t *buf,
         s->mpeg_f_code[1][0] = f_code;
         s->mpeg_f_code[1][1] = f_code;
     }
-    s->current_picture.f.pict_type = s->pict_type;
-    s->current_picture.f.key_frame = s->pict_type == AV_PICTURE_TYPE_I;
+    s->current_picture.f->pict_type = s->pict_type;
+    s->current_picture.f->key_frame = s->pict_type == AV_PICTURE_TYPE_I;
 
     if (avctx->debug & FF_DEBUG_PICT_INFO)
         av_log(avctx, AV_LOG_DEBUG,
@@ -1451,7 +1458,8 @@ static void mpeg_decode_picture_display_extension(Mpeg1Context *s1)
     }
 
     if (s->avctx->debug & FF_DEBUG_PICT_INFO)
-        av_log(s->avctx, AV_LOG_DEBUG, "pde (%d,%d) (%d,%d) (%d,%d)\n",
+        av_log(s->avctx, AV_LOG_DEBUG,
+               "pde (%"PRId16",%"PRId16") (%"PRId16",%"PRId16") (%"PRId16",%"PRId16")\n",
                s1->pan_scan.position[0][0], s1->pan_scan.position[0][1],
                s1->pan_scan.position[1][0], s1->pan_scan.position[1][1],
                s1->pan_scan.position[2][0], s1->pan_scan.position[2][1]);
@@ -1463,7 +1471,7 @@ static int load_matrix(MpegEncContext *s, uint16_t matrix0[64],
     int i;
 
     for (i = 0; i < 64; i++) {
-        int j = s->dsp.idct_permutation[ff_zigzag_direct[i]];
+        int j = s->idsp.idct_permutation[ff_zigzag_direct[i]];
         int v = get_bits(&s->gb, 8);
         if (v == 0) {
             av_log(s->avctx, AV_LOG_ERROR, "matrix damaged\n");
@@ -1513,8 +1521,8 @@ static void mpeg_decode_picture_coding_extension(Mpeg1Context *s1)
                 s->pict_type = AV_PICTURE_TYPE_P;
         } else
             s->pict_type = AV_PICTURE_TYPE_B;
-        s->current_picture.f.pict_type = s->pict_type;
-        s->current_picture.f.key_frame = s->pict_type == AV_PICTURE_TYPE_I;
+        s->current_picture.f->pict_type = s->pict_type;
+        s->current_picture.f->key_frame = s->pict_type == AV_PICTURE_TYPE_I;
     }
     s->intra_dc_precision         = get_bits(&s->gb, 2);
     s->picture_structure          = get_bits(&s->gb, 2);
@@ -1555,11 +1563,11 @@ static void mpeg_decode_picture_coding_extension(Mpeg1Context *s1)
     }
 
     if (s->alternate_scan) {
-        ff_init_scantable(s->dsp.idct_permutation, &s->inter_scantable, ff_alternate_vertical_scan);
-        ff_init_scantable(s->dsp.idct_permutation, &s->intra_scantable, ff_alternate_vertical_scan);
+        ff_init_scantable(s->idsp.idct_permutation, &s->inter_scantable, ff_alternate_vertical_scan);
+        ff_init_scantable(s->idsp.idct_permutation, &s->intra_scantable, ff_alternate_vertical_scan);
     } else {
-        ff_init_scantable(s->dsp.idct_permutation, &s->inter_scantable, ff_zigzag_direct);
-        ff_init_scantable(s->dsp.idct_permutation, &s->intra_scantable, ff_zigzag_direct);
+        ff_init_scantable(s->idsp.idct_permutation, &s->inter_scantable, ff_zigzag_direct);
+        ff_init_scantable(s->idsp.idct_permutation, &s->intra_scantable, ff_zigzag_direct);
     }
 
     /* composite display not parsed */
@@ -1589,19 +1597,19 @@ static int mpeg_field_start(MpegEncContext *s, const uint8_t *buf, int buf_size)
         ff_mpeg_er_frame_start(s);
 
         /* first check if we must repeat the frame */
-        s->current_picture_ptr->f.repeat_pict = 0;
+        s->current_picture_ptr->f->repeat_pict = 0;
         if (s->repeat_first_field) {
             if (s->progressive_sequence) {
                 if (s->top_field_first)
-                    s->current_picture_ptr->f.repeat_pict = 4;
+                    s->current_picture_ptr->f->repeat_pict = 4;
                 else
-                    s->current_picture_ptr->f.repeat_pict = 2;
+                    s->current_picture_ptr->f->repeat_pict = 2;
             } else if (s->progressive_frame) {
-                s->current_picture_ptr->f.repeat_pict = 1;
+                s->current_picture_ptr->f->repeat_pict = 1;
             }
         }
 
-        pan_scan = av_frame_new_side_data(&s->current_picture_ptr->f,
+        pan_scan = av_frame_new_side_data(s->current_picture_ptr->f,
                                           AV_FRAME_DATA_PANSCAN,
                                           sizeof(s1->pan_scan));
         if (!pan_scan)
@@ -1610,7 +1618,7 @@ static int mpeg_field_start(MpegEncContext *s, const uint8_t *buf, int buf_size)
 
         if (s1->a53_caption) {
             AVFrameSideData *sd = av_frame_new_side_data(
-                &s->current_picture_ptr->f, AV_FRAME_DATA_A53_CC,
+                s->current_picture_ptr->f, AV_FRAME_DATA_A53_CC,
                 s1->a53_caption_size);
             if (sd)
                 memcpy(sd->data, s1->a53_caption, s1->a53_caption_size);
@@ -1618,13 +1626,25 @@ static int mpeg_field_start(MpegEncContext *s, const uint8_t *buf, int buf_size)
         }
 
         if (s1->has_stereo3d) {
-            AVStereo3D *stereo = av_stereo3d_create_side_data(&s->current_picture_ptr->f);
+            AVStereo3D *stereo = av_stereo3d_create_side_data(s->current_picture_ptr->f);
             if (!stereo)
                 return AVERROR(ENOMEM);
 
             *stereo = s1->stereo3d;
             s1->has_stereo3d = 0;
         }
+
+        if (s1->has_afd) {
+            AVFrameSideData *sd =
+                av_frame_new_side_data(s->current_picture_ptr->f,
+                                       AV_FRAME_DATA_AFD, 1);
+            if (!sd)
+                return AVERROR(ENOMEM);
+
+            *sd->data   = s1->afd;
+            s1->has_afd = 0;
+        }
+
         if (HAVE_THREADS && (avctx->active_thread_type & FF_THREAD_FRAME))
             ff_thread_finish_setup(avctx);
     } else { // second field
@@ -1643,10 +1663,10 @@ static int mpeg_field_start(MpegEncContext *s, const uint8_t *buf, int buf_size)
         }
 
         for (i = 0; i < 4; i++) {
-            s->current_picture.f.data[i] = s->current_picture_ptr->f.data[i];
+            s->current_picture.f->data[i] = s->current_picture_ptr->f->data[i];
             if (s->picture_structure == PICT_BOTTOM_FIELD)
-                s->current_picture.f.data[i] +=
-                    s->current_picture_ptr->f.linesize[i];
+                s->current_picture.f->data[i] +=
+                    s->current_picture_ptr->f->linesize[i];
         }
     }
 
@@ -2000,7 +2020,7 @@ FF_ENABLE_DEPRECATION_WARNINGS
         ff_MPV_frame_end(s);
 
         if (s->pict_type == AV_PICTURE_TYPE_B || s->low_delay) {
-            int ret = av_frame_ref(pict, &s->current_picture_ptr->f);
+            int ret = av_frame_ref(pict, s->current_picture_ptr->f);
             if (ret < 0)
                 return ret;
             ff_print_debug_info(s, s->current_picture_ptr);
@@ -2010,7 +2030,7 @@ FF_ENABLE_DEPRECATION_WARNINGS
             /* latency of 1 frame for I- and P-frames */
             /* XXX: use another variable than picture_number */
             if (s->last_picture_ptr != NULL) {
-                int ret = av_frame_ref(pict, &s->last_picture_ptr->f);
+                int ret = av_frame_ref(pict, s->last_picture_ptr->f);
                 if (ret < 0)
                     return ret;
                 ff_print_debug_info(s, s->last_picture_ptr);
@@ -2064,7 +2084,7 @@ static int mpeg1_decode_sequence(AVCodecContext *avctx,
         load_matrix(s, s->chroma_intra_matrix, s->intra_matrix, 1);
     } else {
         for (i = 0; i < 64; i++) {
-            j = s->dsp.idct_permutation[i];
+            j = s->idsp.idct_permutation[i];
             v = ff_mpeg1_default_intra_matrix[i];
             s->intra_matrix[j]        = v;
             s->chroma_intra_matrix[j] = v;
@@ -2074,7 +2094,7 @@ static int mpeg1_decode_sequence(AVCodecContext *avctx,
         load_matrix(s, s->chroma_inter_matrix, s->inter_matrix, 0);
     } else {
         for (i = 0; i < 64; i++) {
-            int j = s->dsp.idct_permutation[i];
+            int j = s->idsp.idct_permutation[i];
             v = ff_mpeg1_default_non_intra_matrix[i];
             s->inter_matrix[j]        = v;
             s->chroma_inter_matrix[j] = v;
@@ -2122,7 +2142,6 @@ static int vcr2_init_sequence(AVCodecContext *avctx)
     s->low_delay        = 1;
 
     avctx->pix_fmt = mpeg_get_pixelformat(avctx);
-    avctx->hwaccel = ff_find_hwaccel(avctx);
 
 #if FF_API_XVMC
     if ((avctx->pix_fmt == AV_PIX_FMT_XVMC_MPEG2_IDCT || avctx->hwaccel) &&
@@ -2137,7 +2156,7 @@ static int vcr2_init_sequence(AVCodecContext *avctx)
     s1->mpeg_enc_ctx_allocated = 1;
 
     for (i = 0; i < 64; i++) {
-        int j = s->dsp.idct_permutation[i];
+        int j = s->idsp.idct_permutation[i];
         v = ff_mpeg1_default_intra_matrix[i];
         s->intra_matrix[j]        = v;
         s->chroma_intra_matrix[j] = v;
@@ -2216,6 +2235,7 @@ static void mpeg_decode_user_data(AVCodecContext *avctx,
                                   const uint8_t *p, int buf_size)
 {
     const uint8_t *buf_end = p + buf_size;
+    Mpeg1Context *s1 = avctx->priv_data;
 
     /* we parse the DTG active format information */
     if (buf_end - p >= 5 &&
@@ -2229,7 +2249,13 @@ static void mpeg_decode_user_data(AVCodecContext *avctx,
         if (flags & 0x40) {
             if (buf_end - p < 1)
                 return;
+#if FF_API_AFD
+FF_DISABLE_DEPRECATION_WARNINGS
             avctx->dtg_active_format = p[0] & 0x0f;
+FF_ENABLE_DEPRECATION_WARNINGS
+#endif /* FF_API_AFD */
+            s1->has_afd = 1;
+            s1->afd     = p[0] & 0x0f;
         }
     } else if (buf_end - p >= 6 &&
                p[0] == 'J' && p[1] == 'P' && p[2] == '3' && p[3] == 'D' &&
@@ -2241,7 +2267,6 @@ static void mpeg_decode_user_data(AVCodecContext *avctx,
             S3D_video_format_type == 0x04 ||
             S3D_video_format_type == 0x08 ||
             S3D_video_format_type == 0x23) {
-            Mpeg1Context *s1   = avctx->priv_data;
 
             s1->has_stereo3d = 1;
 
@@ -2342,7 +2367,7 @@ static int decode_chunks(AVCodecContext *avctx, AVFrame *picture,
         input_size = buf_end - buf_ptr;
 
         if (avctx->debug & FF_DEBUG_STARTCODE)
-            av_log(avctx, AV_LOG_DEBUG, "%3X at %td left %d\n",
+            av_log(avctx, AV_LOG_DEBUG, "%3"PRIX32" at %td left %d\n",
                    start_code, buf_ptr - buf, input_size);
 
         /* prepare data for next start code */
@@ -2577,7 +2602,7 @@ static int mpeg_decode_frame(AVCodecContext *avctx, void *data,
     if (buf_size == 0 || (buf_size == 4 && AV_RB32(buf) == SEQ_END_CODE)) {
         /* special case for last picture */
         if (s2->low_delay == 0 && s2->next_picture_ptr) {
-            int ret = av_frame_ref(picture, &s2->next_picture_ptr->f);
+            int ret = av_frame_ref(picture, s2->next_picture_ptr->f);
             if (ret < 0)
                 return ret;
 
