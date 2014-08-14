@@ -2199,8 +2199,6 @@ ranlib="ranlib"
 strip="strip"
 yasmexe="yasm"
 
-nogas=":"
-
 # machine
 arch_default=$(uname -m)
 cpu="generic"
@@ -2616,6 +2614,17 @@ EOF
     die "Sanity test failed."
 fi
 
+armasm_flags(){
+    for flag; do
+        case $flag in
+            # Filter out MSVC cl.exe options from cflags that shouldn't
+            # be passed to gas-preprocessor
+            -M[TD]*)                                            ;;
+            *)                  echo $flag                      ;;
+        esac
+   done
+}
+
 ccc_flags(){
     for flag; do
         case $flag in
@@ -2883,6 +2892,12 @@ probe_cc(){
         _cflags_size="-O2 -Munroll=c:1 $opt_common"
         _cflags_noopt="-O1"
         _flags_filter=pgi_flags
+    elif $_cc 2>&1 | grep -q 'Microsoft.*ARM.*Assembler'; then
+        _type=armasm
+        _ident=$($_cc | head -n1)
+        # 4509: "This form of conditional instruction is deprecated"
+        _flags="-nologo -ignore 4509"
+        _flags_filter=armasm_flags
     elif $_cc 2>&1 | grep -q Microsoft; then
         _type=msvc
         _ident=$($cc 2>&1 | head -n1)
@@ -3419,7 +3434,6 @@ case $target_os in
         add_extralibs -lpoll -lgnugetopt
         ;;
     darwin)
-        gas="gas-preprocessor.pl $cc"
         enabled ppc && add_asflags -force_cpusubtype_ALL
         SHFLAGS='-dynamiclib -Wl,-single_module -Wl,-install_name,$(SHLIBDIR)/$(SLIBNAME_WITH_MAJOR),-current_version,$(LIBVERSION),-compatibility_version,$(LIBMAJOR)'
         enabled x86_32 && append SHFLAGS -Wl,-read_only_relocs,suppress
@@ -3778,13 +3792,26 @@ EOF
 }
 
 if enabled_any arm aarch64 || enabled_all ppc altivec && enabled asm; then
+    nogas=:
     enabled_any arm aarch64 && nogas=die
     enabled_all ppc altivec && nogas=warn
+    as_noop=-v
+
+    case $as_type in
+        arm*) gaspp_as_type=armasm; as_noop=-h ;;
+        gcc)  gaspp_as_type=gas ;;
+        *)    gaspp_as_type=$as_type ;;
+    esac
+
+    [ $target_os = "darwin" ] && gaspp_as_type="apple-$gaspp_as_type"
+
+    check_cmd gas-preprocessor.pl -arch $arch -as-type $gaspp_as_type -- $as $as_noop &&
+        gas="gas-preprocessor.pl -arch $arch -as-type $gaspp_as_type -- $as"
 
     if ! check_gas ; then
         as=${gas:=$as}
         check_gas || \
-            $nogas "GNU assembler not found, install gas-preprocessor"
+            $nogas "GNU assembler not found, install/update gas-preprocessor"
     fi
 
     check_as <<EOF && enable as_func
@@ -4019,7 +4046,7 @@ check_func  mkstemp
 check_func  mmap
 check_func  mprotect
 # Solaris has nanosleep in -lrt, OpenSolaris no longer needs that
-check_func  nanosleep || { check_func nanosleep -lrt && add_extralibs -lrt; }
+check_func_headers time.h nanosleep || { check_func_headers time.h nanosleep -lrt && add_extralibs -lrt; }
 check_func  sched_getaffinity
 check_func  setrlimit
 check_func  strerror_r
