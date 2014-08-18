@@ -1097,18 +1097,16 @@ static av_cold int mpeg_decode_init(AVCodecContext *avctx)
 {
     Mpeg1Context *s    = avctx->priv_data;
     MpegEncContext *s2 = &s->mpeg_enc_ctx;
-    int i;
 
-    /* we need some permutation to store matrices,
-     * until MPV_common_init() sets the real permutation. */
-    for (i = 0; i < 64; i++)
-        s2->idsp.idct_permutation[i] = i;
-
-    ff_MPV_decode_defaults(s2);
+    ff_mpv_decode_defaults(s2);
 
     s->mpeg_enc_ctx.avctx  = avctx;
     s->mpeg_enc_ctx.flags  = avctx->flags;
     s->mpeg_enc_ctx.flags2 = avctx->flags2;
+
+    /* we need some permutation to store matrices,
+     * until the decoder sets the real permutation. */
+    ff_mpv_idct_init(s2);
     ff_mpeg12_common_init(&s->mpeg_enc_ctx);
     ff_mpeg12_init_vlcs();
 
@@ -1223,7 +1221,7 @@ static int mpeg_decode_postinit(AVCodecContext *avctx)
         if (s1->mpeg_enc_ctx_allocated) {
             ParseContext pc = s->parse_context;
             s->parse_context.buffer = 0;
-            ff_MPV_common_end(s);
+            ff_mpv_common_end(s);
             s->parse_context = pc;
         }
 
@@ -1313,7 +1311,8 @@ static int mpeg_decode_postinit(AVCodecContext *avctx)
          * if DCT permutation is changed. */
         memcpy(old_permutation, s->idsp.idct_permutation, 64 * sizeof(uint8_t));
 
-        if (ff_MPV_common_init(s) < 0)
+        ff_mpv_idct_init(s);
+        if (ff_mpv_common_init(s) < 0)
             return -2;
 
         quant_matrix_rebuild(s->intra_matrix,        old_permutation, s->idsp.idct_permutation);
@@ -1591,7 +1590,7 @@ static int mpeg_field_start(MpegEncContext *s, const uint8_t *buf, int buf_size)
     if (s->first_field || s->picture_structure == PICT_FRAME) {
         AVFrameSideData *pan_scan;
 
-        if (ff_MPV_frame_start(s, avctx) < 0)
+        if (ff_mpv_frame_start(s, avctx) < 0)
             return -1;
 
         ff_mpeg_er_frame_start(s);
@@ -1677,7 +1676,7 @@ static int mpeg_field_start(MpegEncContext *s, const uint8_t *buf, int buf_size)
 
 #if FF_API_XVMC
 FF_DISABLE_DEPRECATION_WARNINGS
-// MPV_frame_start will call this function too,
+// ff_mpv_frame_start will call this function too,
 // but we need to call it on every field
     if (CONFIG_MPEG_XVMC_DECODER && s->avctx->xvmc_acceleration)
         if (ff_xvmc_field_start(s, avctx) < 0)
@@ -1842,13 +1841,13 @@ FF_ENABLE_DEPRECATION_WARNINGS
         s->dest[1] += 16 >> s->chroma_x_shift;
         s->dest[2] += 16 >> s->chroma_x_shift;
 
-        ff_MPV_decode_mb(s, s->block);
+        ff_mpv_decode_mb(s, s->block);
 
         if (++s->mb_x >= s->mb_width) {
             const int mb_size = 16;
 
             ff_mpeg_draw_horiz_band(s, mb_size * (s->mb_y >> field_pic), mb_size);
-            ff_MPV_report_decode_progress(s);
+            ff_mpv_report_decode_progress(s);
 
             s->mb_x  = 0;
             s->mb_y += 1 << field_pic;
@@ -2017,7 +2016,7 @@ FF_ENABLE_DEPRECATION_WARNINGS
 
         ff_er_frame_end(&s->er);
 
-        ff_MPV_frame_end(s);
+        ff_mpv_frame_end(s);
 
         if (s->pict_type == AV_PICTURE_TYPE_B || s->low_delay) {
             int ret = av_frame_ref(pict, s->current_picture_ptr->f);
@@ -2029,7 +2028,7 @@ FF_ENABLE_DEPRECATION_WARNINGS
                 s->picture_number++;
             /* latency of 1 frame for I- and P-frames */
             /* XXX: use another variable than picture_number */
-            if (s->last_picture_ptr != NULL) {
+            if (s->last_picture_ptr) {
                 int ret = av_frame_ref(pict, s->last_picture_ptr->f);
                 if (ret < 0)
                     return ret;
@@ -2134,7 +2133,7 @@ static int vcr2_init_sequence(AVCodecContext *avctx)
     /* start new MPEG-1 context decoding */
     s->out_format = FMT_MPEG1;
     if (s1->mpeg_enc_ctx_allocated) {
-        ff_MPV_common_end(s);
+        ff_mpv_common_end(s);
     }
     s->width            = avctx->coded_width;
     s->height           = avctx->coded_height;
@@ -2151,7 +2150,8 @@ static int vcr2_init_sequence(AVCodecContext *avctx)
 #endif /* FF_API_XVMC */
         avctx->idct_algo = FF_IDCT_SIMPLE;
 
-    if (ff_MPV_common_init(s) < 0)
+    ff_mpv_idct_init(s);
+    if (ff_mpv_common_init(s) < 0)
         return -1;
     s1->mpeg_enc_ctx_allocated = 1;
 
@@ -2488,7 +2488,7 @@ static int decode_chunks(AVCodecContext *avctx, AVFrame *picture,
                     return -1;
                 }
 
-                if (s2->last_picture_ptr == NULL) {
+                if (!s2->last_picture_ptr) {
                     /* Skip B-frames if we do not have reference frames and
                      * GOP is not closed. */
                     if (s2->pict_type == AV_PICTURE_TYPE_B) {
@@ -2500,7 +2500,7 @@ static int decode_chunks(AVCodecContext *avctx, AVFrame *picture,
                 }
                 if (s2->pict_type == AV_PICTURE_TYPE_I)
                     s->sync = 1;
-                if (s2->next_picture_ptr == NULL) {
+                if (!s2->next_picture_ptr) {
                     /* Skip P-frames if we do not have a reference frame or
                      * we have an invalid header. */
                     if (s2->pict_type == AV_PICTURE_TYPE_P && !s->sync) {
@@ -2653,7 +2653,7 @@ static av_cold int mpeg_decode_end(AVCodecContext *avctx)
     Mpeg1Context *s = avctx->priv_data;
 
     if (s->mpeg_enc_ctx_allocated)
-        ff_MPV_common_end(&s->mpeg_enc_ctx);
+        ff_mpv_common_end(&s->mpeg_enc_ctx);
     av_freep(&s->a53_caption);
     return 0;
 }
