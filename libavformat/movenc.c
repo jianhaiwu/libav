@@ -1713,7 +1713,7 @@ static int mov_write_track_udta_tag(AVIOContext *pb, MOVMuxContext *mov,
     int ret, size;
     uint8_t *buf;
 
-    if (st == NULL || mov->fc->flags & AVFMT_FLAG_BITEXACT)
+    if (!st || mov->fc->flags & AVFMT_FLAG_BITEXACT)
         return 0;
 
     ret = avio_open_dyn_buf(&pb_buf);
@@ -3182,7 +3182,7 @@ static int mov_create_chapter_track(AVFormatContext *s, int tracknum)
         return AVERROR(ENOMEM);
     track->enc->codec_type = AVMEDIA_TYPE_SUBTITLE;
     track->enc->extradata = av_malloc(sizeof(chapter_properties));
-    if (track->enc->extradata == NULL)
+    if (!track->enc->extradata)
         return AVERROR(ENOMEM);
     track->enc->extradata_size = sizeof(chapter_properties);
     memcpy(track->enc->extradata, chapter_properties, sizeof(chapter_properties));
@@ -3369,7 +3369,7 @@ static int mov_write_header(AVFormatContext *s)
     /* Default mode == MP4 */
     mov->mode = MODE_MP4;
 
-    if (s->oformat != NULL) {
+    if (s->oformat) {
         if (!strcmp("3gp", s->oformat->name)) mov->mode = MODE_3GP;
         else if (!strcmp("3g2", s->oformat->name)) mov->mode = MODE_3GP|MODE_3G2;
         else if (!strcmp("mov", s->oformat->name)) mov->mode = MODE_MOV;

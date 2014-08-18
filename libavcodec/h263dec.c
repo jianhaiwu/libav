@@ -52,7 +52,7 @@ av_cold int ff_h263_decode_init(AVCodecContext *avctx)
     s->workaround_bugs = avctx->workaround_bugs;
 
     // set defaults
-    ff_MPV_decode_defaults(s);
+    ff_mpv_decode_defaults(s);
     s->quant_precision = 5;
     s->decode_mb       = ff_h263_decode_mb;
     s->low_delay       = 1;
@@ -113,9 +113,11 @@ av_cold int ff_h263_decode_init(AVCodecContext *avctx)
 
     /* for h263, we allocate the images after having read the header */
     if (avctx->codec->id != AV_CODEC_ID_H263 &&
-        avctx->codec->id != AV_CODEC_ID_MPEG4)
-        if ((ret = ff_MPV_common_init(s)) < 0)
+        avctx->codec->id != AV_CODEC_ID_MPEG4) {
+        ff_mpv_idct_init(s);
+        if ((ret = ff_mpv_common_init(s)) < 0)
             return ret;
+    }
 
     ff_h263dsp_init(&s->h263dsp);
     ff_qpeldsp_init(&s->qdsp);
@@ -128,7 +130,7 @@ av_cold int ff_h263_decode_end(AVCodecContext *avctx)
 {
     MpegEncContext *s = avctx->priv_data;
 
-    ff_MPV_common_end(s);
+    ff_mpv_common_end(s);
     return 0;
 }
 
@@ -237,7 +239,7 @@ static int decode_slice(MpegEncContext *s)
             if (ret < 0) {
                 const int xy = s->mb_x + s->mb_y * s->mb_stride;
                 if (ret == SLICE_END) {
-                    ff_MPV_decode_mb(s, s->block);
+                    ff_mpv_decode_mb(s, s->block);
                     if (s->loop_filter)
                         ff_h263_loop_filter(s);
 
@@ -249,7 +251,7 @@ static int decode_slice(MpegEncContext *s)
                     if (++s->mb_x >= s->mb_width) {
                         s->mb_x = 0;
                         ff_mpeg_draw_horiz_band(s, s->mb_y * mb_size, mb_size);
-                        ff_MPV_report_decode_progress(s);
+                        ff_mpv_report_decode_progress(s);
                         s->mb_y++;
                     }
                     return 0;
@@ -268,13 +270,13 @@ static int decode_slice(MpegEncContext *s)
                 return AVERROR_INVALIDDATA;
             }
 
-            ff_MPV_decode_mb(s, s->block);
+            ff_mpv_decode_mb(s, s->block);
             if (s->loop_filter)
                 ff_h263_loop_filter(s);
         }
 
         ff_mpeg_draw_horiz_band(s, s->mb_y * mb_size, mb_size);
-        ff_MPV_report_decode_progress(s);
+        ff_mpv_report_decode_progress(s);
 
         s->mb_x = 0;
     }
@@ -416,17 +418,7 @@ int ff_h263_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
 
     if (!s->context_initialized)
         // we need the idct permutaton for reading a custom matrix
-        if ((ret = ff_MPV_common_init(s)) < 0)
-            return ret;
-
-    /* We need to set current_picture_ptr before reading the header,
-     * otherwise we cannot store anyting in there */
-    if (s->current_picture_ptr == NULL || s->current_picture_ptr->f->data[0]) {
-        int i = ff_find_unused_picture(s, 0);
-        if (i < 0)
-            return i;
-        s->current_picture_ptr = &s->picture[i];
-    }
+        ff_mpv_idct_init(s);
 
     /* let's go :-) */
     if (CONFIG_WMV2_DECODER && s->msmpeg4_version == 5) {
@@ -459,6 +451,17 @@ int ff_h263_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
     if (ret < 0) {
         av_log(s->avctx, AV_LOG_ERROR, "header damaged\n");
         return ret;
+    }
+
+    if (!s->context_initialized)
+        if ((ret = ff_mpv_common_init(s)) < 0)
+            return ret;
+
+    if (!s->current_picture_ptr || s->current_picture_ptr->f->data[0]) {
+        int i = ff_find_unused_picture(s, 0);
+        if (i < 0)
+            return i;
+        s->current_picture_ptr = &s->picture[i];
     }
 
     avctx->has_b_frames = !s->low_delay;
@@ -500,7 +503,7 @@ int ff_h263_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
 
         ff_set_sar(avctx, avctx->sample_aspect_ratio);
 
-        if ((ret = ff_MPV_common_frame_size_change(s)))
+        if ((ret = ff_mpv_common_frame_size_change(s)))
             return ret;
     }
 
@@ -514,7 +517,7 @@ int ff_h263_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
     s->current_picture.f->key_frame = s->pict_type == AV_PICTURE_TYPE_I;
 
     /* skip B-frames if we don't have reference frames */
-    if (s->last_picture_ptr == NULL &&
+    if (!s->last_picture_ptr &&
         (s->pict_type == AV_PICTURE_TYPE_B || s->droppable))
         return get_consumed_bytes(s, buf_size);
     if ((avctx->skip_frame >= AVDISCARD_NONREF &&
@@ -539,7 +542,7 @@ int ff_h263_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
         s->me.qpel_avg = s->qdsp.avg_qpel_pixels_tab;
     }
 
-    if ((ret = ff_MPV_frame_start(s, avctx)) < 0)
+    if ((ret = ff_mpv_frame_start(s, avctx)) < 0)
         return ret;
 
     if (!s->divx_packed && !avctx->hwaccel)
@@ -556,7 +559,7 @@ int ff_h263_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
 
     /* the second part of the wmv2 header contains the MB skip bits which
      * are stored in current_picture->mb_type which is not available before
-     * ff_MPV_frame_start() */
+     * ff_mpv_frame_start() */
     if (CONFIG_WMV2_DECODER && s->msmpeg4_version == 5) {
         ret = ff_wmv2_decode_secondary_picture_header(s);
         if (ret < 0)
@@ -610,7 +613,7 @@ intrax8_decoded:
             return ret;
     }
 
-    ff_MPV_frame_end(s);
+    ff_mpv_frame_end(s);
 
     if (!s->divx_packed && avctx->hwaccel)
         ff_thread_finish_setup(avctx);
@@ -622,7 +625,7 @@ intrax8_decoded:
         if ((ret = av_frame_ref(pict, s->current_picture_ptr->f)) < 0)
             return ret;
         ff_print_debug_info(s, s->current_picture_ptr);
-    } else if (s->last_picture_ptr != NULL) {
+    } else if (s->last_picture_ptr) {
         if ((ret = av_frame_ref(pict, s->last_picture_ptr->f)) < 0)
             return ret;
         ff_print_debug_info(s, s->last_picture_ptr);
