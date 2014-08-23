@@ -244,6 +244,7 @@ Depends:
  libavcodec56 (<= ${source:Upstream-Version}-99) | libavcodec-extra-56 (<= ${source:Upstream-Version}-99),
  libavcodec56 (>= ${binary:Version}) | libavcodec-extra-56 (>= ${binary:Version}),
  libavutil-dev (= ${binary:Version}),
+ libavresample-dev (= ${binary:Version}),
  ${misc:Depends}
 Suggests:
  libdc1394-22-dev [linux-any],
