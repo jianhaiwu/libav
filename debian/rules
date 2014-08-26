@@ -147,9 +147,9 @@ install: build $(DH_INSTALL_FILES)
 	$(foreach flavor,$(filter-out static,$(FLAVORS)),$(call install_flavor_extra,$(flavor)))
 	dh_install $(addprefix -p,$(LIB_EXTRA_PKGS)) --fail-missing \
 		--sourcedir=debian/tmp/extra
-	$(call call_and_install_avconv_dump,libavformat55,formats)
-	$(call call_and_install_avconv_dump,libavcodec55,codecs)
-	$(call call_and_install_avconv_dump,libavcodec-extra-55,codecs)
+	$(call call_and_install_avconv_dump,libavformat56,formats)
+	$(call call_and_install_avconv_dump,libavcodec56,codecs)
+	$(call call_and_install_avconv_dump,libavcodec-extra-56,codecs)
 
 binary-indep:
 	dh_testdir

@@ -212,10 +212,6 @@ Pre-Depends: ${misc:Pre-Depends}
 Depends:
  ${misc:Depends},
  ${shlibs:Depends}
-Replaces:
- libswscale-extra-2
-Breaks:
- libswscale-extra-2 (<< 5:0.8.1-2)
 Description: Libav video scaling library
  Libav is a complete, cross-platform solution to decode, encode, record,
  convert and stream audio and video.
