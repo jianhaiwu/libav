@@ -1,3 +1,13 @@
+libav (6:11~beta1-2) unstable; urgency=medium
+
+  [ Reinhard Tartler ]
+  * Make libavcodec-dev depend on libavresample-dev
+
+  [ Rico Tzschichholz ]
+  * Some fixes and leftovers from soname bumps
+
+ -- Reinhard Tartler <siretart@tauware.de>  Sat, 30 Aug 2014 11:02:45 -0400
+
 libav (6:11~beta1-1) experimental; urgency=low
 
   * New upstream Release v11~alpha2
