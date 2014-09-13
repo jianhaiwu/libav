@@ -1,3 +1,11 @@
+libav (6:11~beta1-3) unstable; urgency=low
+
+  * Add post-release upstream patches
+  * Remove unapplied patches
+  * Remove /etc/avserver.conf (Closes: #760763)
+
+ -- Reinhard Tartler <siretart@tauware.de>  Sat, 13 Sep 2014 07:58:42 -0400
+
 libav (6:11~beta1-2) unstable; urgency=medium
 
   [ Reinhard Tartler ]
