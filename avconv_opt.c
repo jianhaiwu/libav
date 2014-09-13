@@ -57,6 +57,12 @@ const HWAccel hwaccels[] = {
 #if HAVE_VDPAU_X11
     { "vdpau", vdpau_init, HWACCEL_VDPAU, AV_PIX_FMT_VDPAU },
 #endif
+#if HAVE_DXVA2_LIB
+    { "dxva2", dxva2_init, HWACCEL_DXVA2, AV_PIX_FMT_DXVA2_VLD },
+#endif
+#if CONFIG_VDA
+    { "vda",   vda_init,   HWACCEL_VDA,   AV_PIX_FMT_VDA },
+#endif
     { 0 },
 };
 
@@ -456,13 +462,15 @@ static AVCodec *choose_decoder(OptionsContext *o, AVFormatContext *s, AVStream *
  * list of input streams. */
 static void add_input_streams(OptionsContext *o, AVFormatContext *ic)
 {
-    int i;
+    int i, ret;
 
     for (i = 0; i < ic->nb_streams; i++) {
         AVStream *st = ic->streams[i];
         AVCodecContext *dec = st->codec;
         InputStream *ist = av_mallocz(sizeof(*ist));
         char *framerate = NULL, *hwaccel = NULL, *hwaccel_device = NULL;
+        char *codec_tag = NULL;
+        char *next;
 
         if (!ist)
             exit_program(1);
@@ -478,14 +486,34 @@ static void add_input_streams(OptionsContext *o, AVFormatContext *ic)
         ist->ts_scale = 1.0;
         MATCH_PER_STREAM_OPT(ts_scale, dbl, ist->ts_scale, ic, st);
 
+        MATCH_PER_STREAM_OPT(codec_tags, str, codec_tag, ic, st);
+        if (codec_tag) {
+            uint32_t tag = strtol(codec_tag, &next, 0);
+            if (*next)
+                tag = AV_RL32(codec_tag);
+            st->codec->codec_tag = tag;
+        }
+
         ist->dec = choose_decoder(o, ic, st);
-        ist->opts = filter_codec_opts(o->g->codec_opts, ist->st->codec->codec_id, ic, st, ist->dec);
+        ist->decoder_opts = filter_codec_opts(o->g->codec_opts, ist->st->codec->codec_id, ic, st, ist->dec);
+
+        ist->dec_ctx = avcodec_alloc_context3(ist->dec);
+        if (!ist->dec_ctx) {
+            av_log(NULL, AV_LOG_ERROR, "Error allocating the decoder context.\n");
+            exit_program(1);
+        }
+
+        ret = avcodec_copy_context(ist->dec_ctx, dec);
+        if (ret < 0) {
+            av_log(NULL, AV_LOG_ERROR, "Error initializing the decoder context.\n");
+            exit_program(1);
+        }
 
         switch (dec->codec_type) {
         case AVMEDIA_TYPE_VIDEO:
-            ist->resample_height  = dec->height;
-            ist->resample_width   = dec->width;
-            ist->resample_pix_fmt = dec->pix_fmt;
+            ist->resample_height  = ist->dec_ctx->height;
+            ist->resample_width   = ist->dec_ctx->width;
+            ist->resample_pix_fmt = ist->dec_ctx->pix_fmt;
 
             MATCH_PER_STREAM_OPT(frame_rates, str, framerate, ic, st);
             if (framerate && av_parse_video_rate(&ist->framerate,
@@ -534,10 +562,10 @@ static void add_input_streams(OptionsContext *o, AVFormatContext *ic)
         case AVMEDIA_TYPE_AUDIO:
             guess_input_channel_layout(ist);
 
-            ist->resample_sample_fmt     = dec->sample_fmt;
-            ist->resample_sample_rate    = dec->sample_rate;
-            ist->resample_channels       = dec->channels;
-            ist->resample_channel_layout = dec->channel_layout;
+            ist->resample_sample_fmt     = ist->dec_ctx->sample_fmt;
+            ist->resample_sample_rate    = ist->dec_ctx->sample_rate;
+            ist->resample_channels       = ist->dec_ctx->channels;
+            ist->resample_channel_layout = ist->dec_ctx->channel_layout;
 
             break;
         case AVMEDIA_TYPE_DATA:
@@ -559,7 +587,7 @@ static void assert_file_overwrite(const char *filename)
     }
 
     if (!file_overwrite &&
-        (strchr(filename, ':') == NULL || filename[1] == ':' ||
+        (!strchr(filename, ':') || filename[1] == ':' ||
          av_strstart(filename, "file:", NULL))) {
         if (avio_check(filename, 0) == 0) {
             if (!using_stdin && !file_skip) {
@@ -741,7 +769,7 @@ static int open_input_file(OptionsContext *o, const char *filename)
     unused_opts = strip_specifiers(o->g->codec_opts);
     for (i = f->ist_index; i < nb_input_streams; i++) {
         e = NULL;
-        while ((e = av_dict_get(input_streams[i]->opts, "", e,
+        while ((e = av_dict_get(input_streams[i]->decoder_opts, "", e,
                                 AV_DICT_IGNORE_SUFFIX)))
             av_dict_set(&unused_opts, e->key, NULL, 0);
     }
@@ -809,14 +837,14 @@ static uint8_t *get_line(AVIOContext *s)
 
 static int get_preset_file_2(const char *preset_name, const char *codec_name, AVIOContext **s)
 {
-    int i, ret = 1;
+    int i, ret = -1;
     char filename[1000];
     const char *base[3] = { getenv("AVCONV_DATADIR"),
                             getenv("HOME"),
                             AVCONV_DATADIR,
                             };
 
-    for (i = 0; i < FF_ARRAY_ELEMS(base) && ret; i++) {
+    for (i = 0; i < FF_ARRAY_ELEMS(base) && ret < 0; i++) {
         if (!base[i])
             continue;
         if (codec_name) {
@@ -824,7 +852,7 @@ static int get_preset_file_2(const char *preset_name, const char *codec_name, AV
                      i != 1 ? "" : "/.avconv", codec_name, preset_name);
             ret = avio_open2(s, filename, AVIO_FLAG_READ, &int_cb, NULL);
         }
-        if (ret) {
+        if (ret < 0) {
             snprintf(filename, sizeof(filename), "%s%s/%s.avpreset", base[i],
                      i != 1 ? "" : "/.avconv", preset_name);
             ret = avio_open2(s, filename, AVIO_FLAG_READ, &int_cb, NULL);
@@ -877,11 +905,19 @@ static OutputStream *new_output_stream(OptionsContext *o, AVFormatContext *oc, e
     ost->st         = st;
     st->codec->codec_type = type;
     choose_encoder(o, oc, ost);
+
+    ost->enc_ctx = avcodec_alloc_context3(ost->enc);
+    if (!ost->enc_ctx) {
+        av_log(NULL, AV_LOG_ERROR, "Error allocating the encoding context.\n");
+        exit_program(1);
+    }
+    ost->enc_ctx->codec_type = type;
+
     if (ost->enc) {
         AVIOContext *s = NULL;
         char *buf = NULL, *arg = NULL, *preset = NULL;
 
-        ost->opts  = filter_codec_opts(o->g->codec_opts, ost->enc->id, oc, st, ost->enc);
+        ost->encoder_opts  = filter_codec_opts(o->g->codec_opts, ost->enc->id, oc, st, ost->enc);
 
         MATCH_PER_STREAM_OPT(presets, str, preset, oc, st);
         if (preset && (!(ret = get_preset_file_2(preset, ost->enc->name, &s)))) {
@@ -896,7 +932,7 @@ static OutputStream *new_output_stream(OptionsContext *o, AVFormatContext *oc, e
                     exit_program(1);
                 }
                 *arg++ = 0;
-                av_dict_set(&ost->opts, buf, arg, AV_DICT_DONT_OVERWRITE);
+                av_dict_set(&ost->encoder_opts, buf, arg, AV_DICT_DONT_OVERWRITE);
                 av_free(buf);
             } while (!s->eof_reached);
             avio_close(s);
@@ -908,11 +944,8 @@ static OutputStream *new_output_stream(OptionsContext *o, AVFormatContext *oc, e
             exit_program(1);
         }
     } else {
-        ost->opts = filter_codec_opts(o->g->codec_opts, AV_CODEC_ID_NONE, oc, st, NULL);
+        ost->encoder_opts = filter_codec_opts(o->g->codec_opts, AV_CODEC_ID_NONE, oc, st, NULL);
     }
-
-    avcodec_get_context_defaults3(st->codec, ost->enc);
-    st->codec->codec_type = type; // XXX hack, avcodec_get_context_defaults2() sets type to unknown for stream copy
 
     ost->max_frames = INT64_MAX;
     MATCH_PER_STREAM_OPT(max_frames, i64, ost->max_frames, oc, st);
@@ -939,17 +972,17 @@ static OutputStream *new_output_stream(OptionsContext *o, AVFormatContext *oc, e
         uint32_t tag = strtol(codec_tag, &next, 0);
         if (*next)
             tag = AV_RL32(codec_tag);
-        st->codec->codec_tag = tag;
+        ost->enc_ctx->codec_tag = tag;
     }
 
     MATCH_PER_STREAM_OPT(qscale, dbl, qscale, oc, st);
     if (qscale >= 0) {
-        st->codec->flags |= CODEC_FLAG_QSCALE;
-        st->codec->global_quality = FF_QP2LAMBDA * qscale;
+        ost->enc_ctx->flags |= CODEC_FLAG_QSCALE;
+        ost->enc_ctx->global_quality = FF_QP2LAMBDA * qscale;
     }
 
     if (oc->oformat->flags & AVFMT_GLOBALHEADER)
-        st->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
+        ost->enc_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
 
     av_opt_get_int(o->g->sws_opts, "sws_flags", 0, &ost->sws_flags);
 
@@ -1040,7 +1073,7 @@ static OutputStream *new_video_stream(OptionsContext *o, AVFormatContext *oc)
 
     ost = new_output_stream(o, oc, AVMEDIA_TYPE_VIDEO);
     st  = ost->st;
-    video_enc = st->codec;
+    video_enc = ost->enc_ctx;
 
     MATCH_PER_STREAM_OPT(frame_aspect_ratios, str, frame_aspect_ratio, oc, st);
     if (frame_aspect_ratio)
@@ -1161,7 +1194,7 @@ static OutputStream *new_audio_stream(OptionsContext *o, AVFormatContext *oc)
     ost = new_output_stream(o, oc, AVMEDIA_TYPE_AUDIO);
     st  = ost->st;
 
-    audio_enc = st->codec;
+    audio_enc = ost->enc_ctx;
     audio_enc->codec_type = AVMEDIA_TYPE_AUDIO;
 
     if (!ost->stream_copy) {
@@ -1209,13 +1242,11 @@ static OutputStream *new_attachment_stream(OptionsContext *o, AVFormatContext *o
 
 static OutputStream *new_subtitle_stream(OptionsContext *o, AVFormatContext *oc)
 {
-    AVStream *st;
     OutputStream *ost;
     AVCodecContext *subtitle_enc;
 
     ost = new_output_stream(o, oc, AVMEDIA_TYPE_SUBTITLE);
-    st  = ost->st;
-    subtitle_enc = st->codec;
+    subtitle_enc = ost->enc_ctx;
 
     subtitle_enc->codec_type = AVMEDIA_TYPE_SUBTITLE;
 
@@ -1552,7 +1583,7 @@ loop_end:
     unused_opts = strip_specifiers(o->g->codec_opts);
     for (i = of->ost_index; i < nb_output_streams; i++) {
         e = NULL;
-        while ((e = av_dict_get(output_streams[i]->opts, "", e,
+        while ((e = av_dict_get(output_streams[i]->encoder_opts, "", e,
                                 AV_DICT_IGNORE_SUFFIX)))
             av_dict_set(&unused_opts, e->key, NULL, 0);
     }
@@ -2239,7 +2270,7 @@ const OptionDef options[] = {
     { "frames",         OPT_INT64 | HAS_ARG | OPT_SPEC | OPT_OUTPUT, { .off = OFFSET(max_frames) },
         "set the number of frames to record", "number" },
     { "tag",            OPT_STRING | HAS_ARG | OPT_SPEC |
-                        OPT_EXPERT | OPT_OUTPUT,                     { .off = OFFSET(codec_tags) },
+                        OPT_EXPERT | OPT_OUTPUT | OPT_INPUT,         { .off = OFFSET(codec_tags) },
         "force codec tag/fourcc", "fourcc/tag" },
     { "q",              HAS_ARG | OPT_EXPERT | OPT_DOUBLE |
                         OPT_SPEC | OPT_OUTPUT,                       { .off = OFFSET(qscale) },

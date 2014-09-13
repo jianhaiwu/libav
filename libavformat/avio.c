@@ -32,7 +32,7 @@
 
 static URLProtocol *first_protocol = NULL;
 
-URLProtocol *ffurl_protocol_next(URLProtocol *prev)
+URLProtocol *ffurl_protocol_next(const URLProtocol *prev)
 {
     return prev ? prev->next : first_protocol;
 }
@@ -98,7 +98,7 @@ int ffurl_register_protocol(URLProtocol *protocol)
 {
     URLProtocol **p;
     p = &first_protocol;
-    while (*p != NULL)
+    while (*p)
         p = &(*p)->next;
     *p             = protocol;
     protocol->next = NULL;

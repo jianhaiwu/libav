@@ -30,9 +30,11 @@
 
 #include "avcodec.h"
 #include "bytestream.h"
+#include "bswapdsp.h"
 #include "get_bits.h"
 #include "aandcttab.h"
 #include "eaidct.h"
+#include "idctdsp.h"
 #include "internal.h"
 #include "mpeg12.h"
 #include "mpeg12data.h"
@@ -45,7 +47,9 @@
 
 typedef struct MadContext {
     AVCodecContext *avctx;
-    DSPContext dsp;
+    BlockDSPContext bdsp;
+    BswapDSPContext bbdsp;
+    IDCTDSPContext idsp;
     AVFrame *last_frame;
     GetBitContext gb;
     void *bitstream_buf;
@@ -62,9 +66,11 @@ static av_cold int decode_init(AVCodecContext *avctx)
     MadContext *s = avctx->priv_data;
     s->avctx = avctx;
     avctx->pix_fmt = AV_PIX_FMT_YUV420P;
-    ff_dsputil_init(&s->dsp, avctx);
-    ff_init_scantable_permutation(s->dsp.idct_permutation, FF_NO_IDCT_PERM);
-    ff_init_scantable(s->dsp.idct_permutation, &s->scantable, ff_zigzag_direct);
+    ff_blockdsp_init(&s->bdsp, avctx);
+    ff_bswapdsp_init(&s->bbdsp);
+    ff_idctdsp_init(&s->idsp, avctx);
+    ff_init_scantable_permutation(s->idsp.idct_permutation, FF_IDCT_PERM_NONE);
+    ff_init_scantable(s->idsp.idct_permutation, &s->scantable, ff_zigzag_direct);
     ff_mpeg12_init_vlcs();
 
     s->last_frame = av_frame_alloc();
@@ -208,7 +214,7 @@ static void decode_mb(MadContext *s, AVFrame *frame, int inter)
             int add = 2*decode_motion(&s->gb);
             comp_block(s, frame, s->mb_x, s->mb_y, j, mv_x, mv_y, add);
         } else {
-            s->dsp.clear_block(s->block);
+            s->bdsp.clear_block(s->block);
             decode_block_intra(s, s->block);
             idct_put(s, frame, s->block, s->mb_x, s->mb_y, j);
         }
@@ -285,9 +291,10 @@ static int decode_frame(AVCodecContext *avctx,
                           bytestream2_get_bytes_left(&gb));
     if (!s->bitstream_buf)
         return AVERROR(ENOMEM);
-    s->dsp.bswap16_buf(s->bitstream_buf, (const uint16_t *)(buf + bytestream2_tell(&gb)),
+    s->bbdsp.bswap16_buf(s->bitstream_buf, (const uint16_t *)(buf + bytestream2_tell(&gb)),
                          bytestream2_get_bytes_left(&gb) / 2);
     init_get_bits(&s->gb, s->bitstream_buf, 8*(bytestream2_get_bytes_left(&gb)));
+
     for (s->mb_y=0; s->mb_y < (avctx->height+15)/16; s->mb_y++)
         for (s->mb_x=0; s->mb_x < (avctx->width +15)/16; s->mb_x++)
             decode_mb(s, frame, inter);

@@ -98,11 +98,11 @@ Breaks:
  libav-extra-dbg (<< 6:0.8.3-5)
 Depends:
  libav-tools (= ${binary:Version}),
- libavcodec55 (= ${binary:Version}) | libavcodec-extra-55 (= ${binary:Version}),
- libavdevice54 (= ${binary:Version}),
- libavformat55 (= ${binary:Version}),
- libavutil53 (= ${binary:Version}),
- libswscale2 (= ${binary:Version}),
+ libavcodec56 (= ${binary:Version}) | libavcodec-extra-56 (= ${binary:Version}),
+ libavdevice55 (= ${binary:Version}),
+ libavformat56 (= ${binary:Version}),
+ libavutil54 (= ${binary:Version}),
+ libswscale3 (= ${binary:Version}),
  ${misc:Depends}
 Description: Debug symbols for Libav related packages
  Libav is a complete, cross-platform solution to decode, encode, record,
@@ -126,7 +126,7 @@ Description: Documentation of the Libav API
  .
  Only application developers will find this package useful.
 
-Package: libavutil53
+Package: libavutil54
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
@@ -140,7 +140,7 @@ Description: Libav utility library
  This is the common utility library from Libav. It contains shared code
  used by all other Libav libraries.
 
-Package: libavcodec55
+Package: libavcodec56
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
@@ -148,9 +148,9 @@ Depends:
  ${misc:Depends},
  ${shlibs:Depends}
 Conflicts:
- libavcodec-extra-55
+ libavcodec-extra-56
 Replaces:
- libavcodec-extra-55
+ libavcodec-extra-56
 Breaks:
  mplayer (<< 2:1.0~rc4.dfsg1+svn34540-1~)
 Description: Libav codec library
@@ -161,7 +161,7 @@ Description: Libav codec library
  .
  It supports most existing codecs (MPEG, MPEG2, MPEG4, AC3, DV...).
 
-Package: libavdevice54
+Package: libavdevice55
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
@@ -174,7 +174,7 @@ Description: Libav device handling library
  .
  This is the device handling library from Libav.
 
-Package: libavformat55
+Package: libavformat56
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
@@ -190,7 +190,7 @@ Description: Libav file format library
  It supports most existing file formats (AVI, MPEG, OGG, Matroska,
  ASF...).
 
-Package: libavfilter4
+Package: libavfilter5
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
@@ -205,17 +205,13 @@ Description: Libav video filtering library
  .
  This is the video filtering library from Libav.
 
-Package: libswscale2
+Package: libswscale3
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends:
  ${misc:Depends},
  ${shlibs:Depends}
-Replaces:
- libswscale-extra-2
-Breaks:
- libswscale-extra-2 (<< 5:0.8.1-2)
 Description: Libav video scaling library
  Libav is a complete, cross-platform solution to decode, encode, record,
  convert and stream audio and video.
@@ -226,7 +222,7 @@ Package: libavutil-dev
 Section: libdevel
 Architecture: any
 Depends:
- libavutil53 (= ${binary:Version}),
+ libavutil54 (= ${binary:Version}),
  ${misc:Depends}
 Description: Development files for libavutil
  Libav is a complete, cross-platform solution to decode, encode, record,
@@ -241,9 +237,10 @@ Package: libavcodec-dev
 Section: libdevel
 Architecture: any
 Depends:
- libavcodec55 (<= ${source:Upstream-Version}-99) | libavcodec-extra-55 (<= ${source:Upstream-Version}-99),
- libavcodec55 (>= ${binary:Version}) | libavcodec-extra-55 (>= ${binary:Version}),
+ libavcodec56 (<= ${source:Upstream-Version}-99) | libavcodec-extra-56 (<= ${source:Upstream-Version}-99),
+ libavcodec56 (>= ${binary:Version}) | libavcodec-extra-56 (>= ${binary:Version}),
  libavutil-dev (= ${binary:Version}),
+ libavresample-dev (= ${binary:Version}),
  ${misc:Depends}
 Suggests:
  libdc1394-22-dev [linux-any],
@@ -271,7 +268,7 @@ Package: libavdevice-dev
 Section: libdevel
 Architecture: any
 Depends:
- libavdevice54 (= ${binary:Version}),
+ libavdevice55 (= ${binary:Version}),
  libavformat-dev (= ${binary:Version}),
  ${misc:Depends}
 Description: Development files for libavdevice
@@ -288,7 +285,7 @@ Section: libdevel
 Architecture: any
 Depends:
  libavcodec-dev (= ${binary:Version}),
- libavformat55 (= ${binary:Version}),
+ libavformat56 (= ${binary:Version}),
  libavutil-dev (= ${binary:Version}),
  ${misc:Depends}
 Description: Development files for libavformat
@@ -308,7 +305,7 @@ Depends:
  libavcodec-dev (= ${binary:Version}),
  libavresample-dev (= ${binary:Version}),
  libswscale-dev (= ${binary:Version}),
- libavfilter4 (= ${binary:Version}),
+ libavfilter5 (= ${binary:Version}),
  ${misc:Depends}
 Description: Development files for libavfilter
  Libav is a complete, cross-platform solution to decode, encode, record,
@@ -324,7 +321,7 @@ Section: libdevel
 Architecture: any
 Depends:
  libavutil-dev (= ${binary:Version}),
- libswscale2 (= ${binary:Version}),
+ libswscale3 (= ${binary:Version}),
  ${misc:Depends}
 Description: Development files for libswscale
  Libav is a complete, cross-platform solution to decode, encode, record,
@@ -340,7 +337,7 @@ Section: libdevel
 Architecture: any
 Depends:
  libavutil-dev (= ${binary:Version}),
- libavresample1 (= ${binary:Version}),
+ libavresample2 (= ${binary:Version}),
  ${misc:Depends}
 Description: Development files for libavresample
  Libav is a complete, cross-platform solution to decode, encode, record,
@@ -351,7 +348,7 @@ Description: Development files for libavresample
  This package contains the header files and static libraries needed to
  compile applications or shared objects that use libswrescale.
 
-Package: libavresample1
+Package: libavresample2
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
@@ -366,7 +363,7 @@ Description: Libav audio resampling library
  .
  This is the audio software resampling library from Libav.
 
-Package: libavcodec-extra-55
+Package: libavcodec-extra-56
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
@@ -374,9 +371,9 @@ Depends:
  ${misc:Depends},
  ${shlibs:Depends}
 Replaces:
- libavcodec55
+ libavcodec56
 Conflicts:
- libavcodec55
+ libavcodec56
 Breaks:
  mplayer (<< 2:1.0~rc4.dfsg1+svn34540-1~)
 Description: Libav codec library (additional codecs)
@@ -385,7 +382,7 @@ Description: Libav codec library (additional codecs)
  .
  This is the codec library from Libav (both encoding and decoding).
  .
- This package is a replacement for the regular libavcodec55 library package;
+ This package is a replacement for the regular libavcodec56 library package;
  it contains the following additional codecs:
  .
   * OpenCORE Adaptive Multi-Rate (AMR) Narrow-Band (Encoder/Decoder)
@@ -402,7 +399,7 @@ Section: metapackages
 Priority: extra
 Architecture: all
 Depends:
- libavcodec-extra-55,
+ libavcodec-extra-56,
  ${misc:Depends},
 Description: Libav codec library (additional codecs meta-package)
  Libav is a complete, cross-platform solution to decode, encode, record,

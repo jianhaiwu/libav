@@ -1,3 +1,43 @@
+libav (6:11~beta1-2) unstable; urgency=medium
+
+  [ Reinhard Tartler ]
+  * Make libavcodec-dev depend on libavresample-dev
+
+  [ Rico Tzschichholz ]
+  * Some fixes and leftovers from soname bumps
+
+ -- Reinhard Tartler <siretart@tauware.de>  Sat, 30 Aug 2014 11:02:45 -0400
+
+libav (6:11~beta1-1) experimental; urgency=low
+
+  * New upstream Release v11~alpha2
+  * build against libgnutls28-dev (Closes: #758447)
+  * Bump shlibs
+
+ -- Reinhard Tartler <siretart@tauware.de>  Sun, 17 Aug 2014 22:33:40 -0400
+
+libav (6:11~alpha2-1) experimental; urgency=low
+
+  * New upstream Release v11~alpha2
+    - ffv1dec: check global parameters (CVE-2013-7020)
+    - mpegts: Check writing a PMTs (CVE-2014-2263)
+    - avcodec: Postpone FF_IDCT_XVIDMMX removal until the next version
+      bump (fixes gst-libav FTBFS)
+  * Bump shlibs
+  * Add helper scripts for doing mass rebuilds
+
+ -- Reinhard Tartler <siretart@tauware.de>  Wed, 13 Aug 2014 22:11:14 -0400
+
+libav (6:11~alpha1-1) experimental; urgency=low
+
+  * New upstream Release v11~alpha1
+    - Fixes Unchecked conversion from double to enum (Closes: #749164)
+  * Add some post v11_alpha1 patches from upstream
+  * All SONAMEs bumped because of internal changes, but external API is
+    promised to have not changed
+
+ -- Reinhard Tartler <siretart@tauware.de>  Sun, 10 Aug 2014 09:45:02 -0400
+
 libav (6:10.4-1) unstable; urgency=medium
 
   * New Upstream Release v10.3

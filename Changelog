@@ -1,77 +1,39 @@
 Entries are sorted chronologically from oldest to youngest within each release,
 releases are sorted from youngest to oldest.
 
-version 10.4:
-- mpegts: Do not try to write a PMT larger than SECTION_SIZE (CVE-2014-2263)
-- mpegts: Define the section length with a constant
-- ffv1dec: check that global parameters do not change in version 0/1 (CVE-2013-7020)
-- h264: fix interpretation of interleaved stereo modes
-- svq1: do not modify the input packet
-- cdgraphics: do not return 0 from the decode function
-- cdgraphics: switch to bytestream2 (CVE-2013-3674)
-- jpeg2000: enable 4 component pixel formats
-- stereo3d: add missing include guards
-- huffyuvdec: check width size for yuv422p (CVE-2013-0848)
-- mmvideo: check horizontal coordinate too (CVE-2013-3672)
-- wmalosslessdec: fix mclms_coeffs* array size (CVE-2014-2098)
+version <next>:
+- libx265 encoder
+- shuffleplanes filter
+- replaygain data export
+- Alias PIX image encoder and decoder
+- BRender PIX image decoder
+- Amazing Studio PAF playback support
+- XBM decoder
+- bmp standalone parser
+- OpenEXR image decoder
+- support encoding and decoding 4-channel SGI images
+- support decoding 16-bit RLE SGI images
+- VP7 video decoder
+- LucasArts SMUSH SANM video decoder
+- LucasArts SMUSH VIMA audio decoder (ADPCM)
+- LucasArts SMUSH demuxer
+- MP2 encoding via TwoLAME
+- asettb filter
+- Silicon Graphics RLE 8-bit video decoder
+- Silicon Graphics Motion Video Compressor 1 & 2 decoder
+- Silicon Graphics Movie demuxer
+- On2 AVC (Audio for Video) decoder
+- support for decoding through DXVA2 in avconv
+- libbs2b-based stereo-to-binaural audio filter
+- native Opus decoder
+- display matrix export and rotation api
+- drop avserver, it was unmaintained for years and largely broken
+- Icecast protocol
+- request icecast metadata by default
+- support for using metadata in stream specifiers in avtools
 
-version 10.3:
-- huffyuv: Check and propagate function return values (CVE-2013-0868)
-- h264: prevent theoretical infinite loop in SEI parsing (CVE-2011-3946)
-- pgssubdec: Check RLE size before copying (CVE-2013-0852)
-- video4linux2: Avoid a floating point exception
-- vf_select: Drop a debug av_log with an unchecked double to enum conversion
-- librtmp: Don't free the temp url at the end of rtmp_open
-- arm: Avoid using the 'setend' instruction on ARMv7 and newer
-- avplay: Handle pixel aspect ratio properly
-- eamad: use the bytestream2 API instead of AV_RL (CVE-2013-0851)
-- pg2meet: allow size changes within original sizes
-- af_compand: make sure request_frame always outputs at least one frame
-
-version 10.2:
-- adpcm: Write the proper predictor in trellis mode in IMA QT
-- adpcm: Avoid reading out of bounds in the IMA QT trellis encoder
-- oggenc: Set the right AVOption size for the pref_duration option
-- avpacket: fix copying side data in av_packet_copy_props()
-- jpeg2000: fix dereferencing invalid pointers during cleanup
-- Check mp3 header before calling avpriv_mpegaudio_decode_header() (bug/705)
-- Check if an mp3 header is using a reserved sample rate
-- lzo: Handle integer overflow (bug/704)
-- avconv: make -shortest work with streamcopy
-- ppc: Fix compilation for ppc64le (ELFv2) (ubuntu/1263802)
-- aarch64: Use the correct syntax for relocations (debian/751856, ubuntu/1323144)
-
-version 10.1:
-- pcm-dvd: Fix 20bit decoding (bug/592)
-- avi: Improve non-interleaved detection (bug/666)
-- arm: hpeldsp: fix put_pixels8_y2_{,no_rnd_}armv6
-- arm: hpeldsp: prevent overreads in armv6 asm (bug/646)
-- avfilter: Add missing emms_c when needed
-- rtmpproto: Check the buffer sizes when copying app/playpath strings
-- swscale: Fix an undefined behaviour
-- vp9: Read the frame size as unsigned
-- dcadec: Use correct channel count in stereo downmix check
-- dcadec: Do not decode the XCh extension when downmixing to stereo
-- matroska: add the Opus mapping
-- matroskadec: read the CodecDelay element
-- rtmpproto: Make sure to pass on the error code if read_connect failed
-- lavr: allocate the resampling buffer with a positive size
-- mp3enc: Properly write bitrate value in XING header (debian/736088)
-- golomb: Fix the implementation of get_se_golomb_long
 
 version 10:
-- af_channelmap: fix ONE_STR mapping mode
-- matroskaenc: HEVC fixeswrite private data in hvcC format for HEVC.
-- doc: Point to the correct, actually maintained gas-preprocessor repo
-- http: Add support reading ICY metadata
-- configure: Support older version of openjpeg1
-
-version 10~beta2:
-- compand audio filter
-- and many various smaller fixes, for a full changelog, please refer to:
-  cf. https://git.libav.org/?p=libav.git;a=shortlog;h=refs/tags/v10_beta2
-
-version 10~beta1:
 - av_strnstr
 - support ID3v2 tags in ASF files
 - reference-counting for AVFrame and AVPacket data
@@ -127,6 +89,7 @@ version 10~beta1:
 - framepack filter
 - Mirillis FIC video decoder
 - Support DNx444
+- compand audio filter
 
 
 version 9:

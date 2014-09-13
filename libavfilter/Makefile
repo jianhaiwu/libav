@@ -1,9 +1,4 @@
 NAME = avfilter
-FFLIBS = avutil
-FFLIBS-$(CONFIG_ASYNCTS_FILTER) += avresample
-FFLIBS-$(CONFIG_MOVIE_FILTER) += avformat avcodec
-FFLIBS-$(CONFIG_RESAMPLE_FILTER) += avresample
-FFLIBS-$(CONFIG_SCALE_FILTER)   += swscale
 
 HEADERS = avfilter.h                                                    \
           avfiltergraph.h                                               \
@@ -28,10 +23,12 @@ OBJS-$(CONFIG_AFORMAT_FILTER)                += af_aformat.o
 OBJS-$(CONFIG_AMIX_FILTER)                   += af_amix.o
 OBJS-$(CONFIG_ANULL_FILTER)                  += af_anull.o
 OBJS-$(CONFIG_ASETPTS_FILTER)                += setpts.o
+OBJS-$(CONFIG_ASETTB_FILTER)                 += settb.o
 OBJS-$(CONFIG_ASHOWINFO_FILTER)              += af_ashowinfo.o
 OBJS-$(CONFIG_ASPLIT_FILTER)                 += split.o
 OBJS-$(CONFIG_ASYNCTS_FILTER)                += af_asyncts.o
 OBJS-$(CONFIG_ATRIM_FILTER)                  += trim.o
+OBJS-$(CONFIG_BS2B_FILTER)                   += af_bs2b.o
 OBJS-$(CONFIG_CHANNELMAP_FILTER)             += af_channelmap.o
 OBJS-$(CONFIG_CHANNELSPLIT_FILTER)           += af_channelsplit.o
 OBJS-$(CONFIG_COMPAND_FILTER)                += af_compand.o
@@ -76,8 +73,9 @@ OBJS-$(CONFIG_SELECT_FILTER)                 += vf_select.o
 OBJS-$(CONFIG_SETDAR_FILTER)                 += vf_aspect.o
 OBJS-$(CONFIG_SETPTS_FILTER)                 += setpts.o
 OBJS-$(CONFIG_SETSAR_FILTER)                 += vf_aspect.o
-OBJS-$(CONFIG_SETTB_FILTER)                  += vf_settb.o
+OBJS-$(CONFIG_SETTB_FILTER)                  += settb.o
 OBJS-$(CONFIG_SHOWINFO_FILTER)               += vf_showinfo.o
+OBJS-$(CONFIG_SHUFFLEPLANES_FILTER)          += vf_shuffleplanes.o
 OBJS-$(CONFIG_SPLIT_FILTER)                  += split.o
 OBJS-$(CONFIG_TRANSPOSE_FILTER)              += vf_transpose.o
 OBJS-$(CONFIG_TRIM_FILTER)                   += trim.o
