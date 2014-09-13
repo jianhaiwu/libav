@@ -1,3 +1,10 @@
+libav (6:11-1) unstable; urgency=low
+
+  * Upload final 11 release
+    - matroskadec: parse stereo mode on decoding (Closes: #757185)
+
+ -- Reinhard Tartler <siretart@tauware.de>  Sat, 13 Sep 2014 15:36:38 -0400
+
 libav (6:11~beta1-3) unstable; urgency=low
 
   * Add post-release upstream patches
