@@ -1,0 +1,175 @@
+From 152e09fde7f6dd5ea92575c3a8e61129148c8478 Mon Sep 17 00:00:00 2001
+From: Vittorio Giovara <vittorio.giovara@gmail.com>
+Date: Tue, 12 Aug 2014 22:28:49 +0100
+Subject: [PATCH 29/37] matroskadec: parse stereo mode on decoding
+
+Convert the Matroska stereo format to the Stereo3D format, and add a
+Stereo3D side data to the stream.
+
+Bump the doctype version supported.
+
+Bug-Id: 728 / https://bugs.debian.org/757185
+---
+ Changelog                 |  1 +
+ libavformat/matroska.c    | 64 +++++++++++++++++++++++++++++++++++++++++++++++
+ libavformat/matroska.h    |  3 +++
+ libavformat/matroskadec.c | 12 +++++++--
+ 4 files changed, 78 insertions(+), 2 deletions(-)
+
+diff --git a/Changelog b/Changelog
+index ea9d721..da12f59 100644
+--- a/Changelog
++++ b/Changelog
+@@ -31,6 +31,7 @@ version <next>:
+ - Icecast protocol
+ - request icecast metadata by default
+ - support for using metadata in stream specifiers in avtools
++- matroska 3d support
+ 
+ 
+ version 10:
+diff --git a/libavformat/matroska.c b/libavformat/matroska.c
+index 9628abc..237f26f 100644
+--- a/libavformat/matroska.c
++++ b/libavformat/matroska.c
+@@ -19,6 +19,8 @@
+  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+  */
+ 
++#include "libavutil/stereo3d.h"
++
+ #include "matroska.h"
+ 
+ const CodecTags ff_mkv_codec_tags[]={
+@@ -103,3 +105,65 @@ const AVMetadataConv ff_mkv_metadata_conv[] = {
+     { "PART_NUMBER"   , "track"  },
+     { 0 }
+ };
++
++int ff_mkv_stereo3d_conv(AVStream *st, MatroskaVideoStereoModeType stereo_mode)
++{
++    AVPacketSideData *sd, *tmp;
++    AVStereo3D *stereo;
++
++    stereo = av_stereo3d_alloc();
++    if (!stereo)
++        return AVERROR(ENOMEM);
++
++    tmp = av_realloc_array(st->side_data, st->nb_side_data + 1, sizeof(*tmp));
++    if (!tmp) {
++        av_freep(&stereo);
++        return AVERROR(ENOMEM);
++    }
++    st->side_data = tmp;
++    st->nb_side_data++;
++
++    sd = &st->side_data[st->nb_side_data - 1];
++    sd->type = AV_PKT_DATA_STEREO3D;
++    sd->data = (uint8_t *)stereo;
++    sd->size = sizeof(*stereo);
++
++    // note: the missing breaks are intentional
++    switch (stereo_mode) {
++    case MATROSKA_VIDEO_STEREOMODE_TYPE_MONO:
++        stereo->type = AV_STEREO3D_2D;
++        break;
++    case MATROSKA_VIDEO_STEREOMODE_TYPE_RIGHT_LEFT:
++        stereo->flags |= AV_STEREO3D_FLAG_INVERT;
++    case MATROSKA_VIDEO_STEREOMODE_TYPE_LEFT_RIGHT:
++        stereo->type = AV_STEREO3D_SIDEBYSIDE;
++        break;
++    case MATROSKA_VIDEO_STEREOMODE_TYPE_BOTTOM_TOP:
++        stereo->flags |= AV_STEREO3D_FLAG_INVERT;
++    case MATROSKA_VIDEO_STEREOMODE_TYPE_TOP_BOTTOM:
++        stereo->type = AV_STEREO3D_TOPBOTTOM;
++        break;
++    case MATROSKA_VIDEO_STEREOMODE_TYPE_CHECKERBOARD_RL:
++        stereo->flags |= AV_STEREO3D_FLAG_INVERT;
++    case MATROSKA_VIDEO_STEREOMODE_TYPE_CHECKERBOARD_LR:
++        stereo->type = AV_STEREO3D_CHECKERBOARD;
++        break;
++    case MATROSKA_VIDEO_STEREOMODE_TYPE_ROW_INTERLEAVED_RL:
++        stereo->flags |= AV_STEREO3D_FLAG_INVERT;
++    case MATROSKA_VIDEO_STEREOMODE_TYPE_ROW_INTERLEAVED_LR:
++        stereo->type = AV_STEREO3D_LINES;
++        break;
++    case MATROSKA_VIDEO_STEREOMODE_TYPE_COL_INTERLEAVED_RL:
++        stereo->flags |= AV_STEREO3D_FLAG_INVERT;
++    case MATROSKA_VIDEO_STEREOMODE_TYPE_COL_INTERLEAVED_LR:
++        stereo->type = AV_STEREO3D_COLUMNS;
++        break;
++    case MATROSKA_VIDEO_STEREOMODE_TYPE_BOTH_EYES_BLOCK_RL:
++        stereo->flags |= AV_STEREO3D_FLAG_INVERT;
++    case MATROSKA_VIDEO_STEREOMODE_TYPE_BOTH_EYES_BLOCK_LR:
++        stereo->type = AV_STEREO3D_FRAMESEQUENCE;
++        break;
++    }
++
++    return 0;
++}
+diff --git a/libavformat/matroska.h b/libavformat/matroska.h
+index 667f92a..d8f4f8e 100644
+--- a/libavformat/matroska.h
++++ b/libavformat/matroska.h
+@@ -237,6 +237,7 @@ typedef enum {
+   MATROSKA_VIDEO_STEREOMODE_TYPE_ANAGLYPH_GREEN_MAG = 12,
+   MATROSKA_VIDEO_STEREOMODE_TYPE_BOTH_EYES_BLOCK_LR = 13,
+   MATROSKA_VIDEO_STEREOMODE_TYPE_BOTH_EYES_BLOCK_RL = 14,
++  MATROSKA_VIDEO_STEREOMODE_TYPE_NB,
+ } MatroskaVideoStereoModeType;
+ 
+ /*
+@@ -255,4 +256,6 @@ extern const CodecTags ff_mkv_codec_tags[];
+ extern const CodecMime ff_mkv_mime_tags[];
+ extern const AVMetadataConv ff_mkv_metadata_conv[];
+ 
++int ff_mkv_stereo3d_conv(AVStream *st, MatroskaVideoStereoModeType stereo_mode);
++
+ #endif /* AVFORMAT_MATROSKA_H */
+diff --git a/libavformat/matroskadec.c b/libavformat/matroskadec.c
+index 431fe57..59fc34b 100644
+--- a/libavformat/matroskadec.c
++++ b/libavformat/matroskadec.c
+@@ -123,6 +123,7 @@ typedef struct {
+     uint64_t pixel_width;
+     uint64_t pixel_height;
+     uint64_t fourcc;
++    uint64_t stereo_mode;
+ } MatroskaTrackVideo;
+ 
+ typedef struct {
+@@ -319,7 +320,7 @@ static EbmlSyntax matroska_track_video[] = {
+     { MATROSKA_ID_VIDEOPIXELCROPR,     EBML_NONE },
+     { MATROSKA_ID_VIDEODISPLAYUNIT,    EBML_NONE },
+     { MATROSKA_ID_VIDEOFLAGINTERLACED, EBML_NONE },
+-    { MATROSKA_ID_VIDEOSTEREOMODE,     EBML_NONE },
++    { MATROSKA_ID_VIDEOSTEREOMODE,     EBML_UINT,  0, offsetof(MatroskaTrackVideo, stereo_mode), { .u = MATROSKA_VIDEO_STEREOMODE_TYPE_NB } },
+     { MATROSKA_ID_VIDEOASPECTRATIO,    EBML_NONE },
+     { 0 }
+ };
+@@ -1786,6 +1787,13 @@ static int matroska_parse_tracks(AVFormatContext *s)
+                 av_reduce(&st->avg_frame_rate.num, &st->avg_frame_rate.den,
+                           1000000000, track->default_duration, 30000);
+             }
++            // add stream level stereo3d side data if it is a supported format
++            if (track->video.stereo_mode < MATROSKA_VIDEO_STEREOMODE_TYPE_NB &&
++                track->video.stereo_mode != 10 && track->video.stereo_mode != 12) {
++                int ret = ff_mkv_stereo3d_conv(st, track->video.stereo_mode);
++                if (ret < 0)
++                    return ret;
++            }
+         } else if (track->type == MATROSKA_TRACK_TYPE_AUDIO) {
+             st->codec->codec_type  = AVMEDIA_TYPE_AUDIO;
+             st->codec->sample_rate = track->audio.out_samplerate;
+@@ -1821,7 +1829,7 @@ static int matroska_read_header(AVFormatContext *s)
+         ebml.version         > EBML_VERSION      ||
+         ebml.max_size        > sizeof(uint64_t)  ||
+         ebml.id_length       > sizeof(uint32_t)  ||
+-        ebml.doctype_version > 2) {
++        ebml.doctype_version > 3) {
+         av_log(matroska->ctx, AV_LOG_ERROR,
+                "EBML header using unsupported features\n"
+                "(EBML version %"PRIu64", doctype %s, doc version %"PRIu64")\n",
+-- 
+1.9.1
+

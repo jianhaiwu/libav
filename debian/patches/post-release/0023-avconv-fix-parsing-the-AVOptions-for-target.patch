@@ -1,0 +1,30 @@
+From e2a89f7f0f8fe1c769c83d33efa717cc7b2edc57 Mon Sep 17 00:00:00 2001
+From: Anton Khirnov <anton@khirnov.net>
+Date: Tue, 26 Aug 2014 06:26:35 +0000
+Subject: [PATCH 23/37] avconv: fix parsing the AVOptions for -target
+
+CC: libav-stable@libav.org
+(cherry picked from commit f5245a9c6206878b892adf3ccbccc9311c202af5)
+Signed-off-by: Anton Khirnov <anton@khirnov.net>
+---
+ avconv_opt.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/avconv_opt.c b/avconv_opt.c
+index 33ac290..2d06912 100644
+--- a/avconv_opt.c
++++ b/avconv_opt.c
+@@ -1870,6 +1870,10 @@ static int opt_target(void *optctx, const char *opt, const char *arg)
+         av_log(NULL, AV_LOG_ERROR, "Unknown target: %s\n", arg);
+         return AVERROR(EINVAL);
+     }
++
++    av_dict_copy(&o->g->codec_opts,  codec_opts, 0);
++    av_dict_copy(&o->g->format_opts, format_opts, 0);
++
+     return 0;
+ }
+ 
+-- 
+1.9.1
+

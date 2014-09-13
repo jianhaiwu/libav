@@ -1,0 +1,155 @@
+From 110841c3ab1d617107f4fb229fcd33d5ca357bbe Mon Sep 17 00:00:00 2001
+From: Vittorio Giovara <vittorio.giovara@gmail.com>
+Date: Wed, 23 Jul 2014 09:21:28 +0100
+Subject: [PATCH 28/37] avcodec: add stream-level stereo3d side data
+
+---
+ doc/APIchanges       |  3 +++
+ libavcodec/avcodec.h |  6 ++++++
+ libavcodec/utils.c   |  9 +++++++++
+ libavcodec/version.h |  2 +-
+ libavformat/dump.c   | 50 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 5 files changed, 69 insertions(+), 1 deletion(-)
+
+diff --git a/doc/APIchanges b/doc/APIchanges
+index 14ec297..7134e78 100644
+--- a/doc/APIchanges
++++ b/doc/APIchanges
+@@ -13,6 +13,9 @@ libavutil:     2014-08-09
+ 
+ API changes, most recent first:
+ 
++2014-08-28 - 9301486 - lavc 56.1.0 - avcodec.h
++  Add AV_PKT_DATA_STEREO3D to export container-level stereo3d information.
++
+ 2014-08-13 - 8ddc326 - lavu 54.03.0 - mem.h
+   Add av_strndup().
+ 
+diff --git a/libavcodec/avcodec.h b/libavcodec/avcodec.h
+index 93aad35..14440fe 100644
+--- a/libavcodec/avcodec.h
++++ b/libavcodec/avcodec.h
+@@ -911,6 +911,12 @@ enum AVPacketSideDataType {
+      * See libavutil/display.h for a detailed description of the data.
+      */
+     AV_PKT_DATA_DISPLAYMATRIX,
++
++    /*
++     * This side data should be associated with a video stream and contains
++     * Stereoscopic 3D information in form of the AVStereo3D struct.
++     */
++    AV_PKT_DATA_STEREO3D,
+ };
+ 
+ typedef struct AVPacketSideData {
+diff --git a/libavcodec/utils.c b/libavcodec/utils.c
+index afc0396..c5fa50d 100644
+--- a/libavcodec/utils.c
++++ b/libavcodec/utils.c
+@@ -596,6 +596,15 @@ int ff_decode_frame_props(AVCodecContext *avctx, AVFrame *frame)
+ 
+         memcpy(frame_sd->data, packet_sd, size);
+     }
++    /* copy the stereo3d format to the output frame */
++    packet_sd = av_packet_get_side_data(pkt, AV_PKT_DATA_STEREO3D, &size);
++    if (packet_sd) {
++        frame_sd = av_frame_new_side_data(frame, AV_FRAME_DATA_STEREO3D, size);
++        if (!frame_sd)
++            return AVERROR(ENOMEM);
++
++        memcpy(frame_sd->data, packet_sd, size);
++    }
+ 
+     return 0;
+ }
+diff --git a/libavcodec/version.h b/libavcodec/version.h
+index b42b970..8cc2fb0 100644
+--- a/libavcodec/version.h
++++ b/libavcodec/version.h
+@@ -29,7 +29,7 @@
+ #include "libavutil/version.h"
+ 
+ #define LIBAVCODEC_VERSION_MAJOR 56
+-#define LIBAVCODEC_VERSION_MINOR  0
++#define LIBAVCODEC_VERSION_MINOR  1
+ #define LIBAVCODEC_VERSION_MICRO  0
+ 
+ #define LIBAVCODEC_VERSION_INT  AV_VERSION_INT(LIBAVCODEC_VERSION_MAJOR, \
+diff --git a/libavformat/dump.c b/libavformat/dump.c
+index cdf2da1..58ed654 100644
+--- a/libavformat/dump.c
++++ b/libavformat/dump.c
+@@ -27,6 +27,7 @@
+ #include "libavutil/log.h"
+ #include "libavutil/mathematics.h"
+ #include "libavutil/replaygain.h"
++#include "libavutil/stereo3d.h"
+ 
+ #include "avformat.h"
+ 
+@@ -229,6 +230,51 @@ static void dump_replaygain(void *ctx, AVPacketSideData *sd)
+     print_peak(ctx, "album peak", rg->album_peak);
+ }
+ 
++static void dump_stereo3d(void *ctx, AVPacketSideData *sd)
++{
++    AVStereo3D *stereo;
++
++    if (sd->size < sizeof(*stereo)) {
++        av_log(ctx, AV_LOG_INFO, "invalid data");
++        return;
++    }
++
++    stereo = (AVStereo3D *)sd->data;
++
++    switch (stereo->type) {
++    case AV_STEREO3D_2D:
++        av_log(ctx, AV_LOG_INFO, "2D");
++        break;
++    case AV_STEREO3D_SIDEBYSIDE:
++        av_log(ctx, AV_LOG_INFO, "side by side");
++        break;
++    case AV_STEREO3D_TOPBOTTOM:
++        av_log(ctx, AV_LOG_INFO, "top and bottom");
++        break;
++    case AV_STEREO3D_FRAMESEQUENCE:
++        av_log(ctx, AV_LOG_INFO, "frame alternate");
++        break;
++    case AV_STEREO3D_CHECKERBOARD:
++        av_log(ctx, AV_LOG_INFO, "checkerboard");
++        break;
++    case AV_STEREO3D_LINES:
++        av_log(ctx, AV_LOG_INFO, "interleaved lines");
++        break;
++    case AV_STEREO3D_COLUMNS:
++        av_log(ctx, AV_LOG_INFO, "interleaved columns");
++        break;
++    case AV_STEREO3D_SIDEBYSIDE_QUINCUNX:
++        av_log(ctx, AV_LOG_INFO, "side by side (quincunx subsampling)");
++        break;
++    default:
++        av_log(ctx, AV_LOG_WARNING, "unknown");
++        break;
++    }
++
++    if (stereo->flags & AV_STEREO3D_FLAG_INVERT)
++        av_log(ctx, AV_LOG_INFO, " (inverted)");
++}
++
+ static void dump_sidedata(void *ctx, AVStream *st, const char *indent)
+ {
+     int i;
+@@ -262,6 +308,10 @@ static void dump_sidedata(void *ctx, AVStream *st, const char *indent)
+             av_log(ctx, AV_LOG_INFO, "displaymatrix: rotation of %.2f degrees",
+                    av_display_rotation_get((int32_t *)sd.data));
+             break;
++        case AV_PKT_DATA_STEREO3D:
++            av_log(ctx, AV_LOG_INFO, "stereo3d: ");
++            dump_stereo3d(ctx, &sd);
++            break;
+         default:
+             av_log(ctx, AV_LOG_WARNING,
+                    "unknown side data type %d (%d bytes)", sd.type, sd.size);
+-- 
+1.9.1
+

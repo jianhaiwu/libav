@@ -1,0 +1,20 @@
+From 7d8ebb877408e03beb9dd6b99a51291b17d9a969 Mon Sep 17 00:00:00 2001
+From: Sean McGovern <gseanmcg@gmail.com>
+Date: Fri, 5 Sep 2014 01:04:21 -0400
+Subject: [PATCH 36/37] Fix RELEASE identification
+
+This was accidentally left over in b5d4f49e3cb1a13642542f08c8c54791c3d54dfb
+---
+ RELEASE | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/RELEASE b/RELEASE
+index d826aee..27383c3 100644
+--- a/RELEASE
++++ b/RELEASE
+@@ -1,2 +1 @@
+-11_beta1
+ 11_beta2
+-- 
+1.9.1
+

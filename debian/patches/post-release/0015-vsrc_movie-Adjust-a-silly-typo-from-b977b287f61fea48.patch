@@ -1,0 +1,28 @@
+From e8f2823f06513d3d1177b8ba7c853d63194e5d8a Mon Sep 17 00:00:00 2001
+From: Diego Biurrun <diego@biurrun.de>
+Date: Wed, 20 Aug 2014 09:56:26 -0700
+Subject: [PATCH 15/37] vsrc_movie: Adjust a silly typo from
+ b977b287f61fea48ecd6251d54a26334213b7ec6
+
+(cherry picked from commit 11cd727fbd603197cb1e49654fce3352d56f8fd8)
+Signed-off-by: Diego Biurrun <diego@biurrun.de>
+---
+ libavfilter/vsrc_movie.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/libavfilter/vsrc_movie.c b/libavfilter/vsrc_movie.c
+index 1ee0f16..0e5df32 100644
+--- a/libavfilter/vsrc_movie.c
++++ b/libavfilter/vsrc_movie.c
+@@ -226,7 +226,7 @@ static int movie_get_frame(AVFilterLink *outlink)
+                         "movie_get_frame(): file:'%s' pts:%"PRId64" time:%f aspect:%d/%d\n",
+                         movie->file_name, movie->frame->pts,
+                         (double)movie->frame->pts *
+-                        av_q2d(movie->format_ctx->streams[movie->stream_index]),
++                        av_q2d(movie->format_ctx->streams[movie->stream_index]->time_base),
+                         movie->frame->sample_aspect_ratio.num,
+                         movie->frame->sample_aspect_ratio.den);
+                 // We got it. Free the packet since we are returning
+-- 
+1.9.1
+

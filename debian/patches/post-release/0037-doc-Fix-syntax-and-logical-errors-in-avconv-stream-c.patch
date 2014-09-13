@@ -1,0 +1,36 @@
+From 4f2d4b98fc9877f8618c1524570b230e51e8d474 Mon Sep 17 00:00:00 2001
+From: Diego Biurrun <diego@biurrun.de>
+Date: Wed, 10 Sep 2014 18:38:15 +0200
+Subject: [PATCH 37/37] doc: Fix syntax and logical errors in avconv stream
+ combination example
+
+Bug-Id: 661
+CC: libav-stable@libav.org
+(cherry picked from commit 775a0b04f0cf8102fe322b2ee03fe1a0633dea04)
+Signed-off-by: Diego Biurrun <diego@biurrun.de>
+---
+ doc/avconv.texi | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/doc/avconv.texi b/doc/avconv.texi
+index 1156176..37733bc 100644
+--- a/doc/avconv.texi
++++ b/doc/avconv.texi
+@@ -1129,11 +1129,11 @@ only formats accepting a normal integer are suitable.
+ You can put many streams of the same type in the output:
+ 
+ @example
+-avconv -i test1.avi -i test2.avi -map 0.3 -map 0.2 -map 0.1 -map 0.0 -c copy test12.nut
++avconv -i test1.avi -i test2.avi -map 1:1 -map 1:0 -map 0:1 -map 0:0 -c copy -y test12.nut
+ @end example
+ 
+-The resulting output file @file{test12.avi} will contain first four streams from
+-the input file in reverse order.
++The resulting output file @file{test12.nut} will contain the first four streams
++from the input files in reverse order.
+ 
+ @item
+ To force CBR video output:
+-- 
+1.9.1
+

@@ -1,0 +1,54 @@
+From 07b0ccf5116c3b2ce1ccfed4c8c593641a815fd6 Mon Sep 17 00:00:00 2001
+From: Diego Biurrun <diego@biurrun.de>
+Date: Wed, 3 Sep 2014 00:43:29 +0200
+Subject: [PATCH 35/37] Mark 11 release in the changelog
+
+Also fix some typos in the entries for the 11 release.
+
+(cherry picked from commit d9792b773516a560ecb99694b8ee745a50027fac)
+Signed-off-by: Diego Biurrun <diego@biurrun.de>
+---
+ Changelog | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/Changelog b/Changelog
+index da12f59..73e8378 100644
+--- a/Changelog
++++ b/Changelog
+@@ -1,7 +1,7 @@
+ Entries are sorted chronologically from oldest to youngest within each release,
+ releases are sorted from youngest to oldest.
+ 
+-version <next>:
++version 11:
+ - libx265 encoder
+ - shuffleplanes filter
+ - replaygain data export
+@@ -9,7 +9,7 @@ version <next>:
+ - BRender PIX image decoder
+ - Amazing Studio PAF playback support
+ - XBM decoder
+-- bmp standalone parser
++- BMP standalone parser
+ - OpenEXR image decoder
+ - support encoding and decoding 4-channel SGI images
+ - support decoding 16-bit RLE SGI images
+@@ -26,12 +26,12 @@ version <next>:
+ - support for decoding through DXVA2 in avconv
+ - libbs2b-based stereo-to-binaural audio filter
+ - native Opus decoder
+-- display matrix export and rotation api
++- display matrix export and rotation API
+ - drop avserver, it was unmaintained for years and largely broken
+ - Icecast protocol
+-- request icecast metadata by default
++- request Icecast metadata by default
+ - support for using metadata in stream specifiers in avtools
+-- matroska 3d support
++- Matroska 3D support
+ 
+ 
+ version 10:
+-- 
+1.9.1
+

@@ -1,0 +1,66 @@
+From 86dfcfd0e30d6645eea2c63c1c60a0550e7c97ea Mon Sep 17 00:00:00 2001
+From: Diego Biurrun <diego@biurrun.de>
+Date: Fri, 15 Aug 2014 22:13:03 +0200
+Subject: [PATCH 06/37] mov: Drop unused parameter from ff_mov_read_esds()
+
+This is cleaner and avoids an uninitialized variable warning with MSVC.
+---
+ libavformat/cafdec.c | 3 +--
+ libavformat/isom.h   | 2 +-
+ libavformat/mov.c    | 4 ++--
+ 3 files changed, 4 insertions(+), 5 deletions(-)
+
+diff --git a/libavformat/cafdec.c b/libavformat/cafdec.c
+index 6574623..0034f00 100644
+--- a/libavformat/cafdec.c
++++ b/libavformat/cafdec.c
+@@ -109,10 +109,9 @@ static int read_kuki_chunk(AVFormatContext *s, int64_t size)
+            The lavc AAC decoder requires the data from the codec specific
+            description as extradata input. */
+         int strt, skip;
+-        MOVAtom atom;
+ 
+         strt = avio_tell(pb);
+-        ff_mov_read_esds(s, pb, atom);
++        ff_mov_read_esds(s, pb);
+         skip = size - (avio_tell(pb) - strt);
+         if (skip < 0 || !st->codec->extradata ||
+             st->codec->codec_id != AV_CODEC_ID_AAC) {
+diff --git a/libavformat/isom.h b/libavformat/isom.h
+index 70064bc..0bc912a 100644
+--- a/libavformat/isom.h
++++ b/libavformat/isom.h
+@@ -215,7 +215,7 @@ void ff_mp4_parse_es_descr(AVIOContext *pb, int *es_id);
+      (tag) == MKTAG('A', 'V', 'i', 'n'))
+ 
+ 
+-int ff_mov_read_esds(AVFormatContext *fc, AVIOContext *pb, MOVAtom atom);
++int ff_mov_read_esds(AVFormatContext *fc, AVIOContext *pb);
+ enum AVCodecID ff_mov_get_lpcm_codec_id(int bps, int flags);
+ 
+ int ff_mov_read_stsd_entries(MOVContext *c, AVIOContext *pb, int entries);
+diff --git a/libavformat/mov.c b/libavformat/mov.c
+index 3ab6776..3734689 100644
+--- a/libavformat/mov.c
++++ b/libavformat/mov.c
+@@ -543,7 +543,7 @@ static int mov_read_hdlr(MOVContext *c, AVIOContext *pb, MOVAtom atom)
+     return 0;
+ }
+ 
+-int ff_mov_read_esds(AVFormatContext *fc, AVIOContext *pb, MOVAtom atom)
++int ff_mov_read_esds(AVFormatContext *fc, AVIOContext *pb)
+ {
+     AVStream *st;
+     int tag;
+@@ -567,7 +567,7 @@ int ff_mov_read_esds(AVFormatContext *fc, AVIOContext *pb, MOVAtom atom)
+ 
+ static int mov_read_esds(MOVContext *c, AVIOContext *pb, MOVAtom atom)
+ {
+-    return ff_mov_read_esds(c->fc, pb, atom);
++    return ff_mov_read_esds(c->fc, pb);
+ }
+ 
+ static int mov_read_dac3(MOVContext *c, AVIOContext *pb, MOVAtom atom)
+-- 
+1.9.1
+
