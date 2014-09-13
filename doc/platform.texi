@@ -24,6 +24,20 @@ If not, then you should install a different compiler that has no
 hard-coded path to gas. In the worst case pass @code{--disable-asm}
 to configure.
 
+@section Advanced linking configuration
+
+If you compiled Libav libraries statically and you want to use them to
+build your own shared library, you may need to force PIC support (with
+@code{--enable-pic} during Libav configure) and add the following option
+to your project LDFLAGS:
+
+@example
+-Wl,-Bsymbolic
+@end example
+
+If your target platform requires position independent binaries, you should
+pass the correct linking flag (e.g. @code{-pie}) to @code{--extra-ldexeflags}.
+
 @section BSD
 
 BSD make will not build Libav, you need to install and use GNU Make
@@ -52,11 +66,11 @@ unacelerated code.
 
 OS X on PowerPC or ARM (iPhone) requires a preprocessor from
 @url{git://git.libav.org/gas-preprocessor.git} to build the optimized
-assembler functions. Put the Perl script somewhere
+assembly functions. Put the Perl script somewhere
 in your PATH, Libav's configure will pick it up automatically.
 
 OS X on AMD64 and x86 requires @command{yasm} to build most of the
-optimized assembler functions @url{http://mxcl.github.com/homebrew/, Homebrew},
+optimized assembly functions @url{http://mxcl.github.com/homebrew/, Homebrew},
 @url{http://www.gentoo.org/proj/en/gentoo-alt/prefix/bootstrap-macos.xml, Gentoo Prefix}
 or @url{http://www.macports.org, MacPorts} can easily provide it.
 

@@ -16,6 +16,7 @@ HEADERS = adler32.h                                                     \
           common.h                                                      \
           cpu.h                                                         \
           crc.h                                                         \
+          display.h                                                     \
           downmix_info.h                                                \
           error.h                                                       \
           eval.h                                                        \
@@ -39,6 +40,7 @@ HEADERS = adler32.h                                                     \
           pixdesc.h                                                     \
           pixfmt.h                                                      \
           random_seed.h                                                 \
+          replaygain.h                                                  \
           rational.h                                                    \
           samplefmt.h                                                   \
           sha.h                                                         \
@@ -68,6 +70,7 @@ OBJS = adler32.o                                                        \
        cpu.o                                                            \
        crc.o                                                            \
        des.o                                                            \
+       display.o                                                        \
        downmix_info.o                                                   \
        error.o                                                          \
        eval.o                                                           \
@@ -122,6 +125,7 @@ TESTPROGS = adler32                                                     \
             des                                                         \
             eval                                                        \
             fifo                                                        \
+            float_dsp                                                   \
             hmac                                                        \
             lfg                                                         \
             lls                                                         \
