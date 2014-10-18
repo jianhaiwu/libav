@@ -1,0 +1,36 @@
+From b45ab61b24a8f2aeafdd4451491b1b30b7875ee5 Mon Sep 17 00:00:00 2001
+From: Katerina Barone-Adesi <katerinab@gmail.com>
+Date: Tue, 16 Sep 2014 01:40:24 +0200
+Subject: [PATCH 01/10] apetag: Fix APE tag size check
+
+The size variable is (correctly) unsigned, but is passed to several functions
+which take signed parameters, such as avio_read, sometimes after having
+numbers added to it. So ensure that size remains within the bounds that
+these functions can handle.
+
+(cherry picked from commit c5560e72d0bb69f8a1ac9536570398f84388f396)
+Signed-off-by: Diego Biurrun <diego@biurrun.de>
+---
+ libavformat/apetag.c | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/libavformat/apetag.c b/libavformat/apetag.c
+index 22884ef..bd8d0ed 100644
+--- a/libavformat/apetag.c
++++ b/libavformat/apetag.c
+@@ -57,8 +57,10 @@ static int ape_tag_read_field(AVFormatContext *s)
+         av_log(s, AV_LOG_WARNING, "Invalid APE tag key '%s'.\n", key);
+         return -1;
+     }
+-    if (size >= UINT_MAX)
+-        return -1;
++    if (size > INT32_MAX - FF_INPUT_BUFFER_PADDING_SIZE) {
++        av_log(s, AV_LOG_ERROR, "APE tag size too large.\n");
++        return AVERROR_INVALIDDATA;
++    }
+     if (flags & APE_TAG_FLAG_IS_BINARY) {
+         uint8_t filename[1024];
+         enum AVCodecID id;
+-- 
+2.1.0
+

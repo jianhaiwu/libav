@@ -1,0 +1,36 @@
+From e443165c323406d01da7e7930f042d265d01fb35 Mon Sep 17 00:00:00 2001
+From: Vittorio Giovara <vittorio.giovara@gmail.com>
+Date: Mon, 13 Oct 2014 15:42:28 +0100
+Subject: [PATCH 09/10] imc: fix order of operations in coefficients read
+
+Reported-by: Ruoyu <liangry@ucweb.com>
+---
+ libavcodec/imc.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/libavcodec/imc.c b/libavcodec/imc.c
+index 41ca8c8..500f564 100644
+--- a/libavcodec/imc.c
++++ b/libavcodec/imc.c
+@@ -873,14 +873,14 @@ static int imc_decode_block(AVCodecContext *avctx, IMCContext *q, int ch)
+ 
+     flag = get_bits1(&q->gb);
+     if (stream_format_code & 0x1)
+-        imc_decode_level_coefficients_raw(q, chctx->levlCoeffBuf,
+-                                          chctx->flcoeffs1, chctx->flcoeffs2);
+-    else if (stream_format_code & 0x1)
+         imc_read_level_coeffs_raw(q, stream_format_code, chctx->levlCoeffBuf);
+     else
+         imc_read_level_coeffs(q, stream_format_code, chctx->levlCoeffBuf);
+ 
+-    if (stream_format_code & 0x4)
++    if (stream_format_code & 0x1)
++        imc_decode_level_coefficients_raw(q, chctx->levlCoeffBuf,
++                                          chctx->flcoeffs1, chctx->flcoeffs2);
++    else if (stream_format_code & 0x4)
+         imc_decode_level_coefficients(q, chctx->levlCoeffBuf,
+                                       chctx->flcoeffs1, chctx->flcoeffs2);
+     else
+-- 
+2.1.0
+
