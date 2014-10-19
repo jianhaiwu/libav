@@ -1,3 +1,20 @@
+libav (6:11-2) unstable; urgency=medium
+
+  * add patches post v11 release, all of which will be included in the 
+    next point release:
+     - 0001-apetag-Fix-APE-tag-size-check.patch
+     - 0002-Update-default-FATE-URL-for-release-11.patch
+     - 0003-h264-Always-invoke-the-get_format-callback.patch
+     - 0004-mpeg12-Always-invoke-the-get_format-callback.patch
+     - 0005-hevc-Initialize-mergecand_list-to-0.patch
+     - 0006-h264-reset-ret-to-avoid-propagating-minor-failures.patch
+     - 0007-hevc_mvs-initialize-the-temporal-MV-in-case-of-missi.patch
+     - 0008-hevc_mvs-make-sure-to-always-initialize-the-temporal.patch
+     - 0009-imc-fix-order-of-operations-in-coefficients-read.patch
+     - 0010-resample-Avoid-off-by-1-errors-in-PTS-calcs.patch
+
+ -- Reinhard Tartler <siretart@tauware.de>  Sun, 19 Oct 2014 16:18:48 -0400
+
 libav (6:11-1) unstable; urgency=low
 
   * Upload final 11 release
