@@ -1,16 +1,1 @@
 03-disable-configuration-warnings.patch
-
-# patches added post v11 release. can be dropped on next upstream release
-# patche files generated with:
-# git format-patch v11..upstream/release/11 -o debian/patches/upstream
-
-upstream/0001-apetag-Fix-APE-tag-size-check.patch
-upstream/0002-Update-default-FATE-URL-for-release-11.patch
-upstream/0003-h264-Always-invoke-the-get_format-callback.patch
-upstream/0004-mpeg12-Always-invoke-the-get_format-callback.patch
-upstream/0005-hevc-Initialize-mergecand_list-to-0.patch
-upstream/0006-h264-reset-ret-to-avoid-propagating-minor-failures.patch
-upstream/0007-hevc_mvs-initialize-the-temporal-MV-in-case-of-missi.patch
-upstream/0008-hevc_mvs-make-sure-to-always-initialize-the-temporal.patch
-upstream/0009-imc-fix-order-of-operations-in-coefficients-read.patch
-upstream/0010-resample-Avoid-off-by-1-errors-in-PTS-calcs.patch
