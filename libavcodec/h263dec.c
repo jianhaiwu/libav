@@ -32,10 +32,12 @@
 #include "h263.h"
 #include "h263_parser.h"
 #include "internal.h"
+#include "mpeg_er.h"
 #include "mpeg4video.h"
 #include "mpeg4video_parser.h"
 #include "mpegvideo.h"
 #include "msmpeg4.h"
+#include "qpeldsp.h"
 #include "thread.h"
 
 av_cold int ff_h263_decode_init(AVCodecContext *avctx)
@@ -50,14 +52,14 @@ av_cold int ff_h263_decode_init(AVCodecContext *avctx)
     s->workaround_bugs = avctx->workaround_bugs;
 
     // set defaults
-    ff_MPV_decode_defaults(s);
+    ff_mpv_decode_defaults(s);
     s->quant_precision = 5;
     s->decode_mb       = ff_h263_decode_mb;
     s->low_delay       = 1;
     if (avctx->codec->id == AV_CODEC_ID_MSS2)
         avctx->pix_fmt = AV_PIX_FMT_YUV420P;
     else
-        avctx->pix_fmt = avctx->get_format(avctx, avctx->codec->pix_fmts);
+        avctx->pix_fmt = ff_get_format(avctx, avctx->codec->pix_fmts);
     s->unrestricted_mv = 1;
 
     /* select sub codec */
@@ -108,15 +110,17 @@ av_cold int ff_h263_decode_init(AVCodecContext *avctx)
         return AVERROR(ENOSYS);
     }
     s->codec_id    = avctx->codec->id;
-    avctx->hwaccel = ff_find_hwaccel(avctx);
 
     /* for h263, we allocate the images after having read the header */
     if (avctx->codec->id != AV_CODEC_ID_H263 &&
-        avctx->codec->id != AV_CODEC_ID_MPEG4)
-        if ((ret = ff_MPV_common_init(s)) < 0)
+        avctx->codec->id != AV_CODEC_ID_MPEG4) {
+        ff_mpv_idct_init(s);
+        if ((ret = ff_mpv_common_init(s)) < 0)
             return ret;
+    }
 
     ff_h263dsp_init(&s->h263dsp);
+    ff_qpeldsp_init(&s->qdsp);
     ff_h263_decode_init_vlc();
 
     return 0;
@@ -126,7 +130,7 @@ av_cold int ff_h263_decode_end(AVCodecContext *avctx)
 {
     MpegEncContext *s = avctx->priv_data;
 
-    ff_MPV_common_end(s);
+    ff_mpv_common_end(s);
     return 0;
 }
 
@@ -235,7 +239,7 @@ static int decode_slice(MpegEncContext *s)
             if (ret < 0) {
                 const int xy = s->mb_x + s->mb_y * s->mb_stride;
                 if (ret == SLICE_END) {
-                    ff_MPV_decode_mb(s, s->block);
+                    ff_mpv_decode_mb(s, s->block);
                     if (s->loop_filter)
                         ff_h263_loop_filter(s);
 
@@ -247,7 +251,7 @@ static int decode_slice(MpegEncContext *s)
                     if (++s->mb_x >= s->mb_width) {
                         s->mb_x = 0;
                         ff_mpeg_draw_horiz_band(s, s->mb_y * mb_size, mb_size);
-                        ff_MPV_report_decode_progress(s);
+                        ff_mpv_report_decode_progress(s);
                         s->mb_y++;
                     }
                     return 0;
@@ -266,13 +270,13 @@ static int decode_slice(MpegEncContext *s)
                 return AVERROR_INVALIDDATA;
             }
 
-            ff_MPV_decode_mb(s, s->block);
+            ff_mpv_decode_mb(s, s->block);
             if (s->loop_filter)
                 ff_h263_loop_filter(s);
         }
 
         ff_mpeg_draw_horiz_band(s, s->mb_y * mb_size, mb_size);
-        ff_MPV_report_decode_progress(s);
+        ff_mpv_report_decode_progress(s);
 
         s->mb_x = 0;
     }
@@ -374,7 +378,7 @@ int ff_h263_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
     if (buf_size == 0) {
         /* special case for last picture */
         if (s->low_delay == 0 && s->next_picture_ptr) {
-            if ((ret = av_frame_ref(pict, &s->next_picture_ptr->f)) < 0)
+            if ((ret = av_frame_ref(pict, s->next_picture_ptr->f)) < 0)
                 return ret;
             s->next_picture_ptr = NULL;
 
@@ -414,17 +418,7 @@ int ff_h263_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
 
     if (!s->context_initialized)
         // we need the idct permutaton for reading a custom matrix
-        if ((ret = ff_MPV_common_init(s)) < 0)
-            return ret;
-
-    /* We need to set current_picture_ptr before reading the header,
-     * otherwise we cannot store anyting in there */
-    if (s->current_picture_ptr == NULL || s->current_picture_ptr->f.data[0]) {
-        int i = ff_find_unused_picture(s, 0);
-        if (i < 0)
-            return i;
-        s->current_picture_ptr = &s->picture[i];
-    }
+        ff_mpv_idct_init(s);
 
     /* let's go :-) */
     if (CONFIG_WMV2_DECODER && s->msmpeg4_version == 5) {
@@ -459,12 +453,23 @@ int ff_h263_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
         return ret;
     }
 
+    if (!s->context_initialized)
+        if ((ret = ff_mpv_common_init(s)) < 0)
+            return ret;
+
+    if (!s->current_picture_ptr || s->current_picture_ptr->f->data[0]) {
+        int i = ff_find_unused_picture(s, 0);
+        if (i < 0)
+            return i;
+        s->current_picture_ptr = &s->picture[i];
+    }
+
     avctx->has_b_frames = !s->low_delay;
 
 #define SET_QPEL_FUNC(postfix1, postfix2)                           \
-    s->dsp.put_        ## postfix1 = ff_put_        ## postfix2;    \
-    s->dsp.put_no_rnd_ ## postfix1 = ff_put_no_rnd_ ## postfix2;    \
-    s->dsp.avg_        ## postfix1 = ff_avg_        ## postfix2;
+    s->qdsp.put_        ## postfix1 = ff_put_        ## postfix2;   \
+    s->qdsp.put_no_rnd_ ## postfix1 = ff_put_no_rnd_ ## postfix2;   \
+    s->qdsp.avg_        ## postfix1 = ff_avg_        ## postfix2;
 
     if (s->workaround_bugs & FF_BUG_STD_QPEL) {
         SET_QPEL_FUNC(qpel_pixels_tab[0][5], qpel16_mc11_old_c)
@@ -496,7 +501,9 @@ int ff_h263_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
         if (ret < 0)
             return ret;
 
-        if ((ret = ff_MPV_common_frame_size_change(s)))
+        ff_set_sar(avctx, avctx->sample_aspect_ratio);
+
+        if ((ret = ff_mpv_common_frame_size_change(s)))
             return ret;
     }
 
@@ -506,11 +513,11 @@ int ff_h263_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
         s->gob_index = ff_h263_get_gob_height(s);
 
     // for skipping the frame
-    s->current_picture.f.pict_type = s->pict_type;
-    s->current_picture.f.key_frame = s->pict_type == AV_PICTURE_TYPE_I;
+    s->current_picture.f->pict_type = s->pict_type;
+    s->current_picture.f->key_frame = s->pict_type == AV_PICTURE_TYPE_I;
 
     /* skip B-frames if we don't have reference frames */
-    if (s->last_picture_ptr == NULL &&
+    if (!s->last_picture_ptr &&
         (s->pict_type == AV_PICTURE_TYPE_B || s->droppable))
         return get_consumed_bytes(s, buf_size);
     if ((avctx->skip_frame >= AVDISCARD_NONREF &&
@@ -528,14 +535,14 @@ int ff_h263_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
     }
 
     if ((!s->no_rounding) || s->pict_type == AV_PICTURE_TYPE_B) {
-        s->me.qpel_put = s->dsp.put_qpel_pixels_tab;
-        s->me.qpel_avg = s->dsp.avg_qpel_pixels_tab;
+        s->me.qpel_put = s->qdsp.put_qpel_pixels_tab;
+        s->me.qpel_avg = s->qdsp.avg_qpel_pixels_tab;
     } else {
-        s->me.qpel_put = s->dsp.put_no_rnd_qpel_pixels_tab;
-        s->me.qpel_avg = s->dsp.avg_qpel_pixels_tab;
+        s->me.qpel_put = s->qdsp.put_no_rnd_qpel_pixels_tab;
+        s->me.qpel_avg = s->qdsp.avg_qpel_pixels_tab;
     }
 
-    if ((ret = ff_MPV_frame_start(s, avctx)) < 0)
+    if ((ret = ff_mpv_frame_start(s, avctx)) < 0)
         return ret;
 
     if (!s->divx_packed && !avctx->hwaccel)
@@ -552,7 +559,7 @@ int ff_h263_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
 
     /* the second part of the wmv2 header contains the MB skip bits which
      * are stored in current_picture->mb_type which is not available before
-     * ff_MPV_frame_start() */
+     * ff_mpv_frame_start() */
     if (CONFIG_WMV2_DECODER && s->msmpeg4_version == 5) {
         ret = ff_wmv2_decode_secondary_picture_header(s);
         if (ret < 0)
@@ -606,20 +613,20 @@ intrax8_decoded:
             return ret;
     }
 
-    ff_MPV_frame_end(s);
+    ff_mpv_frame_end(s);
 
     if (!s->divx_packed && avctx->hwaccel)
         ff_thread_finish_setup(avctx);
 
-    assert(s->current_picture.f.pict_type ==
-           s->current_picture_ptr->f.pict_type);
-    assert(s->current_picture.f.pict_type == s->pict_type);
+    assert(s->current_picture.f->pict_type ==
+           s->current_picture_ptr->f->pict_type);
+    assert(s->current_picture.f->pict_type == s->pict_type);
     if (s->pict_type == AV_PICTURE_TYPE_B || s->low_delay) {
-        if ((ret = av_frame_ref(pict, &s->current_picture_ptr->f)) < 0)
+        if ((ret = av_frame_ref(pict, s->current_picture_ptr->f)) < 0)
             return ret;
         ff_print_debug_info(s, s->current_picture_ptr);
-    } else if (s->last_picture_ptr != NULL) {
-        if ((ret = av_frame_ref(pict, &s->last_picture_ptr->f)) < 0)
+    } else if (s->last_picture_ptr) {
+        if ((ret = av_frame_ref(pict, s->last_picture_ptr->f)) < 0)
             return ret;
         ff_print_debug_info(s, s->last_picture_ptr);
     }
@@ -634,10 +641,10 @@ intrax8_decoded:
 }
 
 const enum AVPixelFormat ff_h263_hwaccel_pixfmt_list_420[] = {
-#if CONFIG_VAAPI
+#if CONFIG_H263_VAAPI_HWACCEL || CONFIG_MPEG4_VAAPI_HWACCEL
     AV_PIX_FMT_VAAPI_VLD,
 #endif
-#if CONFIG_VDPAU
+#if CONFIG_H263_VDPAU_HWACCEL || CONFIG_MPEG4_VDPAU_HWACCEL
     AV_PIX_FMT_VDPAU,
 #endif
     AV_PIX_FMT_YUV420P,

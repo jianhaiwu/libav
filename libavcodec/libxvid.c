@@ -46,6 +46,7 @@
  * This stores all the private context for the codec.
  */
 struct xvid_context {
+    AVClass *class;                /**< Handle for Xvid encoder */
     void *encoder_handle;          /**< Handle for Xvid encoder */
     int xsize;                     /**< Frame x size */
     int ysize;                     /**< Frame y size */
@@ -59,6 +60,11 @@ struct xvid_context {
     char *twopassfile;             /**< second pass temp file name */
     unsigned char *intra_matrix;   /**< P-Frame Quant Matrix */
     unsigned char *inter_matrix;   /**< I-Frame Quant Matrix */
+    int lumi_aq;                   /**< Lumi masking as an aq method */
+    int variance_aq;               /**< Variance adaptive quantization */
+    int ssim;                      /**< SSIM information display mode */
+    int ssim_acc;                  /**< SSIM accuracy. 0: accurate. 4: fast. */
+    int gmc;
 };
 
 /**
@@ -92,7 +98,7 @@ static int xvid_ff_2pass_create(xvid_plg_create_t * param,
     char *log = x->context->twopassbuffer;
 
     /* Do a quick bounds check */
-    if( log == NULL )
+    if (!log)
         return XVID_ERR_FAIL;
 
     /* We use snprintf() */
@@ -121,7 +127,7 @@ static int xvid_ff_2pass_destroy(struct xvid_context *ref,
                                 xvid_plg_destroy_t *param) {
     /* Currently cannot think of anything to do on destruction */
     /* Still, the framework should be here for reference/use */
-    if( ref->twopassbuffer != NULL )
+    if (ref->twopassbuffer)
         ref->twopassbuffer[0] = 0;
     return 0;
 }
@@ -183,7 +189,7 @@ static int xvid_ff_2pass_after(struct xvid_context *ref,
     char frame_type;
 
     /* Quick bounds check */
-    if( log == NULL )
+    if (!log)
         return XVID_ERR_FAIL;
 
     /* Convert the type given to us into a character */
@@ -267,7 +273,7 @@ static int xvid_strip_vol_header(AVCodecContext *avctx,
 
     if( vo_len > 0 ) {
         /* We need to store the header, so extract it */
-        if( avctx->extradata == NULL ) {
+        if (!avctx->extradata) {
             avctx->extradata = av_malloc(vo_len);
             memcpy(avctx->extradata, pkt->data, vo_len);
             avctx->extradata_size = vo_len;
@@ -349,6 +355,9 @@ static av_cold int xvid_encode_init(AVCodecContext *avctx)  {
     xvid_plugin_single_t single       = { 0 };
     struct xvid_ff_pass1 rc2pass1     = { 0 };
     xvid_plugin_2pass2_t rc2pass2     = { 0 };
+    xvid_plugin_lumimasking_t masking_l = { 0 }; /* For lumi masking */
+    xvid_plugin_lumimasking_t masking_v = { 0 }; /* For variance AQ */
+    xvid_plugin_ssim_t ssim           = { 0 };
     xvid_gbl_init_t xvid_gbl_init     = { 0 };
     xvid_enc_create_t xvid_enc_create = { 0 };
     xvid_enc_plugin_t plugins[7];
@@ -408,8 +417,13 @@ static av_cold int xvid_encode_init(AVCodecContext *avctx)  {
     }
 
     /* Bring in VOL flags from avconv command-line */
+#if FF_API_GMC
+    if (avctx->flags & CODEC_FLAG_GMC)
+        x->gmc = 1;
+#endif
+
     x->vol_flags = 0;
-    if( xvid_flags & CODEC_FLAG_GMC ) {
+    if (x->gmc) {
         x->vol_flags |= XVID_VOL_GMC;
         x->me_flags |= XVID_ME_GME_REFINE;
     }
@@ -422,19 +436,7 @@ static av_cold int xvid_encode_init(AVCodecContext *avctx)  {
 
     xvid_gbl_init.version = XVID_VERSION;
     xvid_gbl_init.debug = 0;
-
-#if ARCH_PPC
-    /* Xvid's PPC support is borked, use libavcodec to detect */
-#if HAVE_ALTIVEC
-    if (av_get_cpu_flags() & AV_CPU_FLAG_ALTIVEC) {
-        xvid_gbl_init.cpu_flags = XVID_CPU_FORCE | XVID_CPU_ALTIVEC;
-    } else
-#endif
-        xvid_gbl_init.cpu_flags = XVID_CPU_FORCE;
-#else
-    /* Xvid can detect on x86 */
     xvid_gbl_init.cpu_flags = 0;
-#endif
 
     /* Initialize */
     xvid_global(NULL, XVID_GBL_INIT, &xvid_gbl_init, NULL);
@@ -468,7 +470,7 @@ static av_cold int xvid_encode_init(AVCodecContext *avctx)  {
         rc2pass1.context = x;
         x->twopassbuffer = av_malloc(BUFFER_SIZE);
         x->old_twopassbuffer = av_malloc(BUFFER_SIZE);
-        if( x->twopassbuffer == NULL || x->old_twopassbuffer == NULL ) {
+        if (!x->twopassbuffer || !x->old_twopassbuffer) {
             av_log(avctx, AV_LOG_ERROR,
                 "Xvid: Cannot allocate 2-pass log buffers\n");
             return -1;
@@ -489,7 +491,7 @@ static av_cold int xvid_encode_init(AVCodecContext *avctx)  {
             return -1;
         }
 
-        if( avctx->stats_in == NULL ) {
+        if (!avctx->stats_in) {
             av_log(avctx, AV_LOG_ERROR,
                 "Xvid: No 2-pass information loaded for second pass\n");
             return -1;
@@ -518,10 +520,43 @@ static av_cold int xvid_encode_init(AVCodecContext *avctx)  {
         xvid_enc_create.num_plugins++;
     }
 
+    if (avctx->lumi_masking != 0.0)
+        x->lumi_aq = 1;
+
+    if (x->lumi_aq && x->variance_aq) {
+        x->variance_aq = 0;
+        av_log(avctx, AV_LOG_WARNING,
+               "variance_aq is ignored when lumi_aq is set.\n");
+    }
+
     /* Luminance Masking */
-    if( 0.0 != avctx->lumi_masking ) {
+    if (x->lumi_aq) {
+        masking_l.method = 0;
         plugins[xvid_enc_create.num_plugins].func = xvid_plugin_lumimasking;
-        plugins[xvid_enc_create.num_plugins].param = NULL;
+
+        /* The old behavior is that when avctx->lumi_masking is specified,
+         * plugins[...].param = NULL. Trying to keep the old behavior here. */
+        plugins[xvid_enc_create.num_plugins].param = avctx->lumi_masking ? NULL
+                                                                         : &masking_l;
+                xvid_enc_create.num_plugins++;
+    }
+
+    /* Variance AQ */
+    if (x->variance_aq) {
+        masking_v.method = 1;
+        plugins[xvid_enc_create.num_plugins].func  = xvid_plugin_lumimasking;
+        plugins[xvid_enc_create.num_plugins].param = &masking_v;
+        xvid_enc_create.num_plugins++;
+    }
+
+    /* SSIM */
+    if (x->ssim) {
+        plugins[xvid_enc_create.num_plugins].func = xvid_plugin_ssim;
+        ssim.b_printstat = x->ssim == 2;
+        ssim.acc         = x->ssim_acc;
+        ssim.cpu_flags   = xvid_gbl_init.cpu_flags;
+        ssim.b_visualize = 0;
+        plugins[xvid_enc_create.num_plugins].param = &ssim;
         xvid_enc_create.num_plugins++;
     }
 
@@ -737,7 +772,7 @@ static av_cold int xvid_encode_close(AVCodecContext *avctx) {
     xvid_encore(x->encoder_handle, XVID_ENC_DESTROY, NULL, NULL);
 
     av_freep(&avctx->extradata);
-    if( x->twopassbuffer != NULL ) {
+    if (x->twopassbuffer) {
         av_free(x->twopassbuffer);
         av_free(x->old_twopassbuffer);
     }
@@ -747,6 +782,27 @@ static av_cold int xvid_encode_close(AVCodecContext *avctx) {
 
     return 0;
 }
+
+#define OFFSET(x) offsetof(struct xvid_context, x)
+#define VE AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_ENCODING_PARAM
+static const AVOption options[] = {
+    { "lumi_aq",     "Luminance masking AQ", OFFSET(lumi_aq),     AV_OPT_TYPE_INT, { .i64 = 0 }, 0, 1, VE },
+    { "variance_aq", "Variance AQ",          OFFSET(variance_aq), AV_OPT_TYPE_INT, { .i64 = 0 }, 0, 1, VE },
+    { "ssim",        "Show SSIM information to stdout",       OFFSET(ssim),              AV_OPT_TYPE_INT, { .i64 = 0 }, 0, 2, VE, "ssim" },
+        { "off",     NULL, 0, AV_OPT_TYPE_CONST, { .i64 = 0 }, INT_MIN, INT_MAX, VE, "ssim" },
+        { "avg",     NULL, 0, AV_OPT_TYPE_CONST, { .i64 = 1 }, INT_MIN, INT_MAX, VE, "ssim" },
+        { "frame",   NULL, 0, AV_OPT_TYPE_CONST, { .i64 = 2 }, INT_MIN, INT_MAX, VE, "ssim" },
+    { "ssim_acc",    "SSIM accuracy",                         OFFSET(ssim_acc),          AV_OPT_TYPE_INT, { .i64 = 2 }, 0, 4, VE },
+    { "gmc",         "use GMC",              OFFSET(gmc),         AV_OPT_TYPE_INT, { .i64 = 0 }, 0, 1, VE },
+    { NULL },
+};
+
+static const AVClass xvid_class = {
+    .class_name = "libxvid",
+    .item_name  = av_default_item_name,
+    .option     = options,
+    .version    = LIBAVUTIL_VERSION_INT,
+};
 
 AVCodec ff_libxvid_encoder = {
     .name           = "libxvid",
@@ -758,4 +814,5 @@ AVCodec ff_libxvid_encoder = {
     .encode2        = xvid_encode_frame,
     .close          = xvid_encode_close,
     .pix_fmts       = (const enum AVPixelFormat[]){ AV_PIX_FMT_YUV420P, AV_PIX_FMT_NONE },
+    .priv_class     = &xvid_class,
 };

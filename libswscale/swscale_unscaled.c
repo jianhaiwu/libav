@@ -351,7 +351,7 @@ static int palToRgbWrapper(SwsContext *c, const uint8_t *src[], int srcStride[],
     uint8_t *dstPtr = dst[0] + dstStride[0] * srcSliceY;
     const uint8_t *srcPtr = src[0];
 
-    if (srcFormat == AV_PIX_FMT_Y400A) {
+    if (srcFormat == AV_PIX_FMT_YA8) {
         switch (dstFormat) {
         case AV_PIX_FMT_RGB32  : conv = gray8aToPacked32; break;
         case AV_PIX_FMT_BGR32  : conv = gray8aToPacked32; break;
@@ -677,7 +677,7 @@ static int rgbToRgbWrapper(SwsContext *c, const uint8_t *src[], int srcStride[],
         if (dstStride[0] * srcBpp == srcStride[0] * dstBpp && srcStride[0] > 0 &&
             !(srcStride[0] % srcBpp))
             conv(srcPtr, dstPtr + dstStride[0] * srcSliceY,
-                 srcSliceH * srcStride[0]);
+                 (srcSliceH - 1) * srcStride[0] + c->srcW * srcBpp);
         else {
             int i;
             dstPtr += dstStride[0] * srcSliceY;
@@ -1051,11 +1051,14 @@ void ff_get_unscaled_swscale(SwsContext *c)
         IS_DIFFERENT_ENDIANESS(srcFormat, dstFormat, AV_PIX_FMT_BGR48)  ||
         IS_DIFFERENT_ENDIANESS(srcFormat, dstFormat, AV_PIX_FMT_BGR555) ||
         IS_DIFFERENT_ENDIANESS(srcFormat, dstFormat, AV_PIX_FMT_BGR565) ||
+        IS_DIFFERENT_ENDIANESS(srcFormat, dstFormat, AV_PIX_FMT_BGRA64) ||
         IS_DIFFERENT_ENDIANESS(srcFormat, dstFormat, AV_PIX_FMT_GRAY16) ||
+        IS_DIFFERENT_ENDIANESS(srcFormat, dstFormat, AV_PIX_FMT_YA16)   ||
         IS_DIFFERENT_ENDIANESS(srcFormat, dstFormat, AV_PIX_FMT_RGB444) ||
         IS_DIFFERENT_ENDIANESS(srcFormat, dstFormat, AV_PIX_FMT_RGB48)  ||
         IS_DIFFERENT_ENDIANESS(srcFormat, dstFormat, AV_PIX_FMT_RGB555) ||
         IS_DIFFERENT_ENDIANESS(srcFormat, dstFormat, AV_PIX_FMT_RGB565) ||
+        IS_DIFFERENT_ENDIANESS(srcFormat, dstFormat, AV_PIX_FMT_RGBA64) ||
         IS_DIFFERENT_ENDIANESS(srcFormat, dstFormat, AV_PIX_FMT_XYZ12))
         c->swscale = packed_16bpc_bswap;
 
@@ -1115,8 +1118,6 @@ void ff_get_unscaled_swscale(SwsContext *c)
             c->swscale = planarCopyWrapper;
     }
 
-    if (ARCH_BFIN)
-        ff_get_unscaled_swscale_bfin(c);
     if (ARCH_PPC)
         ff_get_unscaled_swscale_ppc(c);
 }
@@ -1185,9 +1186,9 @@ int attribute_align_arg sws_scale(struct SwsContext *c,
 
     if (usePal(c->srcFormat)) {
         for (i = 0; i < 256; i++) {
-            int p, r, g, b, y, u, v;
+            int r, g, b, y, u, v;
             if (c->srcFormat == AV_PIX_FMT_PAL8) {
-                p = ((const uint32_t *)(srcSlice[1]))[i];
+                uint32_t p = ((const uint32_t *)(srcSlice[1]))[i];
                 r = (p >> 16) & 0xFF;
                 g = (p >>  8) & 0xFF;
                 b =  p        & 0xFF;
@@ -1204,7 +1205,7 @@ int attribute_align_arg sws_scale(struct SwsContext *c,
                 g = ((i >> 1) & 3) * 85;
                 b = ( i       & 1) * 255;
             } else if (c->srcFormat == AV_PIX_FMT_GRAY8 ||
-                      c->srcFormat == AV_PIX_FMT_Y400A) {
+                       c->srcFormat == AV_PIX_FMT_YA8) {
                 r = g = b = i;
             } else {
                 assert(c->srcFormat == AV_PIX_FMT_BGR4_BYTE);
@@ -1215,33 +1216,33 @@ int attribute_align_arg sws_scale(struct SwsContext *c,
             y = av_clip_uint8((RY * r + GY * g + BY * b + ( 33 << (RGB2YUV_SHIFT - 1))) >> RGB2YUV_SHIFT);
             u = av_clip_uint8((RU * r + GU * g + BU * b + (257 << (RGB2YUV_SHIFT - 1))) >> RGB2YUV_SHIFT);
             v = av_clip_uint8((RV * r + GV * g + BV * b + (257 << (RGB2YUV_SHIFT - 1))) >> RGB2YUV_SHIFT);
-            c->pal_yuv[i] = y + (u << 8) + (v << 16);
+            c->pal_yuv[i] = y + (u << 8) + (v << 16) + (0xFFU << 24);
 
             switch (c->dstFormat) {
             case AV_PIX_FMT_BGR32:
 #if !HAVE_BIGENDIAN
             case AV_PIX_FMT_RGB24:
 #endif
-                c->pal_rgb[i] =  r + (g << 8) + (b << 16);
+                c->pal_rgb[i] =  r + (g << 8) + (b << 16) + (0xFFU << 24);
                 break;
             case AV_PIX_FMT_BGR32_1:
 #if HAVE_BIGENDIAN
             case AV_PIX_FMT_BGR24:
 #endif
-                c->pal_rgb[i] = (r + (g << 8) + (b << 16)) << 8;
+                c->pal_rgb[i] = 0xFF + (r << 8) + (g << 16) + ((unsigned)b << 24);
                 break;
             case AV_PIX_FMT_RGB32_1:
 #if HAVE_BIGENDIAN
             case AV_PIX_FMT_RGB24:
 #endif
-                c->pal_rgb[i] = (b + (g << 8) + (r << 16)) << 8;
+                c->pal_rgb[i] = 0xFF + (b << 8) + (g << 16) + ((unsigned)r << 24);
                 break;
             case AV_PIX_FMT_RGB32:
 #if !HAVE_BIGENDIAN
             case AV_PIX_FMT_BGR24:
 #endif
             default:
-                c->pal_rgb[i] =  b + (g << 8) + (r << 16);
+                c->pal_rgb[i] =  b + (g << 8) + (r << 16) + (0xFFU << 24);
             }
         }
     }

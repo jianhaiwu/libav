@@ -478,6 +478,7 @@ static int decode_sequence_header_adv(VC1Context *v, GetBitContext *gb)
                       v->s.avctx->width * h,
                       1 << 30);
         }
+        ff_set_sar(v->s.avctx, v->s.avctx->sample_aspect_ratio);
         av_log(v->s.avctx, AV_LOG_DEBUG, "Aspect: %i:%i\n",
                v->s.avctx->sample_aspect_ratio.num,
                v->s.avctx->sample_aspect_ratio.den);
@@ -848,7 +849,7 @@ int ff_vc1_parse_frame_header_adv(VC1Context *v, GetBitContext* gb)
         v->s.pict_type = (v->fptype & 1) ? AV_PICTURE_TYPE_P : AV_PICTURE_TYPE_I;
         if (v->fptype & 4)
             v->s.pict_type = (v->fptype & 1) ? AV_PICTURE_TYPE_BI : AV_PICTURE_TYPE_B;
-        v->s.current_picture_ptr->f.pict_type = v->s.pict_type;
+        v->s.current_picture_ptr->f->pict_type = v->s.pict_type;
         if (!v->pic_header_flag)
             goto parse_common_info;
     }
@@ -1686,6 +1687,8 @@ av_cold int ff_vc1_init_common(VC1Context *v)
     /* Other defaults */
     v->pq      = -1;
     v->mvrange = 0; /* 7.1.1.18, p80 */
+
+    ff_vc1dsp_init(&v->vc1dsp);
 
     return 0;
 }

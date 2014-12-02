@@ -79,20 +79,20 @@ typedef struct HEVCDSPContext {
                               ptrdiff_t srcstride, int width, int height);
 
     void (*hevc_h_loop_filter_luma)(uint8_t *pix, ptrdiff_t stride,
-                                    int *beta, int *tc,
+                                    int beta, int *tc,
                                     uint8_t *no_p, uint8_t *no_q);
     void (*hevc_v_loop_filter_luma)(uint8_t *pix, ptrdiff_t stride,
-                                    int *beta, int *tc,
+                                    int beta, int *tc,
                                     uint8_t *no_p, uint8_t *no_q);
     void (*hevc_h_loop_filter_chroma)(uint8_t *pix, ptrdiff_t stride,
                                       int *tc, uint8_t *no_p, uint8_t *no_q);
     void (*hevc_v_loop_filter_chroma)(uint8_t *pix, ptrdiff_t stride,
                                       int *tc, uint8_t *no_p, uint8_t *no_q);
     void (*hevc_h_loop_filter_luma_c)(uint8_t *pix, ptrdiff_t stride,
-                                      int *beta, int *tc,
+                                      int beta, int *tc,
                                       uint8_t *no_p, uint8_t *no_q);
     void (*hevc_v_loop_filter_luma_c)(uint8_t *pix, ptrdiff_t stride,
-                                      int *beta, int *tc,
+                                      int beta, int *tc,
                                       uint8_t *no_p, uint8_t *no_q);
     void (*hevc_h_loop_filter_chroma_c)(uint8_t *pix, ptrdiff_t stride,
                                         int *tc, uint8_t *no_p,
@@ -103,6 +103,8 @@ typedef struct HEVCDSPContext {
 } HEVCDSPContext;
 
 void ff_hevc_dsp_init(HEVCDSPContext *hpc, int bit_depth);
+
+void ff_hevc_dsp_init_x86(HEVCDSPContext *c, const int bit_depth);
 
 extern const int8_t ff_hevc_epel_filters[7][16];
 
