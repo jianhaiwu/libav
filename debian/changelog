@@ -1,3 +1,30 @@
+libav (6:11.1-1~exp1) experimental; urgency=medium
+
+  [ upstream ]
+  * New release.
+    + Replace lena.pnm.
+      Closes: bug#771126.
+    + Treat all '*.pnm' files as non-text file.
+    + opusdec: Ensure all substreams have same number of coded samples.
+    + lavu: Fix memory leaks by using a mutex instead of atomics.
+    + lavu: Add wrappers for the pthreads mutex API.
+    + mp3enc: Fix a triggerable assert.
+    + resample: Avoid off-by-1 errors in PTS calcs.
+    + imc: Fix order of operations in coefficients read.
+    + hevc_mvs: Ensure to always initialize the temporal MV fully.
+    + hevc_mvs: Initialize the temporal MV in case of missing ref.
+    + h264: Reset ret to avoid propagating minor failures.
+    + hevc: Initialize mergecand_list to 0.
+    + mpeg12: Always invoke the get_format() callback.
+    + h264: Always invoke the get_format() callback.
+    + Update default FATE URL for release/11.
+    + apetag: Fix APE tag size check.
+
+  [ Jonas Smedegaard ]
+  * Drop patches now included upstream.
+
+ -- Jonas Smedegaard <dr@jones.dk>  Tue, 02 Dec 2014 16:37:04 +0100
+
 libav (6:11-2) unstable; urgency=medium
 
   * add patches post v11 release, all of which will be included in the 
