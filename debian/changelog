@@ -1,3 +1,10 @@
+libav (6:11.1-1) unstable; urgency=medium
+
+  * Team upload.
+  * Upload to unstable.
+
+ -- Sebastian Ramacher <sramacher@debian.org>  Tue, 30 Dec 2014 17:08:42 +0100
+
 libav (6:11.1-1~exp1) experimental; urgency=medium
 
   [ upstream ]
