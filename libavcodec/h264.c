@@ -837,7 +837,7 @@ static void decode_postinit(H264Context *h, int setup_finished)
 
         av_display_rotation_set((int32_t *)rotation->data, angle);
         av_display_matrix_flip((int32_t *)rotation->data,
-                               h->sei_vflip, h->sei_hflip);
+                               h->sei_hflip, h->sei_vflip);
     }
 
     // FIXME do something with unavailable reference frames
@@ -1454,6 +1454,8 @@ static int decode_nal_units(H264Context *h, const uint8_t *buf, int buf_size,
                 buf_index = find_start_code(buf, buf_size, buf_index, next_avc);
                 if (buf_index >= buf_size)
                     break;
+                if (buf_index >= next_avc)
+                    continue;
             }
 
             hx = h->thread_context[context_count];
