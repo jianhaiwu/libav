@@ -36,6 +36,7 @@
 #define XING_FLAG_FRAMES 0x01
 #define XING_FLAG_SIZE   0x02
 #define XING_FLAG_TOC    0x04
+#define XING_FLAC_QSCALE 0x08
 
 #define XING_TOC_COUNT 100
 
@@ -80,7 +81,10 @@ static int mp3_read_probe(AVProbeData *p)
     }
     // keep this in sync with ac3 probe, both need to avoid
     // issues with MPEG-files!
-    if (first_frames >= 4) return AVPROBE_SCORE_EXTENSION + 1;
+    if (first_frames >= 10)
+        return AVPROBE_SCORE_EXTENSION + 5;
+    if (first_frames >= 4)
+        return AVPROBE_SCORE_EXTENSION + 1;
 
     if (max_frames) {
         int pes = 0, i;
@@ -165,7 +169,8 @@ static void mp3_parse_info_tag(AVFormatContext *s, AVStream *st,
                                        st->time_base));
 
     /* VBR quality */
-    avio_rb32(s->pb);
+    if (v & XING_FLAC_QSCALE)
+        avio_rb32(s->pb);
 
     /* Encoder short version string */
     memset(version, 0, sizeof(version));
