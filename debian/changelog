@@ -1,4 +1,4 @@
-libav (6:11.3-1) UNRELEASED; urgency=medium
+libav (6:11.3-1) unstable; urgency=medium
 
   * New upstream release fixing multiple security issues.
     - utvideodec: Handle slice_height being zero (CVE-2014-9604)
@@ -24,7 +24,7 @@ libav (6:11.3-1) UNRELEASED; urgency=medium
     - matroskadec: Fix read-after-free in matroska_read_seek() (chromium #427266)
     - log: Unbreak no-tty support on 256color terminals
 
- -- Sebastian Ramacher <sramacher@debian.org>  Fri, 13 Mar 2015 13:34:10 +0100
+ -- Sebastian Ramacher <sramacher@debian.org>  Fri, 13 Mar 2015 23:27:25 +0100
 
 libav (6:11.2-1) unstable; urgency=medium
 
