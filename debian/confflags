@@ -180,7 +180,7 @@ shared_build_confflags += --enable-shared
 shared_build_confflags += --disable-static
 # i386 shared builds must be optimized for 586, cf. #728928, #688384
 ifeq      ($(DEB_HOST_ARCH),i386)
-shared_build_confflags += --cpu=586
+shared_build_confflags += --cpu='i586'
 endif
 
 ## specific to arm architectures
