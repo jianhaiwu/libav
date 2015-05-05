@@ -5,7 +5,7 @@ libav (6:11.3-1+deb8u1) jessie; urgency=medium
       Übelacker for the patch.
     - debian/patches:
       + 01-configure-disable-i686-for-i586.patch: Upstream patch to disable
-        i686 on instructions on i586.
+        i686 instructions on i586.
       + 02-configure-disable-ebx-gcc-4.9.patch: Workaround build failure with
         gcc 4.9 and newer by disabling the use of ebx in handwritten assembler
         code. Thanks to Bernhard Übelacker for the initial patch.
