@@ -1,14 +1,14 @@
 #!/bin/bash
 ORIGDIR=`pwd`
-TMPDIR=libvpx.$$
+TMPDIR=libav.$$
 
 mkdir -p ../${TMPDIR}
 
 cd ..
-cp -a libvpx ${TMPDIR}/libvpx-1.3.0
+cp -a libav ${TMPDIR}/libav-11.3
 cd ${TMPDIR}
-rm -rf libvpx-1.3.0/.git*
-tar zcvf libvpx-1.3.0.tar.gz libvpx-1.3.0
-mv libvpx-1.3.0.tar.gz ${ORIGDIR}/.
+rm -rf libav-11.3/.git*
+tar zcvf libav-11.3.tar.gz libav-11.3
+mv libav-11.3.tar.gz ${ORIGDIR}/.
 cd ${ORIGDIR}
 rm -rf ../${TMPDIR}
