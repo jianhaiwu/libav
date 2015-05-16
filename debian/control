@@ -47,7 +47,7 @@ Build-Depends:
  libvo-aacenc-dev,
  libvo-amrwbenc-dev,
  libvorbis-dev,
- libvpx-dev,
+ libvpx2-dev,
  libx11-dev,
  libx264-dev,
  libxext-dev,
