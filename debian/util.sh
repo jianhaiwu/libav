@@ -118,6 +118,7 @@ create_orig () {
       hrev="$(get_nightly_revision_human)"
     fi
     local treeish="$1" dver="$(mk_dver "$uver")"
+    dver=`echo $dver | awk -F:  '{print $2}'`
     local orig="../$(dsc_source)_$dver.orig.tar.xz"
     [ -n "$treeish" ] || treeish="HEAD"
     check_repo_clean
