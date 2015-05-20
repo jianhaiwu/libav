@@ -204,7 +204,12 @@ get_sources () {
   local tgt_distro="$1"
   while read type path distro components; do
     test "$type" = deb || continue
-    printf "$type $path $tgt_distro $components\n"
+
+    prefix=`echo $distro | awk -F/ '{print $1}'`
+    suffix=`echo $distro | awk -F/ '{print $2}'`
+    echo "SUFFIX[$suffix]"
+    if test -n $suffix ; then full="$tgt_distro/$suffix" ; else full="$tgt_distro" ; fi
+    printf "$type $path $full $components\n"
   done < "$2"
 }
 
@@ -489,5 +494,6 @@ case "$cmd" in
   create-dbg-pkgs) create_dbg_pkgs ;;
   create-dsc) create_dsc "$@" ;;
   create-orig) create_orig "$@" ;;
+  get-mirrors) get_mirrors "$@" ;;
   *) usage ;;
 esac
