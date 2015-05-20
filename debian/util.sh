@@ -183,7 +183,7 @@ create_dsc () {
     dpkg-source -i.* -Zxz -z${zl} -b .
 	echo "WTF!@#!@#3"
     dscfile="$(dsc_source)_$dver"
-    dpkg-genchanges -S > ../$dscfile_source.changes
+    dpkg-genchanges -S > ../${dscfile}_source.changes
 	echo "WTF!@#!@#4"
     local dsc="../$dscfile.dsc"
 	echo "WTF!@#!@#5"
