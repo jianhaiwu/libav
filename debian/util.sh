@@ -180,6 +180,7 @@ create_dsc () {
 	echo "WTF!@#!@#1"
     git add debian/changelog && git commit -m "nightly v$cver"
 	echo "WTF!@#!@#2"
+    dver="${orig_ver}-${distro}+1"
     dpkg-source -i.* -Zxz -z${zl} -b .
 	echo "WTF!@#!@#3"
     dscfile="$(dsc_source)_$dver"
