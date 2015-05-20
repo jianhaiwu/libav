@@ -205,8 +205,8 @@ get_sources () {
   while read type path distro components; do
     test "$type" = deb || continue
     prefix=`echo $distro | awk -F/ '{print $1}'`
-    suffix=`echo $distro | awk -F/ '{print $2}'`
-    if test -n $suffix ; then full="$tgt_distro/$suffix" ; else full="$tgt_distro" ; fi
+    suffix="`echo $distro | awk -F/ '{print $2}'`"
+    if test -n "$suffix" ; then full="$tgt_distro/$suffix" ; else full="$tgt_distro" ; fi
     printf "$type $path $full $components\n"
   done < "$2"
 }
