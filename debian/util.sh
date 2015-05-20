@@ -165,11 +165,12 @@ create_dsc () {
       esac
     done
     shift $(($OPTIND-1))
-    local distro="$(find_distro $1)" orig="$2" dver="$3"
+    local distro="$(find_distro $1)" orig="$2"
     local suite="$(find_suite $distro)"
-    local orig_ver="$dver"
+    local cver="$3"
+    local orig_ver="$(echo "$orig" | sed -e 's/^.*_//' -e 's/\.orig\.tar.*$//')"
 	echo "orig_ver: $orig_ver"
-    local dver="${orig_ver}-${distro}+1"
+    local dver="${cver}-${distro}+1"
 	echo "dver: $dver"
     $suite_postfix_p && { suite="${distro}${suite_postfix}"; }
     [ -x "$(which dch)" ] \
@@ -177,13 +178,14 @@ create_dsc () {
     [ "$zl" -ge "1" ] || zl=1
     dch -b -m -v "$dver" --force-distribution -D "$suite" "Nightly build."
 	echo "WTF!@#!@#1"
-    git add debian/changelog && git commit -m "nightly v$orig_ver"
+    git add debian/changelog && git commit -m "nightly v$cver"
 	echo "WTF!@#!@#2"
     dpkg-source -i.* -Zxz -z${zl} -b .
 	echo "WTF!@#!@#3"
-    dpkg-genchanges -S > ../$(dsc_base)_source.changes
+    dsc_file="$(dsc_source)_$(dver)"
+    dpkg-genchanges -S > ../$(dsc_file)_source.changes
 	echo "WTF!@#!@#4"
-    local dsc="../$(dsc_base).dsc"
+    local dsc="../$(dsc_file).dsc"
 	echo "WTF!@#!@#5"
     git reset --hard HEAD^ && git clean -fdx
 	echo "WTF!@#!@#6"
