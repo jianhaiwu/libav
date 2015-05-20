@@ -118,8 +118,8 @@ create_orig () {
       hrev="$(get_nightly_revision_human)"
     fi
     local treeish="$1" dver="$(mk_dver "$uver")"
-    dver=`echo $dver | awk -F:  '{print $2}'`
-    local orig="../$(dsc_source)_$dver.orig.tar.xz"
+    over=`echo $dver | awk -F:  '{print $2}'`
+    local orig="../$(dsc_source)_$over.orig.tar.xz"
     [ -n "$treeish" ] || treeish="HEAD"
     check_repo_clean
     git reset --hard "$treeish"
@@ -165,9 +165,9 @@ create_dsc () {
       esac
     done
     shift $(($OPTIND-1))
-    local distro="$(find_distro $1)" orig="$2"
+    local distro="$(find_distro $1)" orig="$2" dver="$3"
     local suite="$(find_suite $distro)"
-    local orig_ver="$(echo "$orig" | sed -e 's/^.*_//' -e 's/\.orig\.tar.*$//')"
+    local orig_ver="$dver"
 	echo "orig_ver: $orig_ver"
     local dver="${orig_ver}-${distro}+1"
 	echo "dver: $dver"
@@ -314,7 +314,7 @@ default_distros () {
 
 build_all () {
   local OPTIND OPTARG
-  local orig_opts="" dsc_opts="" deb_opts="" modlist=""
+  local orig_opts="" dsc_opts="" deb_opts="" modlist="" dver=""
   local archs="" distros="" orig="" depinst=false par=false
   while getopts 'a:bc:df:ijkK:l:m:no:p:s:tT:u:v:z:' o "$@"; do
     case "$o" in
@@ -336,7 +336,7 @@ build_all () {
       t) deb_opts="$deb_opts -t";;
       T) deb_opts="$deb_opts -T$OPTARG";;
       u) dsc_opts="$dsc_opts -u$OPTARG";;
-      v) orig_opts="$orig_opts -v$OPTARG";;
+      v) orig_opts="$orig_opts -v$OPTARG"; dver="$OPTARG";;
       z) orig_opts="$orig_opts -z$OPTARG"; dsc_opts="$dsc_opts -z$OPTARG";;
     esac
   done
@@ -361,7 +361,7 @@ build_all () {
     echo "true" > ../log/builds-ok
     for distro in $distros; do
       echo "Creating $distro dsc..." >&2
-      local dsc="$(create_dsc $dsc_opts $distro $orig 2>../log/$distro | tail -n1)"
+      local dsc="$(create_dsc $dsc_opts $distro $orig $dver 2>../log/$distro | tail -n1)"
       echo "Done creating $distro dsc." >&2
       if [ "${dsc:0:2}" = ".." ]; then
         local lopts="-b"
