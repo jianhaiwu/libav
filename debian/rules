@@ -73,7 +73,7 @@ configure-extra-stamp-%:
 	dh_testdir
 	mkdir -p debian-extra-$*
 	cd debian-extra-$* && CFLAGS="$(CFLAGS)" CPPFLAGS="$(CPPFLAGS)" LDFLAGS="$(LDFLAGS)" $(CURDIR)/configure \
-		$($*_build_confflags) $(v3_confflags) $(extra_$*_build_confflags)
+		$($*_build_confflags) $(v3_confflags) $(extra_$*_build_confflags) --extra-cflags='-I/usr/include/vpx2/'
 	touch $@
 
 build-%: build-stamp-%
