@@ -133,7 +133,7 @@ confflags += $(call cond_enable,/usr/include/theora/theoraenc.h,libtheora)
 confflags += $(call cond_enable,/usr/include/va/va.h,vaapi)
 confflags += $(call cond_enable,/usr/include/vdpau/vdpau.h,vdpau)
 confflags += $(call cond_enable,/usr/include/vorbis/vorbisenc.h,libvorbis)
-confflags += $(call cond_enable,/usr/include/vpx2/vpx_encoder.h,libvpx)
+confflags += $(call cond_enable,/usr/include/vpx2/vpx/vpx_encoder.h,libvpx)
 confflags += $(call cond_enable,/usr/include/zlib.h,zlib)
 
 # Configuration flags causing the libs to be GPL tainted
