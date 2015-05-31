@@ -1,5 +1,6 @@
 libav (6:11.4-1~deb8u1) UNRELEASED; urgency=high
 
+  [ Sebastian Ramacher ]
   * New upstream release fixing multiple security issues.
     - h264: Make sure reinit failures mark the context as not initialized (CVE-2015-3417)
     - msrle: Use FFABS to determine the frame size in msrle_decode_pal4 (CVE-2015-3395)
@@ -34,6 +35,9 @@ libav (6:11.4-1~deb8u1) UNRELEASED; urgency=high
     - h264_ps: properly check cropping parameters against overflow
     - hevc: zero the correct variables on invalid crop parameters
     - hevc: make the crop sizes unsigned
+
+  [ Reinhard Tartler]
+  * drop 01-configure-disable-i686-for-i586
 
  -- Sebastian Ramacher <sramacher@debian.org>  Mon, 01 Jun 2015 00:08:12 +0200
 
