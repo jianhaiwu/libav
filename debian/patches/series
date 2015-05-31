@@ -1,3 +1,2 @@
-01-configure-disable-i686-for-i586.patch
 02-configure-disable-ebx-gcc-4.9.patch
 03-disable-configuration-warnings.patch
