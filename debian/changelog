@@ -1,4 +1,4 @@
-libav (6:11.4-1~deb8u1) UNRELEASED; urgency=high
+libav (6:11.4-1~deb8u1) jessie-security; urgency=high
 
   [ Sebastian Ramacher ]
   * New upstream release fixing multiple security issues.
@@ -39,7 +39,7 @@ libav (6:11.4-1~deb8u1) UNRELEASED; urgency=high
   [ Reinhard Tartler]
   * drop 01-configure-disable-i686-for-i586
 
- -- Sebastian Ramacher <sramacher@debian.org>  Mon, 01 Jun 2015 00:08:12 +0200
+ -- Sebastian Ramacher <sramacher@debian.org>  Mon, 01 Jun 2015 11:12:42 +0200
 
 libav (6:11.3-1+deb8u1) jessie; urgency=medium
 
