@@ -2,8 +2,10 @@ libav (6:11.4-1~deb8u1) jessie-security; urgency=high
 
   [ Sebastian Ramacher ]
   * New upstream release fixing multiple security issues.
-    - h264: Make sure reinit failures mark the context as not initialized (CVE-2015-3417)
-    - msrle: Use FFABS to determine the frame size in msrle_decode_pal4 (CVE-2015-3395)
+    - h264: Make sure reinit failures mark the context as not initialized
+      (CVE-2015-3417)
+    - msrle: Use FFABS to determine the frame size in msrle_decode_pal4
+      (CVE-2015-3395)
     - cavs: Remove an unneeded scratch buffer
     - configure: Disable i686 for i586 and lower CPUs (debian/783082)
     - mjpegenc: Fix JFIF header byte ordering (bug/808)
@@ -16,7 +18,8 @@ libav (6:11.4-1~deb8u1) jessie-security; urgency=high
     - mux: Do not leave stale side data pointers in ff_interleave_add_packet()
     - avresample: Reallocate the internal buffer to the correct size (bug/825)
     - mpegts: Update the PSI/SI table only if the version change
-    - rtsp: Make sure we don't write too many transport entries into a fixed-size array
+    - rtsp: Make sure we don't write too many transport entries into a
+      fixed-size array
     - rtpenc_jpeg: Handle case of picture dimensions not dividing by 8
     - mov: Fix little endian audio detection
     - x86: Put COPY3_IF_LT under HAVE_6REGS (gentoo/541930)
