@@ -7,6 +7,7 @@ Url:            http://libav.org
 Source:         %{name}-%{version}.tar.gz
 Patch0:         0001-Fix-linking-errors-when-VC1-parser-is-enabled-and-VC.patch
 License:        LGPL-2.0+
+BuildRequires:  SDL-devel
 
 %description
 Libav is a complete, cross-platform solution to decode, encode, record, convert and stream audio and video.
