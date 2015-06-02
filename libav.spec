@@ -1,6 +1,6 @@
 Name:           libav
 Version:        11.3
-Release:        0.0
+Release:        0%{?dist}
 Summary:        Libav video encoding and decoding library
 Group:          Productivity/Multimedia/Video/Editors and Convertors
 Url:            http://libav.org
