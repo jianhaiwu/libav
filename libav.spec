@@ -1,12 +1,13 @@
 Name:           libav
 Version:        11.3
-Release:        0.0
+Release:        0%{?dist}
 Summary:        Libav video encoding and decoding library
 Group:          Productivity/Multimedia/Video/Editors and Convertors
 Url:            http://libav.org
 Source:         %{name}-%{version}.tar.gz
 Patch0:         0001-Fix-linking-errors-when-VC1-parser-is-enabled-and-VC.patch
 License:        LGPL-2.0+
+BuildRequires:  SDL-devel
 
 %description
 Libav is a complete, cross-platform solution to decode, encode, record, convert and stream audio and video.
