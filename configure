@@ -3282,6 +3282,7 @@ elif enabled x86; then
     case $cpu in
         i[345]86|pentium)
             cpuflags="-march=$cpu"
+            disable i686
             disable mmx
         ;;
         # targets that do NOT support nopl and conditional mov (cmov)
@@ -3939,6 +3940,15 @@ EOF
     # check whether EBX is available on x86
     check_inline_asm ebx_available '""::"b"(0)' &&
         check_inline_asm ebx_available '"":::"%ebx"'
+
+    # workaround for debian#783082 / libav#850
+    if enabled gcc; then
+      case $($cc -dumpversion) in
+        4.9.*|5.*)
+          disable ebx_available
+        ;;
+      esac
+    fi
 
     # check whether xmm clobbers are supported
     check_inline_asm xmm_clobbers '"":::"%xmm0"'
