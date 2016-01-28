@@ -45,23 +45,17 @@ up_base () { echo "$(dsc_source)-$(up_ver)"; }
 
 find_distro () {
   case "$1" in
-    experimental) echo "sid";;
-    unstable) echo "sid";;
-    testing) echo "jessie";;
-    stable) echo "wheezy";;
-    oldstable) echo "squeeze";;
+    experimental) distro-info --devel;;
+    unstable) distro-info --devel;;
+    testing) distro-info --testing;;
+    stable) distro-info --stable;;
+    oldstable) distro-info --oldstable;;
     *) echo "$1";;
   esac
 }
 
 find_suite () {
-  case "$1" in
-    sid) echo "unstable";;
-    jessie) echo "testing";;
-    wheezy) echo "stable";;
-    squeeze) echo "oldstable";;
-    *) echo "$1";;
-  esac
+  distro-info --alias "$1"
 }
 
 #### debian/rules helpers
@@ -347,7 +341,7 @@ build_all () {
   [ -n "$archs" ] || archs="amd64 i386"
   [ -n "$distros" ] || distros="$(default_distros)"
   ! $depinst || aptitude install -y \
-    rsync git less cowbuilder ccache \
+    rsync git less cowbuilder ccache distro-info \
     devscripts equivs build-essential
   [ -n "$orig" ] || orig="$(create_orig $orig_opts HEAD | tail -n1)"
   if [ -n "$modlist" ]; then
