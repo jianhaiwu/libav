@@ -55,7 +55,10 @@ find_distro () {
 }
 
 find_suite () {
-  distro-info --alias "$1"
+  case "$1" in
+    jessie) echo "stable";;
+    *) distro-info --alias "$1";;
+  esac
 }
 
 #### debian/rules helpers
@@ -171,9 +174,9 @@ create_dsc () {
       || err "package devscripts isn't installed"
     [ "$zl" -ge "1" ] || zl=1
     dch -b -m -v "$dver" --force-distribution -D "$suite" "Nightly build."
-	echo "WTF!@#!@#1"
+	echo "WTF!@#!@#1 $suite"
     git add debian/changelog && git commit -m "nightly v$cver"
-	echo "WTF!@#!@#2"
+	echo "WTF!@#!@#2 $dver"
     dver="${orig_ver}-${distro}+1"
     dpkg-source -i.* -Zxz -z${zl} -b .
 	echo "WTF!@#!@#3"
