@@ -1,0 +1,26 @@
+commit 1cb5b5d280cf15a176cb8a3c177b25dcefad0318
+Author: Anthony Minessale <anthm@freeswitch.org>
+Date:   Thu Feb 4 15:57:07 2016 -0600
+
+    add ifdefs for old symbols removed in 1.5
+
+diff --git a/libavcodec/libvpxenc.c b/libavcodec/libvpxenc.c
+index 0323885..45a6fcb 100644
+--- a/libavcodec/libvpxenc.c
++++ b/libavcodec/libvpxenc.c
+@@ -70,9 +70,15 @@ typedef struct VP8EncoderContext {
+ 
+ /** String mappings for enum vp8e_enc_control_id */
+ static const char *const ctlidstr[] = {
++#ifdef VP8E_UPD_ENTROPY
+     [VP8E_UPD_ENTROPY]           = "VP8E_UPD_ENTROPY",
++#endif
++#ifdef VP8E_UPD_REFERENCE
+     [VP8E_UPD_REFERENCE]         = "VP8E_UPD_REFERENCE",
++#endif
++#ifdef VP8E_USE_REFERENCE
+     [VP8E_USE_REFERENCE]         = "VP8E_USE_REFERENCE",
++#endif
+     [VP8E_SET_ROI_MAP]           = "VP8E_SET_ROI_MAP",
+     [VP8E_SET_ACTIVEMAP]         = "VP8E_SET_ACTIVEMAP",
+     [VP8E_SET_SCALEMODE]         = "VP8E_SET_SCALEMODE",

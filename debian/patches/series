@@ -1,3 +1,4 @@
 02-configure-disable-ebx-gcc-4.9.patch
 03-disable-configuration-warnings.patch
+04-vpx15removed.patch
 libvpx2.diff
