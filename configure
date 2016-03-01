@@ -86,6 +86,7 @@ Standard options:
   --shlibdir=DIR           install shared libs in DIR [PREFIX/lib]
   --incdir=DIR             install includes in DIR [PREFIX/include]
   --mandir=DIR             install man page in DIR [PREFIX/share/man]
+  --enable-rpath           use rpath when linking programs [USE WITH CARE]
 
 Licensing options:
   --enable-gpl             allow use of GPL code, the resulting libs
@@ -1325,11 +1326,21 @@ ARCH_EXT_LIST_X86="
     i686
 "
 
+ARCH_EXT_LIST_MIPS="
+    loongson
+    mips32r1
+    mips64r1
+    mips32r2
+    mips64r2
+    mips32r6
+    mips64r6
+"
+
 ARCH_EXT_LIST="
     $ARCH_EXT_LIST_ARM
+    $ARCH_EXT_LIST_MIPS
     $ARCH_EXT_LIST_PPC
     $ARCH_EXT_LIST_X86
-    loongson
     vis
 "
 
@@ -1597,6 +1608,7 @@ CMDLINE_SELECT="
     logging
     lto
     optimizations
+    rpath
 "
 
 PATHS_LIST="
@@ -2323,6 +2335,9 @@ for n in $COMPONENT_LIST; do
     eval ${n}_if_any="\$$v"
 done
 
+# It is a security issue
+disable concat_protocol
+
 enable $ARCH_EXT_LIST
 
 die_unknown(){
@@ -2443,6 +2458,8 @@ for opt do
         ;;
     esac
 done
+
+enabled concat_protocol && warn "The concat protocol is a known vulnerability vector. Tread carefully."
 
 disabled logging && logfile=/dev/null
 
@@ -2918,9 +2935,6 @@ probe_cc(){
         _ld_path='-libpath:'
         _flags='-nologo'
         _cflags='-D_USE_MATH_DEFINES -D_CRT_SECURE_NO_WARNINGS -Dinline=__inline -FIstdlib.h -Dstrtoll=_strtoi64'
-        if [ $pfx = hostcc ]; then
-            append _cflags -Dsnprintf=_snprintf
-        fi
     elif $_cc 2>&1 | grep -q Intel; then
         _type=icl
         _ident=$($cc 2>&1 | head -n1)
@@ -2944,9 +2958,6 @@ probe_cc(){
         # -Qvec- -Qsimd- to prevent miscompilation, -GS for consistency
         # with MSVC which enables it by default.
         _cflags='-D_USE_MATH_DEFINES -FIstdlib.h -Dstrtoll=_strtoi64 -Qms0 -Qvec- -Qsimd- -GS'
-        if [ $pfx = hostcc ]; then
-            append _cflags -Dsnprintf=_snprintf
-        fi
     elif $_cc --version 2>/dev/null | grep -q ^cparser; then
         _type=cparser
         _ident=$($_cc --version | head -n1)
@@ -3309,6 +3320,7 @@ fi
 if [ "$cpu" != generic ]; then
     add_cflags  $cpuflags
     add_asflags $cpuflags
+    test "$cc_type" = "$ld_type" && add_ldflags $cpuflags
 fi
 
 # compiler sanity check
@@ -3628,6 +3640,16 @@ probe_libc(){
             add_${pfx}cppflags -D__printf__=__gnu_printf__
     elif check_${pfx}cpp_condition crtversion.h "defined _VC_CRT_MAJOR_VERSION"; then
         eval ${pfx}libc_type=msvcrt
+        if check_${pfx}cpp_condition crtversion.h "_VC_CRT_MAJOR_VERSION < 14"; then
+            if [ "$pfx" = host_ ]; then
+                add_host_cppflags -Dsnprintf=_snprintf
+            else
+                add_compat strtod.o strtod=avpriv_strtod
+                add_compat msvcrt/snprintf.o snprintf=avpriv_snprintf   \
+                                             _snprintf=avpriv_snprintf  \
+                                             vsnprintf=avpriv_vsnprintf
+            fi
+        fi
         # The MSVC 2010 headers (Win 7.0 SDK) set _WIN32_WINNT to
         # 0x601 by default unless something else is set by the user.
         # This can easily lead to us detecting functions only present
@@ -3654,12 +3676,6 @@ test -n "$host_libc_type" && enable host_libc_$host_libc_type
 case $libc_type in
     bionic)
         add_compat strtod.o strtod=avpriv_strtod
-        ;;
-    msvcrt)
-        add_compat strtod.o strtod=avpriv_strtod
-        add_compat msvcrt/snprintf.o snprintf=avpriv_snprintf   \
-                                     _snprintf=avpriv_snprintf  \
-                                     vsnprintf=avpriv_vsnprintf
         ;;
 esac
 
@@ -3843,7 +3859,7 @@ elif enabled arm; then
 
     if     check_cpp_condition stddef.h "defined __ARM_PCS_VFP"; then
         enable vfp_args
-    elif ! check_cpp_condition stddef.h "defined __ARM_PCS || defined __SOFTFP__"; then
+    elif ! check_cpp_condition stddef.h "defined __ARM_PCS || defined __SOFTFP__" && [ $target_os != darwin ]; then
         case "${cross_prefix:-$cc}" in
             *hardfloat*)         enable vfp_args;   fpabi=vfp ;;
             *) check_ld <<EOF && enable vfp_args && fpabi=vfp || fpabi=soft ;;
@@ -3882,6 +3898,19 @@ EOF
 elif enabled mips; then
 
     check_inline_asm loongson '"dmult.g $1, $2, $3"'
+
+    # make sure that only an instruction set is enabled
+    disable mips64r6 mips32r6 mips64r2 mips32r2 mips64r1 mips32r1
+
+    if enabled mips64; then
+        check_inline_asm mips64r6 '"dlsa $0, $0, $0, 1"' ||
+            check_inline_asm mips64r2 '"dext $0, $0, 0, 1"' ||
+                check_inline_asm mips64r1 '"daddi $0, $0, 0"'
+    else
+        check_inline_asm mips32r6 '"aui $0, $0, 0"' ||
+            check_inline_asm mips32r2 '"ext $0, $0, 0, 1"' ||
+                check_inline_asm mips32r1 '"addi $0, $0, 0"'
+    fi
 
 elif enabled parisc; then
 
@@ -4298,6 +4327,7 @@ check_disable_warning -Wno-pointer-sign
 # add some linker flags
 check_ldflags -Wl,--warn-common
 check_ldflags -Wl,-rpath-link=libswscale:libavfilter:libavdevice:libavformat:libavcodec:libavutil:libavresample
+enabled rpath && add_ldexeflags -Wl,-rpath,$libdir
 test_ldflags -Wl,-Bsymbolic && append SHFLAGS -Wl,-Bsymbolic
 
 # add some strip flags

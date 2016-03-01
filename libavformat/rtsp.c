@@ -1102,8 +1102,7 @@ start:
                 return AVERROR_EOF;
             if (ch == '\n')
                 break;
-            if (ch == '$') {
-                /* XXX: only parse it if first char on line ? */
+            if (ch == '$' && q == buf) {
                 if (return_on_interleaved_data) {
                     return 1;
                 } else
