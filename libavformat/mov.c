@@ -1349,7 +1349,7 @@ static void mov_parse_stsd_audio(MOVContext *c, AVIOContext *pb,
 
 static void mov_parse_stsd_subtitle(MOVContext *c, AVIOContext *pb,
                                     AVStream *st, MOVStreamContext *sc,
-                                    int size)
+                                    int64_t size)
 {
     // ttxt stsd contains display flags, justification, background
     // color, fonts, and default styles, so fake an atom to read it
@@ -1414,7 +1414,7 @@ static int mov_rewrite_dvd_sub_extradata(AVStream *st)
 
 static int mov_parse_stsd_data(MOVContext *c, AVIOContext *pb,
                                 AVStream *st, MOVStreamContext *sc,
-                                int size)
+                                int64_t size)
 {
     if (st->codec->codec_tag == MKTAG('t','m','c','d')) {
         st->codec->extradata_size = size;
@@ -1440,7 +1440,11 @@ static int mov_finalize_stsd_codec(MOVContext *c, AVIOContext *pb,
     switch (st->codec->codec_id) {
 #if CONFIG_DV_DEMUXER
     case AV_CODEC_ID_DVAUDIO:
-        c->dv_fctx  = avformat_alloc_context();
+        c->dv_fctx = avformat_alloc_context();
+        if (!c->dv_fctx) {
+            av_log(c->fc, AV_LOG_ERROR, "dv demux context alloc error\n");
+            return AVERROR(ENOMEM);
+        }
         c->dv_demux = avpriv_dv_init_demux(c->dv_fctx);
         if (!c->dv_demux) {
             av_log(c->fc, AV_LOG_ERROR, "dv demux context init error\n");
@@ -1495,7 +1499,7 @@ static int mov_finalize_stsd_codec(MOVContext *c, AVIOContext *pb,
 
 static int mov_skip_multiple_stsd(MOVContext *c, AVIOContext *pb,
                                   int codec_tag, int format,
-                                  int size)
+                                  int64_t size)
 {
     int video_codec_id = ff_codec_get_id(ff_codec_movvideo_tags, format);
 
@@ -1537,7 +1541,7 @@ int ff_mov_read_stsd_entries(MOVContext *c, AVIOContext *pb, int entries)
         int ret, dref_id = 1;
         MOVAtom a = { AV_RL32("stsd") };
         int64_t start_pos = avio_tell(pb);
-        uint32_t size = avio_rb32(pb); /* size */
+        int64_t size    = avio_rb32(pb); /* size */
         uint32_t format = avio_rl32(pb); /* data format */
 
         if (size >= 16) {
@@ -1790,10 +1794,11 @@ static int mov_read_stsz(MOVContext *c, AVIOContext *pb, MOVAtom atom)
 
     sc->sample_count = i;
 
+    av_free(buf);
+
     if (pb->eof_reached)
         return AVERROR_EOF;
 
-    av_free(buf);
     return 0;
 }
 
@@ -1876,11 +1881,13 @@ static int mov_read_ctts(MOVContext *c, AVIOContext *pb, MOVAtom atom)
 
     av_dlog(c->fc, "track[%i].ctts.entries = %i\n", c->fc->nb_streams-1, entries);
 
+    av_freep(&sc->ctts_data);
+
     if (!entries)
         return 0;
     if (entries >= UINT_MAX / sizeof(*sc->ctts_data))
         return AVERROR_INVALIDDATA;
-    sc->ctts_data = av_malloc(entries * sizeof(*sc->ctts_data));
+    sc->ctts_data = av_realloc(NULL, entries * sizeof(*sc->ctts_data));
     if (!sc->ctts_data)
         return AVERROR(ENOMEM);
 
@@ -2266,6 +2273,9 @@ static int mov_read_trak(MOVContext *c, AVIOContext *pb, MOVAtom atom)
         st->codec->width = 0; /* let decoder init width/height */
         st->codec->height= 0;
         break;
+    case AV_CODEC_ID_MP3:
+        st->need_parsing = AVSTREAM_PARSE_FULL;
+        break;
     }
 
     /* Do not need those anymore. */
@@ -2289,7 +2299,7 @@ static int mov_read_ilst(MOVContext *c, AVIOContext *pb, MOVAtom atom)
     return ret;
 }
 
-static int mov_read_replaygain(MOVContext *c, AVIOContext *pb, int size)
+static int mov_read_replaygain(MOVContext *c, AVIOContext *pb, int64_t size)
 {
     int64_t end = avio_tell(pb) + size;
     uint8_t *key = NULL, *val = NULL;
