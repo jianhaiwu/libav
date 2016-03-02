@@ -8,27 +8,16 @@ libav (6:11.6-1~deb8u1) jessie-security; urgency=medium
     - h263: Always check both dimensions
     - opusdec: properly handle mismatching configurations in multichannel
       streams
-    - vc1: Use logical instead of bitwise or for twomv
     - mov: Correctly allocate ctts_data
-    - mov: Fix two memleaks
     - aac: Wait to know the channels before allocating frame
     - rtpdec_asf: Check memory allocation and free memory on error
     - jack: Check memory allocation
     - mov: Check memory allocation
-    - audiointerleave: Always initialize new_pkt
-    - sctp: Always initialize outmsg struct
     - mkv: Correctly report the latest packet had been flushed
     - aic: Fix slice size computation for widths multiples of 32 macroblocks
-    - mov: Preserve the metadata even when bit-exactness is requested
     - webp: Make sure enough bytes are available
-    - h261: Set 'still image mode off' in picture header
-    - h261: Signal freeze picture release for intra frames
-    - avconv: vda: Unlock the pixel buffer once it is accessed
     - g726: Do not crash on user mistake
     - bytestream2: set the reader to the end when reading more than available
-    - af_channelmap: properly set the supported output channel layouts
-    - rtsp: Only interpret $ as interleaved packet indicator at the start of replies
-    - rtsp: Allow $ as interleaved packet indicator before a complete response header
     - vp7: bound checking in vp7_decode_frame_header
     - mux: Make sure that the data is actually written
     - file: properly forward errors from file_read() and file_write()
@@ -36,17 +25,17 @@ libav (6:11.6-1~deb8u1) jessie-security; urgency=medium
     - opus: Buffer the samples from the correct offset
     - nut: Use the correct codec_tag when multiple are available
     - truemotion2: Fix the buffer check
-    - flashsv: Initialize the block array
     - mimic: Always return on failure
     - msnwc_tcp: Correctly report failure
-    - lagarith: Correctly compute hash_shift
     - rpza: Check the blocks left before processing one
     - dvdsubdec: Validate the RLE offsets
     - avi: Validate the stream-id for DV as well
     - mov: Use the correct type for size
   * debian/confflags: Force --disable-protocol=concat.
+  * debian/patches/CVE-2016-2326.patch: avformat/asfenc: Check pts.
+    (CVE-2016-2326)
 
- -- Sebastian Ramacher <sramacher@debian.org>  Tue, 01 Mar 2016 23:27:42 +0100
+ -- Sebastian Ramacher <sramacher@debian.org>  Wed, 02 Mar 2016 23:13:43 +0100
 
 libav (6:11.4-1~deb8u1) jessie-security; urgency=high
 
