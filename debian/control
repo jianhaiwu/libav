@@ -25,7 +25,7 @@ Build-Depends:
  libcdio-paranoia-dev,
  libdc1394-22-dev [linux-any],
  libfreetype6-dev (>= 2.5.1),
- libgnutls28-dev,
+ libgnutls28-dev | gnutls-dev,
  libgsm1-dev,
  libjack-dev,
  libmp3lame-dev,
